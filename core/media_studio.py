@@ -162,10 +162,38 @@ def generate_single_image(
     wait_s: int = 240,
     pause_s: float = 3.0,
 ) -> Path:
-    """Gera uma unica imagem via Flow (--characters '') com fallback para Gemini Web."""
+    """Gera uma unica imagem via Flow (CDP direto Nov-2026 ou flow_fetch) com fallback para Gemini Web."""
     flow_script = VENDOR_DIR / "flow_fetch.py"
     gemini_script = VENDOR_DIR / "gemini_fetch.py"
     out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Caminho preferencial: motor direto core.flow_continuity (Nano Banana 2.1, x1, 0 creditos) quando CDP estiver vivo
+    try:
+        import asyncio, urllib.request
+        from core.flow_continuity import DEFAULT_CDP_URL, DEFAULT_FLOW_PROJECT_URL, generate_flow_image
+        from playwright.async_api import async_playwright
+
+        with urllib.request.urlopen(f"{DEFAULT_CDP_URL}/json/version", timeout=2):
+            pass
+
+        async def _run_direct():
+            async with async_playwright() as pw:
+                b = await pw.chromium.connect_over_cdp(DEFAULT_CDP_URL, timeout=10000)
+                ctx = b.contexts[0]
+                pg = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
+                if "flow.google.com/project/" not in pg.url:
+                    await pg.goto(DEFAULT_FLOW_PROJECT_URL, wait_until="domcontentloaded", timeout=30000)
+                    await pg.wait_for_timeout(2000)
+                await generate_flow_image(pg, sanitize_image_prompt(prompt), out_path, wait_s=min(wait_s, 180))
+                await b.close()
+
+        asyncio.run(_run_direct())
+        if out_path.exists() and out_path.stat().st_size >= 10000:
+            tw, th = (1080, 1920) if aspect == "9:16" else (VIDEO_WIDTH, VIDEO_HEIGHT)
+            fit_aspect_jpeg(out_path, out_path, tw, th)
+            return out_path
+    except Exception:
+        pass
 
     cmd_flow = [
         sys.executable, str(flow_script),

@@ -1,0 +1,46 @@
+{
+  "max_credits_per_account_per_day": 50,
+  "credits_per_veo_lite_8s": 10,
+  "accounts": [
+    {
+      "id": "acc_1",
+      "label": "Conta Principal (50 creditos/dia)",
+      "cdp_port": 18800,
+      "profile_dir": "C:\\videomaker\\.chrome-gemini-profile",
+      "project_url": "https://flow.google.com/project/2700c141-d4ed-4bd2-9f7a-2f82cffa8083",
+      "enabled": true
+    },
+    {
+      "id": "acc_2",
+      "label": "Conta Google 2 (50 creditos/dia)",
+      "cdp_port": 18801,
+      "profile_dir": "E:\\videos\\videomaker_v2\\.chrome-flow-accounts\\acc_2",
+      "project_url": "",
+      "enabled": true
+    },
+    {
+      "id": "acc_3",
+      "label": "Conta Google 3 (50 creditos/dia)",
+      "cdp_port": 18802,
+      "profile_dir": "E:\\videos\\videomaker_v2\\.chrome-flow-accounts\\acc_3",
+      "project_url": "",
+      "enabled": true
+    },
+    {
+      "id": "acc_4",
+      "label": "Conta Google 4 (50 creditos/dia)",
+      "cdp_port": 18803,
+      "profile_dir": "E:\\videos\\videomaker_v2\\.chrome-flow-accounts\\acc_4",
+      "project_url": "",
+      "enabled": true
+    },
+    {
+      "id": "acc_5",
+      "label": "Conta Google 5 (50 creditos/dia)",
+      "cdp_port": 18804,
+      "profile_dir": "E:\\videos\\videomaker_v2\\.chrome-flow-accounts\\acc_5",
+      "project_url": "",
+      "enabled": true
+    }
+  ]
+}

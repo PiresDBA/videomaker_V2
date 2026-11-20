@@ -101,8 +101,15 @@ class TestVideomakerV2Unified(unittest.TestCase):
         self.assertIn("sunny neighborhood park with stone fountain", p["positive"])
         self.assertIn("white pearl necklace", p["positive"])
         self.assertIn("chocolate-brown", p["positive"])
+        self.assertIn("1 year old max", p["positive"])
         self.assertNotIn("CENA 2", p["positive"])
         self.assertEqual(p["negative"], NEGATIVE_IMAGE_RULE)
+        self.assertIn("mature adult dogs", p["negative"])
+
+        from core.flow_continuity import enforce_youthful_puppy_prompt
+        flow_p = enforce_youthful_puppy_prompt("Frida barking near fountain")
+        self.assertIn("1 year old max", flow_p)
+        self.assertEqual(enforce_youthful_puppy_prompt(flow_p), flow_p)
 
     def test_phonetic_normalization(self):
         src = "Os cães falantes bateram as penas com a patinha e os passarinhos cantaram em coro suas piadas!"
@@ -142,6 +149,64 @@ class TestVideomakerV2Unified(unittest.TestCase):
                     im.putpixel((x, y), (240, 200, 120))
             im.save(p)
             self.assertGreaterEqual(detect_split_collage(p), 2)
+
+    def test_mixed_mp4_and_jpg_subclip_resolution(self):
+        import subprocess
+        from config import AVATAR_PROFILES, FFMPEG_EXE
+        from core.video_assembler import _resolve_clip_video, render_motion_video_subclip
+
+        with tempfile.TemporaryDirectory() as td:
+            td_p = Path(td)
+            imgs = td_p / "images"
+            vids = td_p / "videos"
+            imgs.mkdir()
+            vids.mkdir()
+            sample_vid = vids / "sc_01.mp4"
+            subprocess.run(
+                [FFMPEG_EXE, "-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=1280x720:d=3.0",
+                 "-c:v", "libx264", "-pix_fmt", "yuv420p", str(sample_vid)],
+                check=True,
+            )
+            found = _resolve_clip_video({"clip_id": "sc_01_p1", "scene_id": "sc_01"}, imgs)
+            self.assertEqual(found, sample_vid)
+            self.assertIsNone(_resolve_clip_video({"clip_id": "sc_02_p1", "scene_id": "sc_02"}, imgs))
+            out_seg = td_p / "seg.mp4"
+            render_motion_video_subclip(sample_vid, 0.0, 2.0, out_seg, pts_factor=1.0)
+            self.assertTrue(out_seg.exists() and out_seg.stat().st_size > 10000)
+
+    def test_flow_accounts_quota_and_failover(self):
+        import core.flow_accounts as fa
+
+        with tempfile.TemporaryDirectory() as td:
+            td_p = Path(td)
+            old_cfg, old_st = fa.FLOW_ACCOUNTS_CONFIG, fa.FLOW_ACCOUNTS_STATE
+            try:
+                fa.FLOW_ACCOUNTS_CONFIG = td_p / "flow_accounts.json"
+                fa.FLOW_ACCOUNTS_STATE = td_p / "flow_accounts_state.json"
+                cfg = fa.load_accounts_config()
+                self.assertEqual(len(cfg["accounts"]), 5)
+                self.assertEqual([a["id"] for a in fa.get_next_available_accounts()], ["acc_1", "acc_2", "acc_3", "acc_4", "acc_5"])
+
+                for _ in range(5):
+                    fa.mark_account_usage("acc_1", credits_delta=10, email="a1@gmail.com")
+                avail = [a["id"] for a in fa.get_next_available_accounts()]
+                self.assertNotIn("acc_1", avail)
+                self.assertEqual(avail[0], "acc_2")
+
+                fa.mark_account_usage("acc_2", credits_delta=0, exhausted=True)
+                self.assertEqual(fa.get_next_available_accounts()[0]["id"], "acc_3")
+                self.assertTrue(fa.is_quota_error_text("Créditos insuficientes para gerar vídeo"))
+
+                old_ls = fa.FLOW_LEARNED_SESSIONS
+                try:
+                    fa.FLOW_LEARNED_SESSIONS = td_p / "flow_learned_sessions.json"
+                    fa._save_learned_sessions({"sessions": {"acc_2": {"email": "u2@gmail.com", "clicks": [{"text": "Novo projeto"}]}}})
+                    loaded = fa._load_learned_sessions()
+                    self.assertEqual(loaded["sessions"]["acc_2"]["email"], "u2@gmail.com")
+                finally:
+                    fa.FLOW_LEARNED_SESSIONS = old_ls
+            finally:
+                fa.FLOW_ACCOUNTS_CONFIG, fa.FLOW_ACCOUNTS_STATE = old_cfg, old_st
 
     def test_e2e_unified_render_whisper_dual_avatar_and_short(self):
         """Teste real ponta a ponta: TTS + Whisper QA + Dual-Avatar + Pop ASS + 16:9 + Short 9:16."""

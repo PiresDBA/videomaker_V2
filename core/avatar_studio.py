@@ -426,90 +426,29 @@ def render_magic_sparkles_overlay(duration: float, out_mov: Path, width: int = 1
 
 def generate_flow_video_clip(
     prompt: str,
-    ref_image: Path,
+    ref_image: Path | None,
     save_mp4: Path,
-    flow_project_url: str = "https://flow.google.com/project/d43a0933-5310-4951-b511-911f96a6bc22",
+    flow_project_url: str = "https://flow.google.com/project/2700c141-d4ed-4bd2-9f7a-2f82cffa8083",
     cdp_url: str = "http://127.0.0.1:18800",
-    wait_s: int = 600,
+    wait_s: int = 360,
+    ref_image_aria: str = "",
 ) -> Path:
-    """Gera 1 clipe de video (~8s) via Google Flow (Veo 3.1 Lite) usando vendor/flow_fetch."""
-    import sys
-    sys.path.insert(0, str(VENDOR_DIR))
-    import flow_fetch as ff  # noqa: E402
+    """Gera 1 clipe de video (~8s) via Google Flow (Veo 3.1 - Lite, x1, 10 creditos)."""
+    from core.flow_continuity import generate_flow_video
     from playwright.async_api import async_playwright
 
     async def _run():
         async with async_playwright() as pw:
-            b = await pw.chromium.connect_over_cdp(cdp_url)
+            b = await pw.chromium.connect_over_cdp(cdp_url, timeout=10000)
             ctx = b.contexts[0]
             page = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
-            await page.goto(flow_project_url, wait_until="domcontentloaded", timeout=60000)
-            await page.wait_for_timeout(1500)
-            if await ff.needs_login(page):
-                raise RuntimeError("Google Flow deslogado no Chrome CDP")
-            await ff.dismiss_ads_and_permissions(page)
-            await ff._dismiss_overlays(page)
-
-            trig = await ff._loc_first_visible(page, ff.SETTINGS_TRIGGER_SELECTORS, timeout_ms=6000)
-            if trig is None:
-                raise RuntimeError("Painel de configuracoes do Flow nao encontrado")
-            await trig.click(timeout=5000)
-            await page.wait_for_timeout(800)
-
-            for label in ("Vídeo", "Video", "Veo"):
-                cand = page.locator(f'mat-button-toggle:has-text("{label}")').first
-                if await cand.count():
-                    if not await ff._toggle_checked(cand):
-                        await cand.click(timeout=5000)
-                    break
-
-            for label_d in ("8s", "8 s"):
-                dur = page.locator(f'mat-button-toggle:has-text("{label_d}")').first
-                if await dur.count() and not await ff._toggle_checked(dur):
-                    await dur.click(timeout=4000)
-                    break
-            await page.keyboard.press("Escape")
-            await page.wait_for_timeout(400)
-
-            if ref_image.exists():
-                await ff.attach_reference(page, str(ref_image))
-            ed = await ff.editor(page)
-            await ed.click()
-            await ed.fill(prompt)
-            await page.wait_for_timeout(400)
-            gen = page.locator('button[aria-label*="Iniciar"], button:has(mat-icon:has-text("arrow_forward"))').first
-            await (gen.click(timeout=8000) if await gen.count() else page.keyboard.press("Enter"))
-
-            save_mp4.parent.mkdir(parents=True, exist_ok=True)
-            dl = page.locator(ff.DL_SELECTOR)
-            antes = await dl.count()
-            net_url = None
-
-            def on_resp(resp):
-                nonlocal net_url
-                ct = (resp.headers or {}).get("content-type", "").split(";")[0].lower()
-                if ct.startswith("video/") and resp.status in (200, 206) and net_url is None:
-                    net_url = resp.url
-
-            page.on("response", on_resp)
-            t0 = time.time()
-            while time.time() - t0 < wait_s:
-                await page.wait_for_timeout(4000)
-                if await dl.count() > antes:
-                    try:
-                        async with page.expect_download(timeout=30000) as dinfo:
-                            await dl.last.click(timeout=10000)
-                        d = await dinfo.value
-                        await d.save_as(str(save_mp4))
-                        return save_mp4
-                    except Exception:
-                        pass
-                if net_url:
-                    data, _ = await ff.fetch_url(page, net_url)
-                    if data and len(data) > 20000:
-                        save_mp4.write_bytes(data)
-                        return save_mp4
-            raise TimeoutError(f"Timeout aguardando video Veo em {save_mp4}")
+            if flow_project_url not in page.url:
+                await page.goto(flow_project_url, wait_until="domcontentloaded", timeout=45000)
+                await page.wait_for_timeout(2000)
+            refs = (ref_image_aria,) if ref_image_aria else ()
+            await generate_flow_video(page, prompt, save_mp4, ref_images=refs, wait_s=wait_s)
+            await b.close()
+        return save_mp4
 
     return asyncio.run(_run())
 

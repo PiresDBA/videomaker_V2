@@ -48,6 +48,7 @@ REGRAS OBRIGATÓRIAS DE RETENÇÃO, EMOÇÃO E ESTRUTURA:
    - "avatar_mode": "frida", "luna", "duo" (troca/reação entre as duas) ou "none" (cena de ação pura em tela cheia).
 6. CENAS CURTAS E PORTUGUÊS LIMPO: 1 a 2 frases curtas por cena (12 a 26 palavras). Zero risadas escritas ("Hahaha", "kkkk") e acentuação perfeita ("cães", "já", "céu", "é", "patinha", "passarinhos", "coro", "piadas").
 7. CENÁRIO CONSISTENTE: Defina "location" em TODA cena preservando continuidade geográfica lógica.
+8. IDADE E ESTILO DOS PERSONAGENS (PADRÃO CRIANÇA / AVATAR 3D DISNEY-PIXAR): Em TODA descrição de "visual_action", descreva Frida e Luna com aparência jovem de criança/pré-adolescente (filhotes jovens de até 1 ano no máximo, equivalentes a crianças de 5 a 10 anos em animação 3D Disney/Pixar, fiéis ao avatar oficial: graciosas, olhos grandes expressivos, traços arredondados de desenho animado — NUNCA cães adultos/velhos nem cães reais fotorrealistas; use versão bebê recém-nascido apenas se a cena for explicitamente um flashback de quando eram bebês).
 
 FORMATO DE SAÍDA (APENAS JSON puro, sem markdown):
 {
@@ -247,7 +248,7 @@ def _get_google_keys() -> list[str]:
     return keys
 
 
-def _call_gemini_text_api(prompt: str, model: str = "gemini-2.5-flash") -> str:
+def _call_gemini_text_api(prompt: str, model: str = "gemini-3-flash-preview") -> str:
     keys = _get_google_keys()
     if not keys:
         raise RuntimeError("Nenhuma chave Google/Gemini encontrada no .env interno.")

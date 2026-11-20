@@ -47,6 +47,76 @@ def run_pipeline(args: argparse.Namespace) -> int:
         if args.stage == "avatar-only":
             return 0
 
+    if getattr(args, "flow_accounts_status", False):
+        import asyncio
+        from core.flow_accounts import inspect_all_accounts_status
+
+        rows = asyncio.run(inspect_all_accounts_status())
+        print("\n=== CONTAS GOOGLE FLOW (POOL FAILOVER) ===")
+        for r in rows:
+            print(
+                f"  - {r['id']} (:{r['port']}) | cdp={'ON' if r['cdp_alive'] else 'OFF'} "
+                f"| login={'OK' if r['logged_in'] else 'NAO'} | {r['email'] or '-'} "
+                f"| restam ~{r['credits_remaining_est']}/50 cred | chars={r['characters']}"
+            )
+        return 0
+
+    if getattr(args, "setup_flow_account", ""):
+        import asyncio
+        from core.flow_accounts import (
+            check_needs_google_login,
+            detect_logged_email,
+            ensure_account_cdp,
+            ensure_flow_project,
+            load_accounts_config,
+            mark_account_usage,
+        )
+        from playwright.async_api import async_playwright
+
+        cfg = load_accounts_config()
+        target = next((a for a in cfg["accounts"] if a["id"] == args.setup_flow_account), None)
+        if target is None:
+            raise ValueError(f"Conta desconhecida: {args.setup_flow_account}")
+        cdp = ensure_account_cdp(target)
+        print(f"Janela Chrome aberta para {target['id']} em {cdp} (perfil {target['profile_dir']}).")
+        print("Faca login na conta Google no navegador se solicitado; verificando status...")
+
+        async def _probe():
+            async with async_playwright() as pw:
+                b = await pw.chromium.connect_over_cdp(cdp, timeout=10000)
+                ctx = b.contexts[0]
+                pg = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
+                await pg.goto("https://flow.google.com/", wait_until="domcontentloaded", timeout=30000)
+                await pg.wait_for_timeout(2500)
+                need = await check_needs_google_login(pg)
+                em = await detect_logged_email(pg)
+                if not need:
+                    await ensure_flow_project(pg, target, cfg)
+                    mark_account_usage(target["id"], credits_delta=0, email=em)
+                await b.close()
+                return need, em, target.get("project_url", "")
+
+        need, em, purl = asyncio.run(_probe())
+        print(f"Conta {target['id']}: login={'PENDENTE (faça login na janela aberta)' if need else 'OK'} | email={em} | projeto={purl}")
+        return 0
+
+    if getattr(args, "learn_flow_accounts", False):
+        import asyncio
+        from core.flow_accounts import interactive_learn_accounts_wizard
+
+        ids = [x.strip() for x in args.flow_account_ids.split(",") if x.strip()] if getattr(args, "flow_account_ids", "") else None
+        saved = asyncio.run(interactive_learn_accounts_wizard(ids))
+        print(f"\nModo aprendizado concluido: {len(saved)} sessoes aprendidas e guardadas em flow_learned_sessions.json.")
+        return 0
+
+    if getattr(args, "save_learned_session", ""):
+        import asyncio
+        from core.flow_accounts import capture_learned_session
+
+        rec = asyncio.run(capture_learned_session(args.save_learned_session, auto_seed_refs=True))
+        print("Sessao aprendida e salva:", json.dumps(rec, ensure_ascii=False, indent=2))
+        return 0
+
     if args.legacy_dir:
         leg = Path(args.legacy_dir)
         slug = args.slug or slugify(leg.name)
@@ -205,6 +275,11 @@ def main() -> int:
     ap.add_argument("--no-avatar", action="store_true")
     ap.add_argument("--bgm", default="", help="Trilha instrumental opcional (.wav)")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--flow-accounts-status", action="store_true", help="Lista status/creditos/personagens das 5 contas Google Flow")
+    ap.add_argument("--setup-flow-account", default="", help="Abre Chrome CDP dedicado para logar uma conta Flow (ex: acc_2..acc_5)")
+    ap.add_argument("--learn-flow-accounts", action="store_true", help="Modo interativo de aprendizado passo a passo das contas Flow (sessao por sessao)")
+    ap.add_argument("--flow-account-ids", default="", help="Lista separada por virgula para aprendizado (ex: acc_2,acc_3)")
+    ap.add_argument("--save-learned-session", default="", help="Captura e guarda imediatamente a sessao/cliques/projeto da conta informada")
     args = ap.parse_args()
     return run_pipeline(args)
 

@@ -2,7 +2,9 @@
 """Configuracao central e autocontida do Videomaker v2 (Estudio Unico Frida & Luna)."""
 from __future__ import annotations
 
+import os
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +45,42 @@ def resolve_ffmpeg() -> tuple[str, str]:
 
 
 FFMPEG_EXE, FFPROBE_EXE = resolve_ffmpeg()
+
+CPU_WORKERS = min(8, max(4, os.cpu_count() or 6))
+NVENC_WORKERS = 2  # GTX 1060 suporta sessoes NVENC simultaneas com seguranca
+_HAS_NVENC_CACHE: bool | None = None
+
+
+def has_nvenc() -> bool:
+    """Detecta suporte real a h264_nvenc na GPU NVIDIA (ex.: GTX 1060 6GB)."""
+    global _HAS_NVENC_CACHE
+    if _HAS_NVENC_CACHE is not None:
+        return _HAS_NVENC_CACHE
+    try:
+        r = subprocess.run(
+            [
+                FFMPEG_EXE, "-y", "-v", "error",
+                "-f", "lavfi", "-i", "color=c=black:s=128x128:d=0.1",
+                "-c:v", "h264_nvenc", "-f", "null", "-",
+            ],
+            capture_output=True,
+            timeout=6,
+        )
+        _HAS_NVENC_CACHE = (r.returncode == 0)
+    except Exception:
+        _HAS_NVENC_CACHE = False
+    return _HAS_NVENC_CACHE
+
+
+def get_h264_encoder_args(quality: str = "fast", allow_nvenc: bool = True) -> list[str]:
+    """Retorna flags H.264 aceleradas por GPU (NVENC) ou fallback multi-core i7 (libx264)."""
+    if allow_nvenc and has_nvenc():
+        cq = "18" if quality == "master" else "19"
+        preset = "p5" if quality == "master" else "p3"
+        return ["-c:v", "h264_nvenc", "-preset", preset, "-rc", "vbr", "-cq", cq, "-pix_fmt", "yuv420p"]
+    preset_cpu = "medium" if quality == "master" else "veryfast"
+    crf_cpu = "18" if quality in ("master", "fast") else "17"
+    return ["-c:v", "libx264", "-preset", preset_cpu, "-crf", crf_cpu, "-threads", "0", "-pix_fmt", "yuv420p"]
 
 # Avatares 100% embutidos dentro de assets/avatars/<personagem>/
 AVATAR_PROFILES = {
@@ -105,28 +143,35 @@ THUMB_HEIGHT = 720
 # Biblia Visual fixa (injetada de forma limpa em todo prompt de imagem)
 VISUAL_BIBLE = {
     "frida": (
-        "FRIDA: female English bulldog, large compact and stocky build, "
-        "fawn golden-tan coat with cream chest and muzzle, soft facial wrinkles, "
-        "short flat snout, small folded ears, big expressive brown eyes with eyelashes, "
-        "wearing a white pearl necklace with a small crystal flower pendant"
+        "FRIDA: young child-like female English bulldog puppy (around 10 months to 1 year old max, "
+        "equivalent to a cute 6-to-10-year-old kid character in a 3D Disney Pixar movie, matching her avatar reference; "
+        "youthful compact kid build, NOT an old or heavy mature adult dog and NOT a newborn infant), "
+        "soft fawn golden-tan stylized 3D cartoon coat with cream chest and muzzle, gentle cute youthful face, "
+        "short cute snout, small folded ears, big glossy expressive brown cartoon eyes with long curved eyelashes, "
+        "graceful playful child expression, wearing a white pearl necklace with a small golden paw/flower pendant and tiny pearl ear stud"
     ),
     "luna": (
-        "LUNA: female miniature smooth-haired dachshund (sausage dog), "
-        "dark chocolate-brown glossy coat with warm tan markings on muzzle, eyebrows, "
-        "chest and paws, very long elongated body, short stubby legs, long floppy ears, "
-        "big expressive brown eyes with eyelashes, small pearl ear stud, "
-        "wearing a delicate double golden chain necklace with heart pendants"
+        "LUNA: young child-like female miniature smooth-haired dachshund puppy (around 10 months to 1 year old max, "
+        "equivalent to a cute 6-to-10-year-old kid/tween character in a 3D Disney Pixar movie, matching her avatar reference; "
+        "graceful youthful kid proportions, NOT an aged mature adult dog and NOT a newborn infant), "
+        "dark chocolate-brown glossy stylized 3D cartoon coat with warm tan markings on muzzle, eyebrows, chest and paws, "
+        "long velvety floppy ears, big sparkling expressive brown cartoon eyes with long eyelashes, small pearl ear stud, "
+        "wearing a delicate double golden chain necklace with tiny heart pendants"
     ),
     "style": (
-        "high-end 3D family animated movie style, soft global illumination, "
-        "detailed fur shading, rich expressive cartoon faces, dog-eye-level camera, no humans"
+        "stylized 3D Disney Pixar animated feature film aesthetic matching the official character avatars, "
+        "youthful child-like puppy characters (1 year old max, 5-to-10-year-old kid cartoon appeal), "
+        "big expressive cartoon eyes, soft rounded graceful 3D cartoon geometry, vibrant fairytale lighting, "
+        "non-photorealistic stylized 3D animation, never realistic live-action dogs, never old or mature adult dogs, "
+        "dog-eye-level camera, no humans"
     ),
 }
 
 POSITIVE_IMAGE_RULE = "single full-frame 16:9 widescreen cinematic scene, unified single composition"
 NEGATIVE_IMAGE_RULE = (
     "split screen, comic panels, grid, multi-panel, collage, storyboard, "
-    "frames, text, letters, numbers, watermark, subtitles, speech bubbles"
+    "frames, text, letters, numbers, watermark, subtitles, speech bubbles, "
+    "old dogs, mature adult dogs, heavy aged wrinkles, photorealistic live-action dogs, realistic coarse fur, scary or aggressive dogs"
 )
 
 # Casting emocional multi-voz (Gemini 3.8/2.5 Flash TTS + fallback Edge apenas em ultimo recurso)

@@ -2,12 +2,14 @@
 """Montagem final FFmpeg: Ken Burns, Dual-Avatar Frida & Luna, Legenda Pop ASS, -14 LUFS e Short 9:16."""
 from __future__ import annotations
 
+import concurrent.futures
 import subprocess
 from pathlib import Path
 from typing import Any
 
 from config import (
     AVATAR_PROFILES,
+    CPU_WORKERS,
     FFMPEG_EXE,
     SHORT_HEIGHT,
     SHORT_MAX_SECONDS,
@@ -19,9 +21,11 @@ from config import (
     VIDEO_FPS,
     VIDEO_HEIGHT,
     VIDEO_WIDTH,
+    get_h264_encoder_args,
 )
 from core.audio_fx import build_sfx_stem, master_with_soundcraft, resolve_act_bgm
 from core.avatar_studio import (
+    _index_character_bank,
     detect_emptiest_corners,
     render_avatar_pip_clip,
     render_magic_sparkles_overlay,
@@ -151,16 +155,76 @@ def _zoompan_filter(preset: str, duration: float, fps: int = VIDEO_FPS) -> str:
     )
 
 
+def _run_h264_ffmpeg(
+    cmd_head: list[str],
+    tail_args: list[str],
+    quality: str = "fast",
+    cwd: str | None = None,
+) -> None:
+    """Executa encode H.264 preferindo GPU (h264_nvenc) e caindo automaticamente para libx264 multi-thread."""
+    enc_args = get_h264_encoder_args(quality=quality, allow_nvenc=True)
+    try:
+        subprocess.run(cmd_head + enc_args + tail_args, cwd=cwd, check=True)
+    except subprocess.CalledProcessError:
+        if "h264_nvenc" not in enc_args:
+            raise
+        cpu_args = get_h264_encoder_args(quality=quality, allow_nvenc=False)
+        subprocess.run(cmd_head + cpu_args + tail_args, cwd=cwd, check=True)
+
+
 def render_ken_burns_clip(image_path: Path, preset: str, duration: float, out_mp4: Path) -> Path:
     """Renderiza sub-clip estatico com Ken Burns suave em 1920x1080@30fps."""
     out_mp4.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
+    _run_h264_ffmpeg(
         [FFMPEG_EXE, "-y", "-v", "error", "-loop", "1", "-framerate", str(VIDEO_FPS),
-         "-i", str(image_path), "-vf", _zoompan_filter(preset, duration), "-t", f"{duration:.3f}",
-         "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", str(out_mp4)],
-        check=True,
+         "-i", str(image_path), "-vf", _zoompan_filter(preset, duration), "-t", f"{duration:.3f}"],
+        [str(out_mp4)],
+        quality="fast",
     )
     return out_mp4
+
+
+def render_motion_video_subclip(
+    video_path: Path,
+    src_start_s: float,
+    duration: float,
+    out_mp4: Path,
+    pts_factor: float = 1.0,
+) -> Path:
+    """Extrai trecho continuo de video Veo em 1920x1080@30fps sem audio para intercalacao."""
+    out_mp4.parent.mkdir(parents=True, exist_ok=True)
+    src_dur = max(0.5, probe_duration(video_path))
+    safe_pts = max(0.75, min(1.35, float(pts_factor)))
+    ss = max(0.0, min(src_start_s, max(0.0, src_dur - 0.4)))
+    vf = (
+        f"setpts={safe_pts:.5f}*(PTS-STARTPTS),"
+        f"scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,"
+        f"fps={VIDEO_FPS},setsar=1,format=yuv420p"
+    )
+    need_loop = (src_dur - ss) * safe_pts < (duration - 0.05)
+    cmd = [FFMPEG_EXE, "-y", "-v", "error"]
+    if need_loop:
+        cmd += ["-stream_loop", "1"]
+    cmd += ["-ss", f"{ss:.3f}", "-i", str(video_path), "-vf", vf, "-t", f"{duration:.3f}", "-an"]
+    _run_h264_ffmpeg(cmd, [str(out_mp4)], quality="fast")
+    return out_mp4
+
+
+def _resolve_clip_video(clip: dict[str, Any], images_dir: Path) -> Path | None:
+    """Localiza clipe de video Veo associado ao sub-clip ou a cena."""
+    explicit = clip.get("video_path")
+    if explicit and Path(explicit).exists():
+        return Path(explicit)
+    videos_dir = images_dir.parent / "videos"
+    for cand in (
+        images_dir / f"{clip['clip_id']}.mp4",
+        videos_dir / f"{clip['clip_id']}.mp4",
+        videos_dir / f"{clip['scene_id']}.mp4",
+        images_dir / f"{clip['scene_id']}.mp4",
+    ):
+        if cand.exists() and cand.stat().st_size > 2048:
+            return cand
+    return None
 
 
 def build_narration_track(visual_clips: list[dict[str, Any]], total_dur: float, out_wav: Path) -> Path:
@@ -235,8 +299,8 @@ def _plan_avatar_overlays(
     images_dir: Path,
     avatar_dir: Path,
 ) -> list[tuple[float, float, str, str, Path]]:
-    """Prepara overlays de Dual-Avatar usando os cantos mais vazios da cena (evita cobrir rostos)."""
-    overlays: list[tuple[float, float, str, str, Path]] = []
+    """Prepara overlays de Dual-Avatar em paralelo usando os cantos mais vazios da cena."""
+    jobs: list[dict[str, Any]] = []
     seen: set[str] = set()
     for c in visual_clips:
         sid = c["scene_id"]
@@ -267,14 +331,35 @@ def _plan_avatar_overlays(
         for char, active in targets:
             mov = avatar_dir / f"{sid}_{char}.mov"
             card_sz = 285 if active else 235
-            res = render_avatar_pip_clip(sid, char, wav, dur, mov, card_size=card_sz, is_active_speaker=active)
-            if res and res.exists():
-                # No modo duo, coloca Frida e Luna em cantos distintos priorizando os mais vazios
-                chosen = next((cn for cn in corners if cn not in used_corners), corners[0])
-                used_corners.append(chosen)
-                x_expr, y_expr = _CORNER_POS[chosen]
-                overlays.append((st, en, x_expr, y_expr, res))
-    return overlays
+            chosen = next((cn for cn in corners if cn not in used_corners), corners[0])
+            used_corners.append(chosen)
+            x_expr, y_expr = _CORNER_POS[chosen]
+            jobs.append({
+                "sid": sid, "char": char, "wav": wav, "dur": dur, "mov": mov,
+                "card_sz": card_sz, "active": active, "st": st, "en": en,
+                "x_expr": x_expr, "y_expr": y_expr,
+            })
+
+    if not jobs:
+        return []
+
+    chars_needed = sorted({j["char"] for j in jobs})
+    if chars_needed:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(2, len(chars_needed))) as pre_ex:
+            list(pre_ex.map(_index_character_bank, chars_needed))
+
+    def _render_job(j: dict[str, Any]) -> tuple[float, float, str, str, Path] | None:
+        res = render_avatar_pip_clip(
+            j["sid"], j["char"], j["wav"], j["dur"], j["mov"],
+            card_size=j["card_sz"], is_active_speaker=j["active"],
+        )
+        if res and res.exists():
+            return (j["st"], j["en"], j["x_expr"], j["y_expr"], res)
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, CPU_WORKERS)) as ex:
+        results = list(ex.map(_render_job, jobs))
+    return [r for r in results if r is not None]
 
 
 def export_short_9_16(
@@ -304,22 +389,50 @@ def assemble_video(
     clips_dir.mkdir(parents=True, exist_ok=True)
     avatar_dir.mkdir(parents=True, exist_ok=True)
 
-    rendered_segments: list[Path] = []
-    for clip in visual_clips:
+    scene_totals: dict[str, float] = {}
+    scene_starts: dict[str, float] = {}
+    for c in visual_clips:
+        sid = c["scene_id"]
+        scene_totals[sid] = scene_totals.get(sid, 0.0) + float(c["duration"])
+        scene_starts.setdefault(sid, float(c.get("start", 0.0)))
+
+    def _render_subclip(clip: dict[str, Any]) -> Path:
+        sid = clip["scene_id"]
+        dur = float(clip["duration"])
         img_path = images_dir / f"{clip['clip_id']}.jpg"
-        if not img_path.exists():
-            raise FileNotFoundError(f"Imagem ausente: {img_path}")
+        vid_path = _resolve_clip_video(clip, images_dir)
         seg_mp4 = clips_dir / f"{clip['clip_id']}.mp4"
-        render_ken_burns_clip(img_path, clip["ken_burns"], float(clip["duration"]), seg_mp4)
-        rendered_segments.append(seg_mp4)
+        if vid_path is not None:
+            v_dur = max(0.5, probe_duration(vid_path))
+            tot_scene = max(dur, scene_totals.get(sid, dur))
+            pts = (tot_scene / (v_dur - 0.05)) if tot_scene > (v_dur - 0.05) else 1.0
+            rel_out = max(0.0, float(clip.get("start", scene_starts[sid])) - scene_starts[sid])
+            src_ss = rel_out / max(0.5, pts)
+            if not img_path.exists():
+                img_path.parent.mkdir(parents=True, exist_ok=True)
+                subprocess.run(
+                    [FFMPEG_EXE, "-y", "-v", "error", "-ss", f"{min(src_ss + dur * 0.25, max(0.0, v_dur - 0.1)):.2f}",
+                     "-i", str(vid_path), "-vframes", "1", "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080",
+                     str(img_path)],
+                    check=True,
+                )
+            render_motion_video_subclip(vid_path, src_ss, dur, seg_mp4, pts_factor=pts)
+        else:
+            if not img_path.exists():
+                raise FileNotFoundError(f"Imagem ausente: {img_path}")
+            render_ken_burns_clip(img_path, clip["ken_burns"], dur, seg_mp4)
+        return seg_mp4
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=CPU_WORKERS) as clip_ex:
+        rendered_segments = list(clip_ex.map(_render_subclip, visual_clips))
 
     concat_txt = work_dir / "concat_video.txt"
     concat_txt.write_text("\n".join("file '%s'" % p.as_posix() for p in rendered_segments) + "\n", encoding="utf-8")
     base_video = work_dir / "base_video_16x9.mp4"
-    subprocess.run(
-        [FFMPEG_EXE, "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(concat_txt),
-         "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", str(base_video)],
-        check=True,
+    _run_h264_ffmpeg(
+        [FFMPEG_EXE, "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(concat_txt)],
+        [str(base_video)],
+        quality="master",
     )
 
     total_dur = probe_duration(base_video)
@@ -384,11 +497,10 @@ def assemble_video(
 
     cmd += ["-i", str(mix_m4a)]
     audio_idx = in_idx
-    subprocess.run(
-        cmd + ["-filter_complex", ";".join(filters), "-map", prev, "-map", f"{audio_idx}:a",
-               "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
-               "-c:a", "copy", "-shortest", "-movflags", "+faststart", str(out_mp4)],
+    _run_h264_ffmpeg(
+        cmd + ["-filter_complex", ";".join(filters), "-map", prev, "-map", f"{audio_idx}:a"],
+        ["-c:a", "copy", "-shortest", "-movflags", "+faststart", str(out_mp4)],
+        quality="master",
         cwd=str(work_dir),
-        check=True,
     )
     return out_mp4, out_srt

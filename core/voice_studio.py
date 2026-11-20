@@ -23,6 +23,7 @@ from typing import Any
 import numpy as np
 
 from config import (
+    CPU_WORKERS,
     ENV_FILE,
     FFMPEG_EXE,
     FFPROBE_EXE,
@@ -81,7 +82,10 @@ def _get_whisper(model_name: str = "small"):
     global _WHISPER_MODEL
     if _WHISPER_MODEL is None:
         from faster_whisper import WhisperModel
-        _WHISPER_MODEL = WhisperModel(model_name, device="cpu", compute_type="int8")
+        try:
+            _WHISPER_MODEL = WhisperModel(model_name, device="cuda", compute_type="float16")
+        except Exception:
+            _WHISPER_MODEL = WhisperModel(model_name, device="cpu", compute_type="int8", cpu_threads=CPU_WORKERS)
     return _WHISPER_MODEL
 
 

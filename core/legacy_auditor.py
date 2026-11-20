@@ -30,7 +30,7 @@ def audit_image_with_vision(
     image_path: Path,
     expected_location: str,
     expected_action: str,
-    model: str = "gemini-2.5-flash",
+    model: str = "gemini-3-flash-preview",
 ) -> dict[str, Any]:
     """Compara uma imagem real com a cena/cenario esperados usando Gemini Vision."""
     keys = _get_google_keys()

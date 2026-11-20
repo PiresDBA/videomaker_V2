@@ -26,6 +26,12 @@ assets/avatars/
 assets/reference/
 assets/music/
 projects/
+flow_accounts.json
+flow_accounts_state.json
+flow_learned_sessions.json
+.chrome-flow-accounts/
+.chrome-flow-profile/
+.chrome-*-profile/
 legacy_batch_audit.json
 
 # Python / IDE
