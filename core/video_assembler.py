@@ -21,7 +21,11 @@ from config import (
     VIDEO_WIDTH,
 )
 from core.audio_fx import build_sfx_stem, master_with_soundcraft, resolve_act_bgm
-from core.avatar_studio import render_avatar_pip_clip
+from core.avatar_studio import (
+    detect_emptiest_corners,
+    render_avatar_pip_clip,
+    render_magic_sparkles_overlay,
+)
 from core.motion_shorts import export_motion_short_9_16
 from core.voice_studio import probe_duration
 
@@ -218,9 +222,21 @@ def mix_audio_master(
     return out_m4a
 
 
-def _plan_avatar_overlays(visual_clips: list[dict[str, Any]], avatar_dir: Path) -> list[tuple[float, float, str, Path]]:
-    """Prepara overlays de Dual-Avatar (Frida canto direito, Luna canto esquerdo)."""
-    overlays: list[tuple[float, float, str, Path]] = []
+_CORNER_POS = {
+    "TL": ("44", "42"),
+    "TR": ("W-w-44", "42"),
+    "BL": ("44", "H-h-42"),
+    "BR": ("W-w-44", "H-h-42"),
+}
+
+
+def _plan_avatar_overlays(
+    visual_clips: list[dict[str, Any]],
+    images_dir: Path,
+    avatar_dir: Path,
+) -> list[tuple[float, float, str, str, Path]]:
+    """Prepara overlays de Dual-Avatar usando os cantos mais vazios da cena (evita cobrir rostos)."""
+    overlays: list[tuple[float, float, str, str, Path]] = []
     seen: set[str] = set()
     for c in visual_clips:
         sid = c["scene_id"]
@@ -237,6 +253,7 @@ def _plan_avatar_overlays(visual_clips: list[dict[str, Any]], avatar_dir: Path) 
         en = st + dur
         wav = Path(c["wav_path"])
 
+        corners = detect_emptiest_corners(images_dir / f"{c['clip_id']}.jpg")
         if mode == "duo":
             targets = [("frida", spk == "frida"), ("luna", spk == "luna")]
             if spk not in ("frida", "luna"):
@@ -246,13 +263,17 @@ def _plan_avatar_overlays(visual_clips: list[dict[str, Any]], avatar_dir: Path) 
         else:
             continue
 
+        used_corners: list[str] = []
         for char, active in targets:
             mov = avatar_dir / f"{sid}_{char}.mov"
             card_sz = 285 if active else 235
             res = render_avatar_pip_clip(sid, char, wav, dur, mov, card_size=card_sz, is_active_speaker=active)
             if res and res.exists():
-                x_expr = "W-w-44" if AVATAR_PROFILES[char]["corner"] == "right" else "44"
-                overlays.append((st, en, x_expr, res))
+                # No modo duo, coloca Frida e Luna em cantos distintos priorizando os mais vazios
+                chosen = next((cn for cn in corners if cn not in used_corners), corners[0])
+                used_corners.append(chosen)
+                x_expr, y_expr = _CORNER_POS[chosen]
+                overlays.append((st, en, x_expr, y_expr, res))
     return overlays
 
 
@@ -317,10 +338,17 @@ def assemble_video(
     if burn_captions:
         write_pop_ass(visual_clips, ass_16_9)
 
-    overlays = _plan_avatar_overlays(visual_clips, avatar_dir) if with_avatar else []
+    overlays = _plan_avatar_overlays(visual_clips, images_dir, avatar_dir) if with_avatar else []
+    sparkles_mov = avatar_dir / "hook_sparkles.mov"
+    hook_spark_dur = min(7.5, total_dur)
+    if with_avatar and hook_spark_dur >= 2.0:
+        render_magic_sparkles_overlay(hook_spark_dur, sparkles_mov)
+    else:
+        sparkles_mov = None
+
     out_mp4.parent.mkdir(parents=True, exist_ok=True)
 
-    if not overlays and not burn_captions:
+    if not overlays and not burn_captions and not (sparkles_mov and sparkles_mov.exists()):
         subprocess.run(
             [FFMPEG_EXE, "-y", "-v", "error", "-i", str(base_video), "-i", str(mix_m4a),
              "-c:v", "copy", "-c:a", "copy", "-shortest", "-movflags", "+faststart", str(out_mp4)],
@@ -331,11 +359,23 @@ def assemble_video(
     cmd = [FFMPEG_EXE, "-y", "-v", "error", "-i", str(base_video)]
     filters = []
     prev = "[0:v]"
-    for idx, (st, en, x_expr, mov_path) in enumerate(overlays, 1):
+    in_idx = 1
+
+    if sparkles_mov and sparkles_mov.exists():
+        cmd += ["-i", str(sparkles_mov)]
+        nxt = "[vsp]"
+        filters.append(f"{prev}[{in_idx}:v]overlay=0:0:enable='between(t,0,{hook_spark_dur:.3f})':eof_action=pass{nxt}")
+        prev = nxt
+        in_idx += 1
+
+    for idx, (st, en, x_expr, y_expr, mov_path) in enumerate(overlays):
         cmd += ["-itsoffset", f"{st:.3f}", "-i", str(mov_path)]
         nxt = f"[v{idx}]"
-        filters.append(f"{prev}[{idx}:v]overlay=x={x_expr}:y=H-h-42:enable='between(t,{st:.3f},{en:.3f})':eof_action=pass{nxt}")
+        filters.append(
+            f"{prev}[{in_idx}:v]overlay=x={x_expr}:y={y_expr}:enable='between(t,{st:.3f},{en:.3f})':eof_action=pass{nxt}"
+        )
         prev = nxt
+        in_idx += 1
 
     if burn_captions:
         nxt = "[vcap]"
@@ -343,7 +383,7 @@ def assemble_video(
         prev = nxt
 
     cmd += ["-i", str(mix_m4a)]
-    audio_idx = len(overlays) + 1
+    audio_idx = in_idx
     subprocess.run(
         cmd + ["-filter_complex", ";".join(filters), "-map", prev, "-map", f"{audio_idx}:a",
                "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
