@@ -1,0 +1,35 @@
+# Segredos locais e chaves de API (NUNCA commitar)
+.env
+*.env
+!*example*
+
+# Somente codigo-fonte vai ao GitHub — zero midias/renders/caches/saidas
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.srt
+*.ass
+*.vtt
+
+assets/sfx_cache/
+assets/avatars/
+assets/reference/
+assets/music/
+projects/
+legacy_batch_audit.json
+
+# Python / IDE
+__pycache__/
+*.py[cod]
+*.log
+.pytest_cache/
