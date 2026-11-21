@@ -293,7 +293,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
                 force=args.force,
                 veo_scene_ids=veo_scene_ids,
                 generate_veo_inline=bool(veo_scene_ids),
-                veo_max_retries=3,
+                veo_max_retries=2,
+                max_new_veo_per_scene=1,
                 strict_vision=True,
             )
             print(

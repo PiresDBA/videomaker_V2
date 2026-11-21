@@ -873,6 +873,222 @@ class TestVideomakerV2Unified(unittest.TestCase):
             self.assertFalse(rep["approved"])
             self.assertTrue(v_mp4.exists(), "vision_unavailable nao pode apagar .mp4 existente!")
 
+    def test_video_collage_false_positive_immunity_and_persistent_audit_cache(self):
+        import json as _json
+        from unittest import mock
+        import numpy as np
+        import core.scene_auditor as sa
+
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td)
+            imgs_dir = proj / "assets" / "images"
+            vids_dir = proj / "assets" / "videos"
+            imgs_dir.mkdir(parents=True, exist_ok=True)
+            vids_dir.mkdir(parents=True, exist_ok=True)
+            (proj / "artifacts").mkdir(parents=True, exist_ok=True)
+
+            rng = np.random.default_rng(29)
+            arr1 = rng.integers(50, 210, (360, 640, 3), dtype=np.uint8)
+            arr2 = rng.integers(50, 210, (360, 640, 3), dtype=np.uint8)
+            f1 = imgs_dir / "sc_06_p1.jpg"
+            f2 = imgs_dir / "sc_06_kf2.jpg"
+            Image.fromarray(arr1).save(f1, quality=92)
+            Image.fromarray(arr2).save(f2, quality=92)
+            v_mp4 = vids_dir / "sc_06.mp4"
+            v_mp4.write_bytes(b"\x02" * 70000)
+
+            # 1. LLM devolvendo has_collage_or_split=True para frames sequenciais de video NAO pode reprovar video,
+            #    mas DEVE reprovar quando for uma unica imagem estatica.
+            captured_prompts: list[str] = []
+
+            class _RespCollage:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *a):
+                    return False
+
+                def read(self):
+                    return _json.dumps({
+                        "candidates": [{"content": {"parts": [{"text": _json.dumps({
+                            "matches_narration": True,
+                            "matches_location": True,
+                            "matches_characters": True,
+                            "matches_story_props": True,
+                            "has_collage_or_split": True,
+                            "has_visible_text": False,
+                            "reason": "quadros sequenciais",
+                            "fix_prompt_hint": "",
+                        })}]}}]
+                    }).encode("utf-8")
+
+            def _fake_urlopen(req, timeout=28):
+                body = _json.loads(req.data.decode("utf-8"))
+                captured_prompts.append(body["contents"][0]["parts"][0]["text"])
+                return _RespCollage()
+
+            scene_sample = {
+                "scene_id": "sc_06",
+                "act": 1,
+                "speaker": "frida",
+                "text": "A bolinha caiu certinho no meio da caminha.",
+                "location": "sala",
+                "visual_action": "Bolinha verde na @Caminha_Real",
+                "characters": ["Frida"],
+            }
+            with mock.patch.object(sa, "_get_google_keys", return_value=["DUMMY_TEST_KEY"]), \
+                 mock.patch("urllib.request.urlopen", side_effect=_fake_urlopen):
+                vid_res = sa.audit_scene_visual_with_vision([f1, f2], scene_sample, is_video_keyframes=True)
+                img_res = sa.audit_scene_visual_with_vision([f1], scene_sample, is_video_keyframes=False)
+
+            self.assertTrue(vid_res["ok"], vid_res)
+            self.assertFalse(vid_res["has_collage_or_split"])
+            self.assertIn("VIDEO KEYFRAMES AUDIT", captured_prompts[0])
+            self.assertFalse(img_res["ok"])
+            self.assertTrue(img_res["has_collage_or_split"])
+
+            # 2. Cache persistente pula re-auditoria quando midia e roteiro nao mudam, e invalida ao mudar texto
+            vision_calls = {"count": 0}
+
+            def _fake_audit_ok(frames, sc, **kwargs):
+                vision_calls["count"] += 1
+                return {"checked": True, "ok": True, "reason": "OK"}
+
+            def _fake_kf(mp4, out_dir, prefix, count=3):
+                kf = out_dir / f"{prefix}_f1.jpg"
+                Image.fromarray(arr1).save(kf, quality=92)
+                return [kf]
+
+            script = {"title": "Cache", "scenes": [dict(scene_sample)]}
+            vclips = [{"clip_id": "sc_06_p1", "scene_id": "sc_06", "prompt_variant": "main"}]
+            prompts = {"sc_06_p1": {"positive": "test", "negative": "test"}}
+
+            with mock.patch.object(sa, "audit_scene_visual_with_vision", side_effect=_fake_audit_ok), \
+                 mock.patch.object(sa, "_extract_video_keyframes", side_effect=_fake_kf):
+                rep1 = sa.generate_and_audit_scenes(
+                    proj_dir=proj,
+                    script_data=script,
+                    visual_clips=vclips,
+                    prompts_manifest=prompts,
+                    images_dir=imgs_dir,
+                    videos_dir=vids_dir,
+                    veo_scene_ids={"sc_06"},
+                    generate_veo_inline=False,
+                    strict_vision=True,
+                )
+                self.assertTrue(rep1["approved"])
+                self.assertEqual(vision_calls["count"], 2)  # 1 imagem + 1 video
+
+                rep2 = sa.generate_and_audit_scenes(
+                    proj_dir=proj,
+                    script_data=script,
+                    visual_clips=vclips,
+                    prompts_manifest=prompts,
+                    images_dir=imgs_dir,
+                    videos_dir=vids_dir,
+                    veo_scene_ids={"sc_06"},
+                    generate_veo_inline=False,
+                    strict_vision=True,
+                )
+                self.assertTrue(rep2["approved"])
+                self.assertEqual(vision_calls["count"], 2)  # Zero novas chamadas!
+
+                # Alterou texto da narracao -> cache deve invalidar e re-auditar
+                script["scenes"][0]["text"] = "Novo texto alterado na cena seis!"
+                rep3 = sa.generate_and_audit_scenes(
+                    proj_dir=proj,
+                    script_data=script,
+                    visual_clips=vclips,
+                    prompts_manifest=prompts,
+                    images_dir=imgs_dir,
+                    videos_dir=vids_dir,
+                    veo_scene_ids={"sc_06"},
+                    generate_veo_inline=False,
+                    strict_vision=True,
+                )
+                self.assertTrue(rep3["approved"])
+                self.assertEqual(vision_calls["count"], 4)
+
+    def test_veo_anti_waste_archive_cap_and_per_scene_secondary_chars(self):
+        from unittest import mock
+        import numpy as np
+        import core.scene_auditor as sa
+
+        # 1. Filtro por cena de secondary_characters (Pipoca nao vaza em sc_01)
+        sec_all = [{"name": "Pipoca", "description": "Cute Chihuahua"}]
+        sc_01 = {"scene_id": "sc_01", "text": "Frida e Luna correm.", "visual_action": "Corrida", "characters": ["Frida", "Luna"]}
+        sc_04 = {"scene_id": "sc_04", "text": "Pipoca pula!", "visual_action": "Salto", "characters": ["Frida", "Luna", "Pipoca"]}
+        self.assertEqual(sa._scene_matching_secondary_chars(sc_01, sec_all), [])
+        self.assertEqual([c["name"] for c in sa._scene_matching_secondary_chars(sc_04, sec_all)], ["Pipoca"])
+
+        # 2. Cap de 1 nova geracao Veo paga por cena + arquivamento (nao deleta MP4 reprovado)
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td)
+            imgs_dir = proj / "assets" / "images"
+            vids_dir = proj / "assets" / "videos"
+            imgs_dir.mkdir(parents=True, exist_ok=True)
+            vids_dir.mkdir(parents=True, exist_ok=True)
+            (proj / "artifacts").mkdir(parents=True, exist_ok=True)
+
+            rng = np.random.default_rng(42)
+            arr = rng.integers(50, 210, (360, 640, 3), dtype=np.uint8)
+            Image.fromarray(arr).save(imgs_dir / "sc_01_p1.jpg", quality=92)
+
+            script = {
+                "title": "Anti Waste",
+                "secondary_characters": sec_all,
+                "scenes": [{
+                    "scene_id": "sc_01", "act": 1, "speaker": "narrador",
+                    "text": "A largada comecou!", "location": "pista",
+                    "visual_action": "Varios caes correndo com Frida e Luna",
+                    "characters": ["Frida", "Luna"],
+                }],
+            }
+            vclips = [{"clip_id": "sc_01_p1", "scene_id": "sc_01", "prompt_variant": "main"}]
+            prompts = {"sc_01_p1": {"positive": "test", "negative": "test"}}
+            veo_gen_calls = {"count": 0}
+            seen_sec_in_vision: list[list[dict[str, str]] | None] = []
+
+            def _fake_veo(scene, images_dir, videos_dir, script_data, **kwargs):
+                veo_gen_calls["count"] += 1
+                mp4 = videos_dir / f"{scene['scene_id']}.mp4"
+                mp4.write_bytes(b"\x03" * 80000)
+                return {"ok": True, "path": str(mp4), "account_id": "acc_5"}
+
+            def _fake_vis(frames, sc, **kwargs):
+                seen_sec_in_vision.append(kwargs.get("secondary_characters"))
+                if any("sc_01_f" in p.name for p in frames):
+                    return {"checked": True, "ok": False, "reason": "objeto extra"}
+                return {"checked": True, "ok": True, "reason": "OK"}
+
+            def _fake_kf(mp4, out_dir, prefix, count=3):
+                kf = out_dir / f"{prefix}_f1.jpg"
+                Image.fromarray(arr).save(kf, quality=92)
+                return [kf]
+
+            with mock.patch.object(sa, "generate_single_veo_video", side_effect=_fake_veo), \
+                 mock.patch.object(sa, "audit_scene_visual_with_vision", side_effect=_fake_vis), \
+                 mock.patch.object(sa, "_extract_video_keyframes", side_effect=_fake_kf):
+                rep = sa.generate_and_audit_scenes(
+                    proj_dir=proj,
+                    script_data=script,
+                    visual_clips=vclips,
+                    prompts_manifest=prompts,
+                    images_dir=imgs_dir,
+                    videos_dir=vids_dir,
+                    veo_scene_ids={"sc_01"},
+                    generate_veo_inline=True,
+                    veo_max_retries=3,
+                    max_new_veo_per_scene=1,
+                    strict_vision=True,
+                    stop_on_scene_failure=True,
+                )
+            self.assertFalse(rep["approved"])
+            self.assertEqual(veo_gen_calls["count"], 1, "Nao pode regenerar mais de 1 Veo pago na mesma cena!")
+            archived = list((vids_dir / "_archive").glob("sc_01_*.mp4"))
+            self.assertEqual(len(archived), 1, "Video reprovado deve ir para _archive e nao ser apagado!")
+            self.assertTrue(all(x == [] for x in seen_sec_in_vision))
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():

@@ -8,6 +8,7 @@ import hashlib
 import io
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -101,6 +102,25 @@ def _scene_matching_props(scene: dict[str, Any], story_props: list[dict[str, str
         tokens = [t for t in re.findall(r"[a-z0-9áéíóúâêôãõç]{4,}", pname)]
         if pname in explicit or pname in hay or any(t in hay for t in tokens):
             matched.append(pr)
+    return matched
+
+
+def _scene_matching_secondary_chars(
+    scene: dict[str, Any],
+    secondary_characters: list[dict[str, str]] | None,
+) -> list[dict[str, str]]:
+    """Retorna apenas os personagens secundarios realmente previstos para esta cena."""
+    if not secondary_characters:
+        return []
+    explicit = {str(x).strip().lower() for x in (scene.get("characters") or []) if str(x).strip()}
+    hay = f"{scene.get('text', '')} {scene.get('visual_action', '')}".lower()
+    matched: list[dict[str, str]] = []
+    for sc in secondary_characters:
+        if not isinstance(sc, dict) or not sc.get("name"):
+            continue
+        sname = str(sc["name"]).strip().lower()
+        if sname in explicit or bool(re.search(rf"\b{re.escape(sname)}\b", hay)):
+            matched.append(sc)
     return matched
 
 
@@ -226,9 +246,10 @@ def audit_scene_visual_with_vision(
             "fix_prompt_hint": "",
         }
 
+    matched_sec = _scene_matching_secondary_chars(scene, secondary_characters)
     sec_desc = "; ".join(
         f"{s.get('name')}: {s.get('description')}"
-        for s in (secondary_characters or [])
+        for s in matched_sec
         if isinstance(s, dict) and s.get("name")
     )
     props_desc = "; ".join(
@@ -237,6 +258,19 @@ def audit_scene_visual_with_vision(
         if isinstance(p, dict) and p.get("name")
     )
     chars_txt = ", ".join(scene.get("characters") or ["Frida", "Luna"])
+    hay_crowd = f"{scene.get('text', '')} {scene.get('visual_action', '')} {scene.get('location', '')}".lower()
+    crowd_allowed = any(
+        tok in hay_crowd
+        for tok in (
+            "vários cães", "varios caes", "outros cães", "outros caes",
+            "competidores", "corrida", "campeonato", "multiple dogs", "crowd",
+        )
+    )
+    extra_animals_rule = (
+        "- Background competitor/crowd dogs ARE expected in this race/competition scene, while Frida & Luna MUST stay clearly recognizable in the foreground with their exact canonical breeds/accessories. Still reject unscripted fantasy monsters (such as a literal red furry monster).\n"
+        if crowd_allowed
+        else "- ZERO unrequested foreground dog breeds or unscripted fantasy monsters (such as a literal red furry monster) unless explicitly listed in Expected Characters.\n"
+    )
 
     prompt = (
         "You are a strict animation continuity director auditing a scene frame before moving to the next scene.\n"
@@ -249,7 +283,7 @@ def audit_scene_visual_with_vision(
         + "Character & Breed Design Rules (STRICT):\n"
         "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace with small gold paw pendant; NEVER Golden Retriever, NEVER black-and-white spotted, NEVER adult/old dog).\n"
         "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel, NEVER random brown/black dog).\n"
-        "- ZERO unrequested dog breeds or random extra animals! Background/crowd dogs are allowed ONLY when Expected Visual Action or Narration explicitly mentions multiple dogs/competitors (e.g. \"vários cães\", \"competidores\"), and Frida & Luna MUST stay clearly recognizable in the foreground. Unscripted fantasy creatures (like a literal red furry monster) or unscripted foreground props (like a trophy when not mentioned in this scene) MUST NOT appear.\n"
+        + extra_animals_rule
         + (f"- Secondary Characters: {sec_desc}\n" if sec_desc else "")
         + (f"Story Key Objects (treated as FIXED characters, MUST keep exact same color, material and shape across ALL scenes): {props_desc}\n" if props_desc else "")
         + (
@@ -343,6 +377,7 @@ def generate_and_audit_scenes(
     veo_scene_ids: set[str] | None = None,
     generate_veo_inline: bool = False,
     veo_max_retries: int = 2,
+    max_new_veo_per_scene: int | None = None,
     strict_vision: bool = True,
     stop_on_scene_failure: bool = True,
 ) -> dict[str, Any]:
@@ -587,7 +622,7 @@ def generate_and_audit_scenes(
             vis = audit_scene_visual_with_vision(
                 [dst],
                 sc,
-                secondary_characters=sec_chars,
+                secondary_characters=_scene_matching_secondary_chars(sc, sec_chars),
                 story_props=matched_props,
                 anchor_prop_image=anchor_for_vision,
                 strict_vision=strict_vision,
@@ -664,6 +699,12 @@ def generate_and_audit_scenes(
 
             if should_run_veo_inline or should_audit_existing:
                 v_attempts = max(1, veo_max_retries) if auto_fix else 1
+                new_veo_cap = (
+                    max(1, int(max_new_veo_per_scene))
+                    if max_new_veo_per_scene is not None
+                    else v_attempts
+                )
+                new_veo_generated = 0
                 v_fix_hint = ""
                 v_approved = False
                 v_vis: dict[str, Any] = {"checked": False, "ok": False}
@@ -676,8 +717,15 @@ def generate_and_audit_scenes(
                     ) or (should_audit_existing and v_try > 1 and not last_veo_vision_unavail)
 
                     if need_veo_gen:
+                        if new_veo_generated >= new_veo_cap:
+                            print(
+                                f"  [AUDIT-VIDEO] {sid}.mp4 atingiu limite de {new_veo_cap} nova(s) geracao(oes) paga(s); "
+                                "interrompendo para nao desperdiçar creditos.",
+                                flush=True,
+                            )
+                            break
                         try:
-                            generate_single_veo_video(
+                            veo_res = generate_single_veo_video(
                                 sc,
                                 images_dir=images_dir,
                                 videos_dir=videos_dir,
@@ -686,6 +734,8 @@ def generate_and_audit_scenes(
                                 fix_hint=v_fix_hint,
                                 force=(force or v_try > 1),
                             )
+                            if not (isinstance(veo_res, dict) and veo_res.get("reused")):
+                                new_veo_generated += 1
                             regenerated_ids.append(f"{sid}.mp4")
                         except Exception as exc:
                             err_low = str(exc).lower()
@@ -724,7 +774,7 @@ def generate_and_audit_scenes(
                         v_vis = audit_scene_visual_with_vision(
                             kf,
                             sc,
-                            secondary_characters=sec_chars,
+                            secondary_characters=_scene_matching_secondary_chars(sc, sec_chars),
                             story_props=matched_props,
                             anchor_prop_image=prop_refs[0] if prop_refs else None,
                             strict_vision=strict_vision,
@@ -756,7 +806,14 @@ def generate_and_audit_scenes(
                         continue
                     v_fix_hint = str(v_vis.get("fix_prompt_hint") or v_vis.get("reason") or "")
                     if auto_fix:
-                        v_mp4.unlink(missing_ok=True)
+                        if v_mp4.exists() and v_mp4.stat().st_size >= 50000:
+                            arc_dir = videos_dir / "_archive"
+                            arc_dir.mkdir(parents=True, exist_ok=True)
+                            arc_path = arc_dir / f"{sid}_try{v_try}_{int(time.time())}.mp4"
+                            shutil.move(str(v_mp4), str(arc_path))
+                            print(f"  [AUDIT-VIDEO] {sid}.mp4 arquivado (nao apagado) em {arc_path.name}", flush=True)
+                        else:
+                            v_mp4.unlink(missing_ok=True)
 
                 vid_entry = {"scene_id": sid, "video_path": str(v_mp4), **v_vis}
                 if not v_approved:

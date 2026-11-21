@@ -41,6 +41,7 @@ async def _harvest_account_tiles(
     out_acc_dir: Path,
     max_videos: int = 35,
     max_images: int = 40,
+    include_images: bool = True,
 ) -> list[dict[str, Any]]:
     from playwright.async_api import async_playwright
 
@@ -110,6 +111,10 @@ async def _harvest_account_tiles(
             vid_count = 0
             img_count = 0
 
+            try:
+                await page.wait_for_selector("flow-grid-tile-container", timeout=10000)
+            except Exception:
+                pass
             # Fase A: Filtro Vídeos (prioridade maxima para recuperar todos os Veo)
             vid_filtered = await _click_grid_filter("Vídeos")
             video_tiles = await _collect_tiles(scrolls=6)
@@ -150,9 +155,9 @@ async def _harvest_account_tiles(
                                 ).last
                                 async with page.expect_download(timeout=45000) as dinfo:
                                     if await sub_dl.count():
-                                        await sub_dl.click()
+                                        await sub_dl.click(timeout=4000)
                                     else:
-                                        await dl_item.click()
+                                        await dl_item.click(timeout=4000)
                                 dl_obj = await dinfo.value
                                 await dl_obj.save_as(str(out_mp4))
                                 downloaded = out_mp4.exists() and out_mp4.stat().st_size > 80_000
@@ -163,26 +168,47 @@ async def _harvest_account_tiles(
                     if not downloaded:
                         vid_urls = list(t.get("vids") or [])
                         if not vid_urls:
+                            proj_grid_url = page.url or ""
                             try:
                                 await tile_loc.scroll_into_view_if_needed()
                                 await tile_loc.click(timeout=4000, force=True)
                                 await page.wait_for_timeout(1800)
-                                vid_urls = await page.evaluate(
-                                    "() => Array.from(document.querySelectorAll('video')).map(v => v.currentSrc || v.src || '').filter(u => u && u.startsWith('http'))"
-                                )
-                                # Tenta tambem botao de download no player aberto
-                                if not vid_urls:
-                                    dl_btn = page.locator('button[aria-label*="download" i], button[aria-label*="Baixar" i], button:has-text("Fazer o download")').first
-                                    if await dl_btn.count() and await dl_btn.is_visible():
-                                        async with page.expect_download(timeout=45000) as dinfo:
-                                            await dl_btn.click()
+                                dl_btn = page.locator(
+                                    'button[aria-label="Baixar mídia"], button[aria-label*="download" i], button[aria-label*="Baixar" i], button:has-text("Fazer o download")'
+                                ).first
+                                if await dl_btn.count() and await dl_btn.is_visible():
+                                    try:
+                                        async with page.expect_download(timeout=25000) as dinfo:
+                                            await dl_btn.click(timeout=4000)
+                                            await page.wait_for_timeout(600)
+                                            sub_pop = page.locator(
+                                                '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("720p"), '
+                                                '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Original")'
+                                            ).last
+                                            if await sub_pop.count():
+                                                await sub_pop.click(timeout=4000)
                                         dl_obj = await dinfo.value
                                         await dl_obj.save_as(str(out_mp4))
                                         downloaded = out_mp4.exists() and out_mp4.stat().st_size > 80_000
+                                    except Exception:
+                                        pass
+                                if not downloaded:
+                                    vid_urls = await page.evaluate(
+                                        "() => Array.from(document.querySelectorAll('video')).map(v => v.currentSrc || v.src || '').filter(u => u && u.startsWith('http'))"
+                                    )
                             except Exception:
                                 pass
                             finally:
                                 await page.keyboard.press("Escape")
+                                if "/edit/" in (page.url or "") and proj_grid_url:
+                                    try:
+                                        await page.goto(proj_grid_url, wait_until="domcontentloaded", timeout=20000)
+                                    except Exception:
+                                        await page.go_back()
+                                    try:
+                                        await page.wait_for_selector("flow-grid-tile-container", timeout=8000)
+                                    except Exception:
+                                        pass
                                 await page.wait_for_timeout(600)
                         if not downloaded and vid_urls:
                             try:
@@ -206,42 +232,43 @@ async def _harvest_account_tiles(
                     out_mp4.unlink(missing_ok=True)
 
             # Fase B: Filtro Imagens (ou volta para Todas) para recuperar imagens limpas
-            await _click_grid_filter("Imagens")
-            img_tiles = await _collect_tiles(scrolls=3)
-            for t in img_tiles:
-                if img_count >= max_images:
-                    break
-                txt = t.get("txt") or ""
-                aria = t.get("aria") or ""
-                if ("play_circle" in txt) or bool(t.get("vids")):
-                    continue
-                big_imgs = [im for im in t.get("imgs", []) if im["src"].startswith("http") and im["w"] >= 800]
-                if not big_imgs:
-                    continue
-                key_seed = aria or big_imgs[0]["src"]
-                short_hash = hashlib.sha1(key_seed.encode("utf-8", errors="ignore")).hexdigest()[:10]
-                out_jpg = imgs_dir / f"{acc['id']}_img_{t['idx']:02d}_{short_hash}.jpg"
-                if not (out_jpg.exists() and out_jpg.stat().st_size > 15_000):
-                    try:
-                        resp = await page.context.request.get(big_imgs[0]["src"], timeout=45000)
-                        if resp.ok:
-                            data = await resp.body()
-                            im = Image.open(io.BytesIO(data)).convert("RGB")
-                            if im.width >= im.height:
-                                fit_aspect_jpeg(_save_tmp_bytes(out_jpg, data), out_jpg)
-                    except Exception:
-                        out_jpg.unlink(missing_ok=True)
-                if out_jpg.exists() and out_jpg.stat().st_size > 15_000 and detect_split_collage(out_jpg) == 1:
-                    img_count += 1
-                    harvested.append({
-                        "kind": "image",
-                        "account_id": acc["id"],
-                        "email": email,
-                        "tile_idx": t["idx"],
-                        "aria": aria[:240],
-                        "path": str(out_jpg),
-                        "bytes": out_jpg.stat().st_size,
-                    })
+            if include_images:
+                await _click_grid_filter("Imagens")
+                img_tiles = await _collect_tiles(scrolls=3)
+                for t in img_tiles:
+                    if img_count >= max_images:
+                        break
+                    txt = t.get("txt") or ""
+                    aria = t.get("aria") or ""
+                    if ("play_circle" in txt) or bool(t.get("vids")):
+                        continue
+                    big_imgs = [im for im in t.get("imgs", []) if im["src"].startswith("http") and im["w"] >= 800]
+                    if not big_imgs:
+                        continue
+                    key_seed = aria or big_imgs[0]["src"]
+                    short_hash = hashlib.sha1(key_seed.encode("utf-8", errors="ignore")).hexdigest()[:10]
+                    out_jpg = imgs_dir / f"{acc['id']}_img_{t['idx']:02d}_{short_hash}.jpg"
+                    if not (out_jpg.exists() and out_jpg.stat().st_size > 15_000):
+                        try:
+                            resp = await page.context.request.get(big_imgs[0]["src"], timeout=45000)
+                            if resp.ok:
+                                data = await resp.body()
+                                im = Image.open(io.BytesIO(data)).convert("RGB")
+                                if im.width >= im.height:
+                                    fit_aspect_jpeg(_save_tmp_bytes(out_jpg, data), out_jpg)
+                        except Exception:
+                            out_jpg.unlink(missing_ok=True)
+                    if out_jpg.exists() and out_jpg.stat().st_size > 15_000 and detect_split_collage(out_jpg) == 1:
+                        img_count += 1
+                        harvested.append({
+                            "kind": "image",
+                            "account_id": acc["id"],
+                            "email": email,
+                            "tile_idx": t["idx"],
+                            "aria": aria[:240],
+                            "path": str(out_jpg),
+                            "bytes": out_jpg.stat().st_size,
+                        })
         finally:
             await b.close()
     return harvested
@@ -298,7 +325,12 @@ def _vision_match_scene(
         "STRICT RULES:\n"
         "- Frida MUST be a soft fawn golden-tan young English bulldog puppy with white pearl necklace & small gold paw pendant (NEVER Golden Retriever, NEVER black-and-white spotted).\n"
         "- Luna MUST be a dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel, NEVER random breed).\n"
-        "- NO unrequested extra dog breeds or literal red furry monster creatures.\n"
+        "- Background competitor dogs ARE allowed ONLY if the matched race/competition scene mentions multiple dogs/competitors (e.g. 'vários cães', 'corrida'), while Frida & Luna remain recognizable in the foreground. NEVER allow literal red furry monster creatures.\n"
+        + (
+            f"- VIDEO KEYFRAMES AUDIT: The {len(frames)} attached images are sequential snapshots from ONE continuous video — NEVER treat them as a collage.\n"
+            if len(frames) > 1
+            else ""
+        )
         + (f"- Story Objects (MUST match exact color/style): {props_desc}\n" if props_desc else "")
         + ("The LAST image attached is the reference anchor portrait for the story's key object/prop.\n" if anchor_prop_image and anchor_prop_image.exists() else "")
         + f"\nCandidate Scenes:\n{scenes_summary}\n\n"
@@ -354,6 +386,10 @@ async def recover_and_audit(
     local_only: bool = False,
     launch_closed: bool = False,
     min_confidence: float = 0.75,
+    accounts_filter: set[str] | None = None,
+    videos_only: bool = False,
+    max_videos: int = 35,
+    skip_cached_work: bool = False,
 ) -> dict[str, Any]:
     script_data = normalize_script_records(
         json.loads((proj_dir / "artifacts" / "script_v2.json").read_text(encoding="utf-8"))
@@ -366,6 +402,8 @@ async def recover_and_audit(
     seen_paths: set[str] = set()
     if not local_only:
         for acc in cfg.get("accounts", []):
+            if accounts_filter and acc["id"] not in accounts_filter:
+                continue
             port = int(acc["cdp_port"])
             if not cdp_is_alive(port) and launch_closed:
                 try:
@@ -373,7 +411,13 @@ async def recover_and_audit(
                 except Exception as exc:
                     print(f"[RecoverFlow] Nao foi possivel abrir {acc['id']}: {exc}", flush=True)
             if cdp_is_alive(port):
-                items = await _harvest_account_tiles(acc, cfg, work_rec / acc["id"])
+                items = await _harvest_account_tiles(
+                    acc,
+                    cfg,
+                    work_rec / acc["id"],
+                    max_videos=max_videos,
+                    include_images=not videos_only,
+                )
                 for it in items:
                     rp = str(Path(it["path"]).resolve())
                     if rp not in seen_paths:
@@ -381,50 +425,54 @@ async def recover_and_audit(
                         harvested.append(it)
 
     # Inclui tambem videos/imagens ja baixados previamente em work/flow_recovered/<acc_id>
-    for acc_dir in sorted(work_rec.iterdir()):
-        if not acc_dir.is_dir():
-            continue
-        for mp4 in sorted((acc_dir / "videos").glob("*.mp4")):
-            rp = str(mp4.resolve())
-            if rp not in seen_paths and mp4.stat().st_size > 80_000:
-                seen_paths.add(rp)
-                harvested.append({
-                    "kind": "video",
-                    "account_id": acc_dir.name,
-                    "email": "",
-                    "tile_idx": -1,
-                    "aria": mp4.stem,
-                    "path": str(mp4),
-                    "bytes": mp4.stat().st_size,
-                })
-        for jpg in sorted((acc_dir / "images").glob("*.jpg")):
-            rp = str(jpg.resolve())
-            if rp not in seen_paths and jpg.stat().st_size > 15_000:
-                seen_paths.add(rp)
-                harvested.append({
-                    "kind": "image",
-                    "account_id": acc_dir.name,
-                    "email": "",
-                    "tile_idx": -1,
-                    "aria": jpg.stem,
-                    "path": str(jpg),
-                    "bytes": jpg.stat().st_size,
-                })
+    if not skip_cached_work:
+        for acc_dir in sorted(work_rec.iterdir()):
+            if not acc_dir.is_dir():
+                continue
+            if accounts_filter and acc_dir.name not in accounts_filter:
+                continue
+            for mp4 in sorted((acc_dir / "videos").glob("*.mp4")):
+                rp = str(mp4.resolve())
+                if rp not in seen_paths and mp4.stat().st_size > 80_000:
+                    seen_paths.add(rp)
+                    harvested.append({
+                        "kind": "video",
+                        "account_id": acc_dir.name,
+                        "email": "",
+                        "tile_idx": -1,
+                        "aria": mp4.stem,
+                        "path": str(mp4),
+                        "bytes": mp4.stat().st_size,
+                    })
+            if not videos_only:
+                for jpg in sorted((acc_dir / "images").glob("*.jpg")):
+                    rp = str(jpg.resolve())
+                    if rp not in seen_paths and jpg.stat().st_size > 15_000:
+                        seen_paths.add(rp)
+                        harvested.append({
+                            "kind": "image",
+                            "account_id": acc_dir.name,
+                            "email": "",
+                            "tile_idx": -1,
+                            "aria": jpg.stem,
+                            "path": str(jpg),
+                            "bytes": jpg.stat().st_size,
+                        })
 
-    if legacy_dir and legacy_dir.exists():
-        for mp4 in sorted((legacy_dir / "assets" / "images" / "gemini" / "scenes").glob("*.mp4")):
-            rp = str(mp4.resolve())
-            if rp not in seen_paths and mp4.stat().st_size > 80_000:
-                seen_paths.add(rp)
-                harvested.append({
-                    "kind": "video",
-                    "account_id": "legacy",
-                    "email": "",
-                    "tile_idx": -1,
-                    "aria": mp4.stem,
-                    "path": str(mp4),
-                    "bytes": mp4.stat().st_size,
-                })
+        if not videos_only and legacy_dir and legacy_dir.exists():
+            for mp4 in sorted((legacy_dir / "assets" / "images" / "gemini" / "scenes").glob("*.mp4")):
+                rp = str(mp4.resolve())
+                if rp not in seen_paths and mp4.stat().st_size > 80_000:
+                    seen_paths.add(rp)
+                    harvested.append({
+                        "kind": "video",
+                        "account_id": "legacy",
+                        "email": "",
+                        "tile_idx": -1,
+                        "aria": mp4.stem,
+                        "path": str(mp4),
+                        "bytes": mp4.stat().st_size,
+                    })
 
     harvested.sort(key=lambda x: 0 if x["kind"] == "video" else 1)
 
@@ -501,8 +549,13 @@ def main() -> int:
     ap.add_argument("--local-only", action="store_true", help="Audita apenas arquivos ja baixados em work/flow_recovered")
     ap.add_argument("--launch-closed", action="store_true", help="Abre contas com Chrome CDP fechado antes de coletar")
     ap.add_argument("--min-confidence", type=float, default=0.75, help="Confianca minima (0.0-1.0) para reaproveitar")
+    ap.add_argument("--accounts", default="", help="Lista separada por virgula de contas Flow (ex: acc_5)")
+    ap.add_argument("--videos-only", action="store_true", help="Coleta/audita apenas videos (pula aba Imagens)")
+    ap.add_argument("--max-videos", type=int, default=35, help="Limite de tiles de video coletados por conta")
+    ap.add_argument("--skip-cached-work", action="store_true", help="Audita somente itens coletados nesta execucao")
     args = ap.parse_args()
 
+    acc_set = {a.strip() for a in str(args.accounts or "").split(",") if a.strip()} or None
     rep = asyncio.run(
         recover_and_audit(
             proj_dir=Path(args.project_dir),
@@ -511,6 +564,10 @@ def main() -> int:
             local_only=args.local_only,
             launch_closed=args.launch_closed,
             min_confidence=args.min_confidence,
+            accounts_filter=acc_set,
+            videos_only=args.videos_only,
+            max_videos=args.max_videos,
+            skip_cached_work=args.skip_cached_work,
         )
     )
     print(
