@@ -3,133 +3,178 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Manual Visual — Videomaker v2 (Frida &amp; Luna)</title>
+<title>Livro de Aventuras Completo — Videomaker v2 (Frida &amp; Luna)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&family=Fira+Code:wght@600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f172a;
-    --card: #1e293b;
-    --card2: #263349;
-    --text: #f8fafc;
-    --muted: #94a3b8;
-    --blue: #38bdf8;
-    --purple: #a78bfa;
-    --pink: #f472b6;
-    --amber: #fbbf24;
-    --green: #34d399;
-    --red: #f87171;
-    --border: #334155;
+    --paper: #fffdf5;
+    --ink: #1e293b;
+    --border-ink: #1e1b4b;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.45;
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(180deg, #7dd3fc 0%, #e0f2fe 20%, #fef9c3 55%, #dcfce7 100%);
+    color: var(--ink);
+    line-height: 1.5;
+    overflow-x: hidden;
   }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(rgba(30, 27, 75, 0.08) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  h1, h2, h3, .comic-font { font-family: 'Fredoka', cursive, sans-serif; letter-spacing: 0.3px; }
+
   header {
-    background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 55%, #064e3b 100%);
-    padding: 28px 20px;
-    border-bottom: 2px solid var(--border);
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(135deg, #ff6b6b 0%, #feca57 35%, #48dbfb 70%, #ff9ff3 100%);
+    padding: 34px 20px 40px;
+    border-bottom: 6px solid var(--border-ink);
     text-align: center;
+    box-shadow: 0 10px 0 rgba(30, 27, 75, 0.15);
+  }
+  .comic-burst {
+    display: inline-block;
+    background: #fef08a;
+    color: var(--border-ink);
+    border: 4px solid var(--border-ink);
+    box-shadow: 6px 6px 0 var(--border-ink);
+    padding: 6px 20px;
+    border-radius: 999px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 0.98rem;
+    text-transform: uppercase;
+    transform: rotate(-2deg);
+    margin-bottom: 10px;
   }
   header h1 {
-    margin: 0 0 8px;
-    font-size: 2rem;
-    letter-spacing: -0.5px;
+    margin: 6px auto 10px;
+    font-size: clamp(1.9rem, 4.5vw, 3rem);
+    color: #ffffff;
+    text-shadow:
+      -3px -3px 0 var(--border-ink), 3px -3px 0 var(--border-ink),
+      -3px  3px 0 var(--border-ink), 3px  3px 0 var(--border-ink),
+       0px  6px 0 var(--border-ink);
+    line-height: 1.15;
   }
-  header p {
-    margin: 0 auto;
-    max-width: 760px;
-    color: #cbd5e1;
-    font-size: 1.05rem;
+  .hero-sub {
+    max-width: 780px;
+    margin: 0 auto 16px;
+    background: #ffffff;
+    border: 4px solid var(--border-ink);
+    box-shadow: 6px 6px 0 var(--border-ink);
+    border-radius: 22px;
+    padding: 12px 22px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--border-ink);
   }
-  .pill-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 16px;
-  }
+  .pill-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 14px; }
   .pill {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.16);
-    padding: 6px 14px;
-    border-radius: 999px;
-    font-size: 0.88rem;
-    font-weight: 600;
+    background: #ffffff;
+    border: 3.5px solid var(--border-ink);
+    box-shadow: 4px 4px 0 var(--border-ink);
+    padding: 8px 16px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--border-ink);
   }
+
   main {
+    position: relative;
+    z-index: 1;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 24px 18px 60px;
+    padding: 30px 18px 70px;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 32px;
   }
-  section {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 22px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+
+  .comic-panel {
+    background: var(--paper);
+    border: 5px solid var(--border-ink);
+    border-radius: 28px;
+    padding: 24px;
+    box-shadow: 10px 10px 0 var(--border-ink);
   }
-  .sec-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 16px;
-    font-size: 1.35rem;
+  .panel-header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+  .chapter-star {
+    width: 52px; height: 52px; border-radius: 18px;
+    border: 4px solid var(--border-ink);
+    box-shadow: 4px 4px 0 var(--border-ink);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka', sans-serif; font-size: 1.5rem; font-weight: 700;
+    color: #fff; text-shadow: 2px 2px 0 var(--border-ink);
+    flex-shrink: 0; transform: rotate(-4deg);
   }
-  .sec-badge {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  .panel-header h2 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.85rem); color: var(--border-ink); }
+
+  .speech-bubble {
+    background: #fef08a;
+    border: 3.5px solid var(--border-ink);
+    border-radius: 20px;
+    padding: 10px 18px;
     font-weight: 800;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-  }
-  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
-  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-  .mini-card {
-    background: var(--card2);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-    position: relative;
-  }
-  .mini-card h3 {
-    margin: 0 0 8px;
-    font-size: 1.05rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .tag {
+    font-size: 0.98rem;
+    color: var(--border-ink);
+    box-shadow: 4px 4px 0 var(--border-ink);
     display: inline-block;
-    padding: 2px 9px;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 700;
+    margin-bottom: 16px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 18px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+
+  .story-card {
+    background: #ffffff;
+    border: 4px solid var(--border-ink);
+    border-radius: 22px;
+    padding: 16px;
+    box-shadow: 6px 6px 0 var(--border-ink);
+    transition: transform 0.16s ease;
+  }
+  .story-card:hover { transform: translateY(-3px); }
+  .story-card h3 {
+    margin: 0 0 8px;
+    font-size: 1.15rem;
+    color: var(--border-ink);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
+
+  .sticker {
+    display: inline-block; padding: 3px 11px; border-radius: 999px;
+    font-family: 'Fredoka', sans-serif; font-size: 0.76rem; font-weight: 700;
+    border: 2.5px solid var(--border-ink); box-shadow: 2px 2px 0 var(--border-ink);
     text-transform: uppercase;
   }
-  .tag-ok { background: rgba(52,211,153,0.18); color: var(--green); border: 1px solid rgba(52,211,153,0.4); }
-  .tag-no { background: rgba(248,113,113,0.18); color: var(--red); border: 1px solid rgba(248,113,113,0.4); }
-  .tag-info { background: rgba(56,189,248,0.18); color: var(--blue); border: 1px solid rgba(56,189,248,0.4); }
-  .tag-warn { background: rgba(251,191,36,0.18); color: var(--amber); border: 1px solid rgba(251,191,36,0.4); }
+  .st-green { background: #86efac; color: #14532d; }
+  .st-blue  { background: #93c5fd; color: #1e3a8a; }
+  .st-amber { background: #fde047; color: #713f12; }
+  .st-pink  { background: #f9a8d4; color: #831843; }
+  .st-red   { background: #fca5a5; color: #7f1d1d; }
+  .st-purp  { background: #d8b4fe; color: #4c1d95; }
 
   .cmd-box {
-    background: #0b1120;
-    border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 0.83rem;
-    color: #e2e8f0;
+    background: #1e1b4b;
+    border: 3.5px solid var(--border-ink);
+    border-radius: 14px;
+    padding: 12px 14px;
+    padding-right: 92px;
+    font-family: 'Fira Code', Consolas, monospace;
+    font-size: 0.81rem;
+    color: #fef08a;
     overflow-x: auto;
     margin-top: 10px;
     position: relative;
@@ -137,395 +182,534 @@
     word-break: break-word;
   }
   .copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #1d4ed8;
-    color: #fff;
-    border: none;
-    border-radius: 7px;
-    padding: 4px 10px;
-    font-size: 0.75rem;
-    font-weight: 700;
+    position: absolute; top: 8px; right: 8px;
+    background: #facc15; color: var(--border-ink);
+    border: 2.5px solid var(--border-ink); box-shadow: 2px 2px 0 var(--border-ink);
+    border-radius: 10px; padding: 4px 10px;
+    font-family: 'Fredoka', sans-serif; font-size: 0.78rem; font-weight: 700;
     cursor: pointer;
   }
-  .copy-btn:hover { background: #2563eb; }
-  .copy-btn.copied { background: #059669; }
+  .copy-btn:hover { background: #fde047; }
+  .copy-btn.copied { background: #4ade80; color: #052e16; }
 
-  .svg-wrap {
-    width: 100%;
-    overflow-x: auto;
-    background: #0b1120;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px;
+  .art-frame {
+    width: 100%; overflow-x: auto;
+    background: #e0f2fe;
+    border: 4px solid var(--border-ink);
+    border-radius: 20px;
+    padding: 14px;
   }
   svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 
-  .checklist {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 10px;
+  @keyframes floatSlow { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+  @keyframes pulseGlow { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+  .anim-float { animation: floatSlow 3s ease-in-out infinite; }
+  .anim-float-delay { animation: floatSlow 3.4s ease-in-out 0.8s infinite; }
+  .anim-pulse { animation: pulseGlow 2.5s ease-in-out infinite; transform-origin: center; }
+
+  .flag-grid {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
   }
-  .chk-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--card2);
-    border: 1px solid var(--border);
-    padding: 12px 14px;
+  .flag-chip {
+    background: #f8fafc;
+    border: 2.5px solid var(--border-ink);
     border-radius: 12px;
-    cursor: pointer;
-    user-select: none;
-    transition: 0.15s;
+    padding: 6px 10px;
+    font-size: 0.84rem;
+    font-weight: 800;
   }
-  .chk-item:hover { border-color: var(--blue); }
-  .chk-item input { width: 20px; height: 20px; accent-color: var(--green); cursor: pointer; }
-  .chk-item.done { border-color: var(--green); background: rgba(52,211,153,0.1); }
-  .muted { color: var(--muted); font-size: 0.92rem; }
+  code {
+    background: #fef08a; border: 1.5px solid var(--border-ink);
+    padding: 1px 6px; border-radius: 6px;
+    font-family: 'Fira Code', monospace; font-size: 0.84em; color: #1e1b4b;
+  }
+
+  .rule-list { margin: 10px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .rule-list li {
+    background: #f8fafc; border: 2.5px solid var(--border-ink);
+    border-radius: 14px; padding: 10px 14px; font-weight: 700; font-size: 0.94rem;
+  }
+
+  .checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 12px; }
+  .chk-item {
+    display: flex; align-items: center; gap: 12px;
+    background: #ffffff; border: 3.5px solid var(--border-ink); box-shadow: 5px 5px 0 var(--border-ink);
+    padding: 13px 15px; border-radius: 18px; cursor: pointer; user-select: none; font-weight: 800; font-size: 0.96rem;
+  }
+  .chk-item:hover { background: #fef9c3; }
+  .chk-item input { width: 22px; height: 22px; accent-color: #16a34a; cursor: pointer; flex-shrink: 0; }
+  .chk-item.done { background: #bbf7d0; border-color: #15803d; text-decoration: line-through; color: #14532d; }
+  .progress-bar-wrap {
+    margin-top: 16px; background: #e2e8f0; border: 3.5px solid var(--border-ink);
+    border-radius: 999px; height: 28px; overflow: hidden; position: relative;
+  }
+  .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #facc15, #4ade80, #38bdf8); transition: width 0.35s ease; }
+  .progress-label {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 0.9rem; color: var(--border-ink);
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🎬 Manual Visual — Videomaker v2 (Frida &amp; Luna)</h1>
-  <p>Guia rápido feito para bater o olho e entender tudo com setas, desenhos e botões de copiar. Zero textão.</p>
+  <div class="comic-burst">🐾 Edição Completa em Quadrinhos • Todas as Opções do Motor!</div>
+  <h1>🎬 Livro de Aventuras do Videomaker v2<br>com Frida &amp; Luna!</h1>
+  <div class="hero-sub">
+    🌟 Zero textão! Tudo com desenhos, setas, controles do Google Flow, botões do pipeline e comandos prontos para copiar!
+  </div>
+
+  <!-- ILUSTRAÇÃO FRIDA & LUNA -->
+  <div style="max-width: 680px; margin: 14px auto 4px;">
+    <svg viewBox="0 0 680 160" width="680" height="160" xmlns="http://www.w3.org/2000/svg">
+      <g class="anim-float">
+        <rect x="10" y="18" width="210" height="64" rx="18" fill="#ffffff" stroke="#1e1b4b" stroke-width="3.5"/>
+        <polygon points="205,64 232,76 198,80" fill="#ffffff" stroke="#1e1b4b" stroke-width="3.5"/>
+        <text x="115" y="45" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="14" font-weight="700" fill="#1e1b4b">Au! Eu sou a FRIDA!</text>
+        <text x="115" y="66" text-anchor="middle" font-family="Nunito, sans-serif" font-size="12.5" font-weight="800" fill="#d97706">Agora com TODAS as opções! 🦴</text>
+      </g>
+      <g transform="translate(245, 20)">
+        <ellipse cx="14" cy="24" rx="14" ry="10" transform="rotate(-25 14 24)" fill="#d97706" stroke="#1e1b4b" stroke-width="3.5"/>
+        <ellipse cx="76" cy="24" rx="14" ry="10" transform="rotate(25 76 24)" fill="#d97706" stroke="#1e1b4b" stroke-width="3.5"/>
+        <rect x="12" y="16" width="66" height="64" rx="28" fill="#fbbf24" stroke="#1e1b4b" stroke-width="3.5"/>
+        <ellipse cx="45" cy="56" rx="24" ry="17" fill="#fef3c7" stroke="#1e1b4b" stroke-width="3"/>
+        <circle cx="31" cy="38" r="6" fill="#1e1b4b"/><circle cx="33" cy="36" r="2" fill="#ffffff"/>
+        <circle cx="59" cy="38" r="6" fill="#1e1b4b"/><circle cx="61" cy="36" r="2" fill="#ffffff"/>
+        <ellipse cx="45" cy="49" rx="8" ry="5" fill="#1e1b4b"/>
+        <path d="M40,64 Q45,76 50,64" fill="#f43f5e" stroke="#1e1b4b" stroke-width="2.5"/>
+        <circle cx="24" cy="83" r="5" fill="#fff" stroke="#1e1b4b" stroke-width="2.5"/>
+        <circle cx="35" cy="86" r="5" fill="#fff" stroke="#1e1b4b" stroke-width="2.5"/>
+        <circle cx="45" cy="87" r="5" fill="#fff" stroke="#1e1b4b" stroke-width="2.5"/>
+        <circle cx="55" cy="86" r="5" fill="#fff" stroke="#1e1b4b" stroke-width="2.5"/>
+        <circle cx="66" cy="83" r="5" fill="#fff" stroke="#1e1b4b" stroke-width="2.5"/>
+        <text x="45" y="112" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700" fill="#1e1b4b">FRIDA</text>
+      </g>
+      <g transform="translate(365, 24)">
+        <ellipse cx="12" cy="44" rx="11" ry="26" transform="rotate(14 12 44)" fill="#5c2d16" stroke="#1e1b4b" stroke-width="3.5"/>
+        <ellipse cx="74" cy="44" rx="11" ry="26" transform="rotate(-14 74 44)" fill="#5c2d16" stroke="#1e1b4b" stroke-width="3.5"/>
+        <rect x="16" y="14" width="54" height="60" rx="25" fill="#7c3f1d" stroke="#1e1b4b" stroke-width="3.5"/>
+        <ellipse cx="31" cy="29" rx="6" ry="3.5" fill="#f59e0b"/><ellipse cx="55" cy="29" rx="6" ry="3.5" fill="#f59e0b"/>
+        <circle cx="31" cy="39" r="5.5" fill="#1e1b4b"/><circle cx="33" cy="37" r="2" fill="#fff"/>
+        <circle cx="55" cy="39" r="5.5" fill="#1e1b4b"/><circle cx="57" cy="37" r="2" fill="#fff"/>
+        <ellipse cx="43" cy="54" rx="15" ry="12" fill="#d97706" stroke="#1e1b4b" stroke-width="2.5"/>
+        <circle cx="43" cy="49" r="5.5" fill="#1e1b4b"/>
+        <path d="M36,59 Q43,66 50,59" fill="none" stroke="#1e1b4b" stroke-width="2.5" stroke-linecap="round"/>
+        <rect x="24" y="74" width="38" height="9" rx="4" fill="#ec4899" stroke="#1e1b4b" stroke-width="2.5"/>
+        <circle cx="43" cy="83" r="4.5" fill="#facc15" stroke="#1e1b4b" stroke-width="2"/>
+        <text x="43" y="108" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700" fill="#1e1b4b">LUNA</text>
+      </g>
+      <g class="anim-float-delay">
+        <rect x="462" y="18" width="208" height="64" rx="18" fill="#ffffff" stroke="#1e1b4b" stroke-width="3.5"/>
+        <polygon points="468,64 442,76 475,80" fill="#ffffff" stroke="#1e1b4b" stroke-width="3.5"/>
+        <text x="566" y="45" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="14" font-weight="700" fill="#1e1b4b">E eu sou a LUNA!</text>
+        <text x="566" y="66" text-anchor="middle" font-family="Nunito, sans-serif" font-size="12.5" font-weight="800" fill="#db2777">Tem até Google Flow aqui! ⚡</text>
+      </g>
+    </svg>
+  </div>
+
   <div class="pill-row">
-    <span class="pill">📁 Pasta do Motor: E:\videos\videomaker_v2</span>
-    <span class="pill">🐍 Python Padrão: C:\Docling\venv\Scripts\python.exe</span>
-    <span class="pill">🧠 Cérebro: graphify-out\GRAPH_REPORT.md</span>
+    <span class="pill" style="background:#fef08a;">📁 Casa do Motor: E:\videos\videomaker_v2</span>
+    <span class="pill" style="background:#bae6fd;">🐍 Python Oficial: C:\Docling\venv\Scripts\python.exe</span>
+    <span class="pill" style="background:#f5d0fe;">🧠 Cérebro: graphify-out\GRAPH_REPORT.md</span>
   </div>
 </header>
 
 <main>
 
-  <!-- SEÇÃO 1: COMO COMEÇAR EM 3 PASSOS -->
-  <section>
-    <h2 class="sec-title">
-      <span class="sec-badge" style="background:#0284c7;">1</span>
-      Como Começar em 3 Passos (Toda Nova Conversa)
-    </h2>
-    <div class="svg-wrap">
-      <svg viewBox="0 0 1080 175" width="1080" height="175" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <marker id="arr1" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L9,3 z" fill="#38bdf8" />
-          </marker>
-        </defs>
-        <!-- Passo 1 -->
-        <rect x="15" y="20" width="300" height="135" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="2.5"/>
-        <text x="165" y="52" text-anchor="middle" fill="#38bdf8" font-size="16" font-weight="800">PASSO 1 — ABRIR PASTA</text>
-        <text x="165" y="84" text-anchor="middle" fill="#f8fafc" font-size="22">📁</text>
-        <text x="165" y="114" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="700">E:\videos\videomaker_v2</text>
-        <text x="165" y="138" text-anchor="middle" fill="#94a3b8" font-size="12">Sempre abra a conversa aqui dentro!</text>
-
-        <line x1="315" y1="88" x2="375" y2="88" stroke="#38bdf8" stroke-width="3" marker-end="url(#arr1)"/>
-
-        <!-- Passo 2 -->
-        <rect x="385" y="20" width="310" height="135" rx="16" fill="#1e293b" stroke="#a78bfa" stroke-width="2.5"/>
-        <text x="540" y="52" text-anchor="middle" fill="#a78bfa" font-size="16" font-weight="800">PASSO 2 — LER O CÉREBRO</text>
-        <text x="540" y="84" text-anchor="middle" fill="#f8fafc" font-size="22">🧠</text>
-        <text x="540" y="114" text-anchor="middle" fill="#f8fafc" font-size="13.5" font-weight="700">GRAPH_REPORT.md + AGENTS.md</text>
-        <text x="540" y="138" text-anchor="middle" fill="#94a3b8" font-size="12">O agente lê o mapa e economiza contexto</text>
-
-        <line x1="695" y1="88" x2="755" y2="88" stroke="#38bdf8" stroke-width="3" marker-end="url(#arr1)"/>
-
-        <!-- Passo 3 -->
-        <rect x="765" y="20" width="300" height="135" rx="16" fill="#1e293b" stroke="#34d399" stroke-width="2.5"/>
-        <text x="915" y="52" text-anchor="middle" fill="#34d399" font-size="16" font-weight="800">PASSO 3 — RODAR &amp; VALIDAR</text>
-        <text x="915" y="84" text-anchor="middle" fill="#f8fafc" font-size="22">🎬</text>
-        <text x="915" y="114" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="700">16:9 + 3 Shorts + Ver Frames</text>
-        <text x="915" y="138" text-anchor="middle" fill="#94a3b8" font-size="12">Só publica depois que você aprovar!</text>
-      </svg>
+  <!-- CAPÍTULO 1: 3 PASSOS -->
+  <section class="comic-panel" style="background: #fffbeb;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#3b82f6;">1</span>
+      <h2>Capítulo 1: Como Começar em 3 Passos!</h2>
     </div>
-  </section>
-
-  <!-- SEÇÃO 2: FLUXO COMPLETO DO MOTOR (COM SETAS) -->
-  <section>
-    <h2 class="sec-title">
-      <span class="sec-badge" style="background:#7c3aed;">2</span>
-      O Que o Motor Faz por Dentro (Da Ideia até o YouTube)
-    </h2>
-    <div class="svg-wrap">
-      <svg viewBox="0 0 1120 340" width="1120" height="340" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L9,3 z" fill="#fbbf24" />
-          </marker>
-          <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L9,3 z" fill="#34d399" />
-          </marker>
-        </defs>
-
-        <!-- Linha de Cima -->
-        <rect x="20" y="25" width="210" height="105" rx="14" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/>
-        <text x="125" y="52" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="800">1. ROTEIRO (3 ATOS)</text>
-        <text x="125" y="77" text-anchor="middle" fill="#f8fafc" font-size="12">script_engine.py</text>
-        <text x="125" y="97" text-anchor="middle" fill="#94a3b8" font-size="11.5">450–550 palavras · Gancho 5s</text>
-        <text x="125" y="114" text-anchor="middle" fill="#94a3b8" font-size="11.5">Frida × Luna + CTA final</text>
-
-        <line x1="230" y1="77" x2="275" y2="77" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#arr2)"/>
-
-        <rect x="285" y="25" width="230" height="105" rx="14" fill="#1e293b" stroke="#f472b6" stroke-width="2"/>
-        <text x="400" y="52" text-anchor="middle" fill="#f472b6" font-size="14" font-weight="800">2. VOZ GEMINI + QA</text>
-        <text x="400" y="77" text-anchor="middle" fill="#f8fafc" font-size="12">voice_studio.py</text>
-        <text x="400" y="97" text-anchor="middle" fill="#94a3b8" font-size="11.5">Kore / Sulafat / Leda</text>
-        <text x="400" y="114" text-anchor="middle" fill="#34d399" font-size="11.5">Whisper QA + Portão Prosódia</text>
-
-        <line x1="515" y1="77" x2="560" y2="77" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#arr2)"/>
-
-        <rect x="570" y="25" width="245" height="105" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-        <text x="692" y="52" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="800">3. IMAGENS + VÍDEOS VEO</text>
-        <text x="692" y="77" text-anchor="middle" fill="#f8fafc" font-size="12">media_studio + flow_continuity</text>
-        <text x="692" y="97" text-anchor="middle" fill="#94a3b8" font-size="11.5">Nano Banana 2.1 + Veo 3.1</text>
-        <text x="692" y="114" text-anchor="middle" fill="#94a3b8" font-size="11.5">Pool de 5 contas Google Flow</text>
-
-        <line x1="815" y1="77" x2="860" y2="77" stroke="#fbbf24" stroke-width="2.5" marker-end="url(#arr2)"/>
-
-        <rect x="870" y="25" width="225" height="105" rx="14" fill="#1e293b" stroke="#a78bfa" stroke-width="2"/>
-        <text x="982" y="52" text-anchor="middle" fill="#a78bfa" font-size="14" font-weight="800">4. AVATAR + SONOPLASTIA</text>
-        <text x="982" y="77" text-anchor="middle" fill="#f8fafc" font-size="12">avatar_studio + audio_fx</text>
-        <text x="982" y="97" text-anchor="middle" fill="#94a3b8" font-size="11.5">PiP Frida/Luna falando ativo</text>
-        <text x="982" y="114" text-anchor="middle" fill="#94a3b8" font-size="11.5">Earshot + Freesound (-14 LUFS)</text>
-
-        <!-- Seta descendo para Linha de Baixo -->
-        <path d="M982,130 L982,165 L140,165 L140,198" fill="none" stroke="#34d399" stroke-width="2.5" marker-end="url(#arr3)"/>
-
-        <!-- Linha de Baixo -->
-        <rect x="20" y="205" width="245" height="110" rx="14" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
-        <text x="142" y="232" text-anchor="middle" fill="#34d399" font-size="14" font-weight="800">5. VÍDEO FINAL 16:9</text>
-        <text x="142" y="256" text-anchor="middle" fill="#f8fafc" font-size="12">video_assembler.py</text>
-        <text x="142" y="276" text-anchor="middle" fill="#94a3b8" font-size="11.5">GPU NVENC · Cortes &lt;= 5s</text>
-        <text x="142" y="295" text-anchor="middle" fill="#94a3b8" font-size="11.5">Legenda Pop + 3 Thumbs A/B</text>
-
-        <line x1="265" y1="260" x2="310" y2="260" stroke="#34d399" stroke-width="2.5" marker-end="url(#arr3)"/>
-
-        <rect x="320" y="205" width="245" height="110" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-        <text x="442" y="232" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="800">6. 3 SHORTS 9:16 (70/30)</text>
-        <text x="442" y="256" text-anchor="middle" fill="#f8fafc" font-size="12">motion_shorts.py</text>
-        <text x="442" y="276" text-anchor="middle" fill="#94a3b8" font-size="11.5">70% vídeo + 30% palco avatares</text>
-        <text x="442" y="295" text-anchor="middle" fill="#94a3b8" font-size="11.5">30fps liso · sem cortar fala</text>
-
-        <line x1="565" y1="260" x2="610" y2="260" stroke="#34d399" stroke-width="2.5" marker-end="url(#arr3)"/>
-
-        <rect x="620" y="205" width="215" height="110" rx="14" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/>
-        <text x="727" y="232" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="800">7. AUTO-AUDITORIA</text>
-        <text x="727" y="256" text-anchor="middle" fill="#f8fafc" font-size="12">self_audit.py</text>
-        <text x="727" y="276" text-anchor="middle" fill="#94a3b8" font-size="11.5">APPROVED=True | Issues=0</text>
-        <text x="727" y="295" text-anchor="middle" fill="#94a3b8" font-size="11.5">Checa áudio, cortes e frames</text>
-
-        <line x1="835" y1="260" x2="880" y2="260" stroke="#34d399" stroke-width="2.5" marker-end="url(#arr3)"/>
-
-        <rect x="890" y="205" width="205" height="110" rx="14" fill="#1e293b" stroke="#f87171" stroke-width="2"/>
-        <text x="992" y="232" text-anchor="middle" fill="#f87171" font-size="14" font-weight="800">8. YOUTUBE PT-BR</text>
-        <text x="992" y="256" text-anchor="middle" fill="#f8fafc" font-size="12">youtube_publisher.py</text>
-        <text x="992" y="276" text-anchor="middle" fill="#34d399" font-size="11.5" font-weight="700">MadeForKids = FALSE</text>
-        <text x="992" y="295" text-anchor="middle" fill="#94a3b8" font-size="11.5">16:9 + 3 Shorts linkados</text>
-      </svg>
-    </div>
-  </section>
-
-  <!-- SEÇÃO 3: DESENHO DO LAYOUT NA TELA (16:9 E 9:16) -->
-  <section>
-    <h2 class="sec-title">
-      <span class="sec-badge" style="background:#db2777;">3</span>
-      Como Fica a Tela (Desenho Visual do 16:9 e do Short 9:16)
-    </h2>
-    <div class="grid-2">
-      <!-- 16:9 -->
-      <div class="mini-card">
-        <h3>📺 Vídeo Principal (16:9 Horizontal)</h3>
-        <div class="svg-wrap">
-          <svg viewBox="0 0 480 270" width="480" height="270" xmlns="http://www.w3.org/2000/svg">
-            <rect x="5" y="5" width="470" height="260" rx="12" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
-            <text x="240" y="130" text-anchor="middle" fill="#64748b" font-size="16" font-weight="700">CENA PRINCIPAL (1920 × 1080)</text>
-            <text x="240" y="152" text-anchor="middle" fill="#475569" font-size="12">Ken Burns (<= 5s) + Vídeos Veo 3.1</text>
-
-            <!-- PiP Frida -->
-            <rect x="22" y="155" width="90" height="90" rx="14" fill="#1e293b" stroke="#fbbf24" stroke-width="3"/>
-            <text x="67" y="195" text-anchor="middle" fill="#fbbf24" font-size="22">🐶</text>
-            <text x="67" y="218" text-anchor="middle" fill="#f8fafc" font-size="11" font-weight="700">FRIDA PiP</text>
-            <text x="67" y="233" text-anchor="middle" fill="#34d399" font-size="10">Fala na voz dela</text>
-
-            <!-- PiP Luna -->
-            <rect x="368" y="155" width="90" height="90" rx="14" fill="#1e293b" stroke="#f472b6" stroke-width="3"/>
-            <text x="413" y="195" text-anchor="middle" fill="#f472b6" font-size="22">🐕</text>
-            <text x="413" y="218" text-anchor="middle" fill="#f8fafc" font-size="11" font-weight="700">LUNA PiP</text>
-            <text x="413" y="233" text-anchor="middle" fill="#34d399" font-size="10">Fala na voz dela</text>
-
-            <!-- Legenda Pop -->
-            <rect x="135" y="212" width="210" height="34" rx="8" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
-            <text x="240" y="234" text-anchor="middle" fill="#f8fafc" font-size="12" font-weight="800">LEGENDA POP COLORIDA</text>
-          </svg>
-        </div>
-        <p class="muted" style="margin:10px 0 0;">Regra de ouro: quando a voz da Frida entra, ela fala; quando a voz da Luna entra, ela fala.</p>
-      </div>
-
-      <!-- 9:16 -->
-      <div class="mini-card">
-        <h3>📱 Shorts (9:16 Vertical — Divisão 70 / 30)</h3>
-        <div class="svg-wrap">
-          <svg viewBox="0 0 320 320" width="320" height="320" xmlns="http://www.w3.org/2000/svg">
-            <rect x="70" y="6" width="180" height="308" rx="16" fill="#0f172a" stroke="#34d399" stroke-width="2.5"/>
-            <!-- Topo 70% -->
-            <rect x="74" y="10" width="172" height="205" rx="12" fill="#1e293b"/>
-            <rect x="95" y="20" width="130" height="22" rx="11" fill="#fbbf24"/>
-            <text x="160" y="35" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="800">HOOK: ELAS FALARAM?!</text>
-            <text x="160" y="112" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">TOPO 70%</text>
-            <text x="160" y="130" text-anchor="middle" fill="#64748b" font-size="11">Cena 16:9 com zoom</text>
-            <rect x="86" y="175" width="148" height="26" rx="6" fill="#0f172a" stroke="#38bdf8"/>
-            <text x="160" y="192" text-anchor="middle" fill="#f8fafc" font-size="10" font-weight="700">Legenda Pop Sincronizada</text>
-
-            <!-- Barra progresso -->
-            <rect x="74" y="216" width="120" height="4" fill="#34d399"/>
-
-            <!-- Base 30% -->
-            <rect x="74" y="222" width="172" height="88" rx="10" fill="#172554"/>
-            <text x="160" y="236" text-anchor="middle" fill="#93c5fd" font-size="9.5" font-weight="800">BASE 30% — PALCO 30FPS</text>
-            <circle cx="118" cy="272" r="24" fill="#1e293b" stroke="#fbbf24" stroke-width="2.5"/>
-            <text x="118" y="277" text-anchor="middle" fill="#fbbf24" font-size="16">🐶</text>
-            <text x="118" y="304" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="700">Frida</text>
-
-            <circle cx="202" cy="272" r="24" fill="#1e293b" stroke="#f472b6" stroke-width="2.5"/>
-            <text x="202" y="277" text-anchor="middle" fill="#f472b6" font-size="16">🐕</text>
-            <text x="202" y="304" text-anchor="middle" fill="#f8fafc" font-size="9" font-weight="700">Luna</text>
-          </svg>
-        </div>
-        <p class="muted" style="margin:10px 0 0;">Corta sempre na fronteira da cena (nunca corta frase no meio) e evita o CTA final no Short 03.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- SEÇÃO 4: OS 4 COMANDOS PRONTOS -->
-  <section>
-    <h2 class="sec-title">
-      <span class="sec-badge" style="background:#059669;">4</span>
-      Os 4 Comandos Prontos (Clique em "Copiar")
-    </h2>
-    <div class="grid-2">
-      <div class="mini-card">
-        <h3>♻️ Refazer Vídeo Antigo <span class="tag tag-ok">Mais Usado</span></h3>
-        <p class="muted">Pega uma pasta antiga, reaproveita o que presta e gera 16:9 + 3 Shorts + 3 Thumbs.</p>
-        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --legacy-dir "E:\videos\NOME_DA_PASTA" --burn-captions</div>
-      </div>
-
-      <div class="mini-card">
-        <h3>✨ Criar Vídeo Novo do Zero <span class="tag tag-info">Inédito</span></h3>
-        <p class="muted">Escreve o roteiro de 3 atos, gera vozes, imagens, vídeos Veo, 16:9 e 3 Shorts.</p>
-        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --prompt "Frida e Luna descobrem um mapa secreto" --slug mapa-secreto --burn-captions</div>
-      </div>
-
-      <div class="mini-card">
-        <h3>🚀 Publicar no YouTube PT-BR <span class="tag tag-warn">Só Após Aprovar</span></h3>
-        <p class="muted">Publica o vídeo principal e os 3 Shorts linkados (sempre Todo Público).</p>
-        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --slug MEU_SLUG --stage publish --publish-pt --publish-shorts-pt --publish-privacy public</div>
-      </div>
-
-      <div class="mini-card">
-        <h3>🔍 Checar Contas Flow + Contrato <span class="tag tag-info">Manutenção</span></h3>
-        <p class="muted">Vê quantos créditos faltam nas 5 contas Google Flow e valida as travas de segurança.</p>
-        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --flow-accounts-status
-C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\scripts\verify_contract_guard.py</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SEÇÃO 5: POOL DE 5 CONTAS GOOGLE FLOW -->
-  <section>
-    <h2 class="sec-title">
-      <span class="sec-badge" style="background:#d97706;">5</span>
-      Pool de 5 Contas Google Flow (250 Créditos/Dia Automático)
-    </h2>
-    <div class="svg-wrap">
-      <svg viewBox="0 0 1060 140" width="1060" height="140" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <marker id="arrF" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L9,3 z" fill="#34d399" />
-          </marker>
-        </defs>
-        <g font-family="Segoe UI, sans-serif">
-          <rect x="10" y="20" width="160" height="95" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-          <text x="90" y="48" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="800">acc_1 (:18800)</text>
-          <text x="90" y="72" text-anchor="middle" fill="#f8fafc" font-size="12">50 créditos/dia</text>
-          <text x="90" y="95" text-anchor="middle" fill="#94a3b8" font-size="11">Acabou? Troca ➔</text>
-
-          <line x1="170" y1="68" x2="210" y2="68" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrF)"/>
-
-          <rect x="220" y="20" width="160" height="95" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-          <text x="300" y="48" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="800">acc_2 (:18801)</text>
-          <text x="300" y="72" text-anchor="middle" fill="#f8fafc" font-size="12">50 créditos/dia</text>
-          <text x="300" y="95" text-anchor="middle" fill="#94a3b8" font-size="11">Failover auto ➔</text>
-
-          <line x1="380" y1="68" x2="420" y2="68" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrF)"/>
-
-          <rect x="430" y="20" width="160" height="95" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-          <text x="510" y="48" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="800">acc_3 (:18802)</text>
-          <text x="510" y="72" text-anchor="middle" fill="#f8fafc" font-size="12">50 créditos/dia</text>
-          <text x="510" y="95" text-anchor="middle" fill="#94a3b8" font-size="11">Failover auto ➔</text>
-
-          <line x1="590" y1="68" x2="630" y2="68" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrF)"/>
-
-          <rect x="640" y="20" width="160" height="95" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
-          <text x="720" y="48" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="800">acc_4 (:18803)</text>
-          <text x="720" y="72" text-anchor="middle" fill="#f8fafc" font-size="12">50 créditos/dia</text>
-          <text x="720" y="95" text-anchor="middle" fill="#94a3b8" font-size="11">Failover auto ➔</text>
-
-          <line x1="800" y1="68" x2="840" y2="68" stroke="#34d399" stroke-width="2.5" marker-end="url(#arrF)"/>
-
-          <rect x="850" y="20" width="190" height="95" rx="12" fill="#064e3b" stroke="#34d399" stroke-width="2.5"/>
-          <text x="945" y="48" text-anchor="middle" fill="#34d399" font-size="14" font-weight="800">acc_5 (:18804)</text>
-          <text x="945" y="72" text-anchor="middle" fill="#f8fafc" font-size="12">50 créditos/dia</text>
-          <text x="945" y="95" text-anchor="middle" fill="#a7f3d0" font-size="11" font-weight="700">Total = 250 créd/dia</text>
+    <div class="art-frame" style="background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 100%);">
+      <svg viewBox="0 0 1080 215" width="1080" height="215" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(20, 28)">
+          <rect x="6" y="6" width="300" height="165" rx="22" fill="#1e1b4b"/>
+          <rect x="0" y="0" width="300" height="165" rx="22" fill="#ffffff" stroke="#1e1b4b" stroke-width="4"/>
+          <rect x="20" y="-14" width="120" height="28" rx="14" fill="#38bdf8" stroke="#1e1b4b" stroke-width="3"/>
+          <text x="80" y="5" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="14" font-weight="700" fill="#1e1b4b">PASSO 1</text>
+          <text x="150" y="58" text-anchor="middle" font-size="34">📁</text>
+          <text x="150" y="96" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="18" font-weight="700" fill="#1e1b4b">Abrir Pasta do Motor</text>
+          <text x="150" y="120" text-anchor="middle" font-family="Fira Code, monospace" font-size="12.5" font-weight="700" fill="#0284c7">E:\videos\videomaker_v2</text>
+          <text x="150" y="144" text-anchor="middle" font-family="Nunito, sans-serif" font-size="12" font-weight="800" fill="#475569">Toda nova conversa começa aqui!</text>
+        </g>
+        <path d="M332,102 L366,102 L366,90 L388,110 L366,130 L366,118 L332,118 Z" fill="#facc15" stroke="#1e1b4b" stroke-width="3.5" stroke-linejoin="round"/>
+        <g transform="translate(395, 28)">
+          <rect x="6" y="6" width="300" height="165" rx="22" fill="#1e1b4b"/>
+          <rect x="0" y="0" width="300" height="165" rx="22" fill="#ffffff" stroke="#1e1b4b" stroke-width="4"/>
+          <rect x="20" y="-14" width="120" height="28" rx="14" fill="#c084fc" stroke="#1e1b4b" stroke-width="3"/>
+          <text x="80" y="5" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="14" font-weight="700" fill="#1e1b4b">PASSO 2</text>
+          <text x="150" y="58" text-anchor="middle" font-size="34">🧠</text>
+          <text x="150" y="96" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="18" font-weight="700" fill="#1e1b4b">Ler Cérebro Graphify</text>
+          <text x="150" y="120" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#7e22ce">GRAPH_REPORT.md + AGENTS.md</text>
+          <text x="150" y="144" text-anchor="middle" font-family="Nunito, sans-serif" font-size="12" font-weight="800" fill="#475569">Economiza contexto e evita erros!</text>
+        </g>
+        <path d="M707,102 L741,102 L741,90 L763,110 L741,130 L741,118 L707,118 Z" fill="#4ade80" stroke="#1e1b4b" stroke-width="3.5" stroke-linejoin="round"/>
+        <g transform="translate(770, 28)">
+          <rect x="6" y="6" width="290" height="165" rx="22" fill="#1e1b4b"/>
+          <rect x="0" y="0" width="290" height="165" rx="22" fill="#ffffff" stroke="#1e1b4b" stroke-width="4"/>
+          <rect x="20" y="-14" width="120" height="28" rx="14" fill="#4ade80" stroke="#1e1b4b" stroke-width="3"/>
+          <text x="80" y="5" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="14" font-weight="700" fill="#1e1b4b">PASSO 3</text>
+          <text x="145" y="58" text-anchor="middle" font-size="34">🎬</text>
+          <text x="145" y="96" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="18" font-weight="700" fill="#1e1b4b">Gerar &amp; Conferir</text>
+          <text x="145" y="120" text-anchor="middle" font-family="Fira Code, monospace" font-size="12.5" font-weight="700" fill="#15803d">16:9 + 3 Shorts + Frames</text>
+          <text x="145" y="144" text-anchor="middle" font-family="Nunito, sans-serif" font-size="12" font-weight="800" fill="#475569">Pós-commit: graphify update!</text>
         </g>
       </svg>
     </div>
-    <p class="muted" style="margin:10px 0 0;">Nano Banana 2.1 (imagens 16:9) = 0 créditos · Veo 3.1 Lite (vídeos 8s) = 10 créditos por cena.</p>
   </section>
 
-  <!-- SEÇÃO 6: PODE vs PROIBIDO (VERDE vs VERMELHO) -->
-  <section>
-    <h2 class="sec-title">
-      <span class="sec-badge" style="background:#dc2626;">6</span>
-      Regras de Ouro — O Que Pode vs O Que é Proibido
-    </h2>
+  <!-- CAPÍTULO 2: A FÁBRICA MÁGICA (8 ESTAÇÕES) -->
+  <section class="comic-panel" style="background: #f0f9ff;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#a855f7;">2</span>
+      <h2>Capítulo 2: A Fábrica Mágica (8 Vagões da Ideia até o YouTube!)</h2>
+    </div>
+    <div class="art-frame" style="background: linear-gradient(180deg, #fef9c3 0%, #dcfce7 100%);">
+      <svg viewBox="0 0 1120 400" width="1120" height="400" xmlns="http://www.w3.org/2000/svg">
+        <path d="M135,90 L985,90 Q1045,90 1045,150 L1045,165 Q1045,205 985,205 L135,205 Q75,205 75,255 L75,295 L985,295"
+              fill="none" stroke="#1e1b4b" stroke-width="10" stroke-linecap="round"/>
+        <path d="M135,90 L985,90 Q1045,90 1045,150 L1045,165 Q1045,205 985,205 L135,205 Q75,205 75,255 L75,295 L985,295"
+              fill="none" stroke="#facc15" stroke-width="4" stroke-dasharray="12 10" stroke-linecap="round"/>
+
+        <!-- 1 -->
+        <g transform="translate(20, 18)">
+          <rect x="0" y="0" width="225" height="140" rx="20" fill="#fef08a" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="112" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#1e1b4b">1. ✍️ ROTEIRO 3 ATOS</text>
+          <text x="112" y="55" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#92400e">script_engine.py</text>
+          <text x="112" y="80" text-anchor="middle" font-size="12.5" font-weight="800">• 450–550 palavras</text>
+          <text x="112" y="100" text-anchor="middle" font-size="12.5" font-weight="800">• Gancho 5s + CTA</text>
+          <text x="112" y="120" text-anchor="middle" font-size="12.5" font-weight="800">• Diálogo Frida × Luna</text>
+        </g>
+        <!-- 2 -->
+        <g transform="translate(295, 18)">
+          <rect x="0" y="0" width="235" height="140" rx="20" fill="#fbcfe8" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="117" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#1e1b4b">2. 🎤 VOZES + WHISPER</text>
+          <text x="117" y="55" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#9d174d">voice_studio.py</text>
+          <text x="117" y="80" text-anchor="middle" font-size="12.5" font-weight="800">• Kore, Sulafat e Leda</text>
+          <text x="117" y="100" text-anchor="middle" font-size="12.5" font-weight="800">• Portão de Prosódia</text>
+          <text x="117" y="120" text-anchor="middle" font-size="12.5" font-weight="800" fill="#15803d">• Edge TTS BLOQUEADO!</text>
+        </g>
+        <!-- 3 -->
+        <g transform="translate(580, 18)">
+          <rect x="0" y="0" width="245" height="140" rx="20" fill="#bae6fd" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="122" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#1e1b4b">3. 🎨 IMAGENS + VEO</text>
+          <text x="122" y="55" text-anchor="middle" font-family="Fira Code, monospace" font-size="11.5" font-weight="700" fill="#075985">media + flow_continuity</text>
+          <text x="122" y="80" text-anchor="middle" font-size="12.5" font-weight="800">• Nano Banana (Grátis)</text>
+          <text x="122" y="100" text-anchor="middle" font-size="12.5" font-weight="800">• Vídeos Veo 3.1 (8s)</text>
+          <text x="122" y="120" text-anchor="middle" font-size="12.5" font-weight="800">• Pool de 5 Contas</text>
+        </g>
+        <!-- 4 -->
+        <g transform="translate(875, 18)">
+          <rect x="0" y="0" width="225" height="140" rx="20" fill="#e9d5ff" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="112" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#1e1b4b">4. 🐶 AVATAR + SOM</text>
+          <text x="112" y="55" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#6b21a8">avatar + audio_fx</text>
+          <text x="112" y="80" text-anchor="middle" font-size="12.5" font-weight="800">• PiP falando na voz</text>
+          <text x="112" y="100" text-anchor="middle" font-size="12.5" font-weight="800">• Earshot + Freesound</text>
+          <text x="112" y="120" text-anchor="middle" font-size="12.5" font-weight="800">• Master -14 LUFS</text>
+        </g>
+
+        <!-- 5 -->
+        <g transform="translate(20, 235)">
+          <rect x="0" y="0" width="240" height="145" rx="20" fill="#bbf7d0" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="120" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#1e1b4b">5. 📺 FILME 16:9</text>
+          <text x="120" y="55" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#166534">video_assembler.py</text>
+          <text x="120" y="80" text-anchor="middle" font-size="12.5" font-weight="800">• GPU NVENC rápida</text>
+          <text x="120" y="100" text-anchor="middle" font-size="12.5" font-weight="800">• Sub-clips &lt;= 5s</text>
+          <text x="120" y="120" text-anchor="middle" font-size="12.5" font-weight="800">• Legenda Pop + 3 Thumbs</text>
+        </g>
+        <!-- 6 -->
+        <g transform="translate(305, 235)">
+          <rect x="0" y="0" width="245" height="145" rx="20" fill="#fed7aa" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="122" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#1e1b4b">6. 📱 3 SHORTS 9:16</text>
+          <text x="122" y="55" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#9a3412">motion_shorts.py</text>
+          <text x="122" y="80" text-anchor="middle" font-size="12.5" font-weight="800">• Layout 70% / 30%</text>
+          <text x="122" y="100" text-anchor="middle" font-size="12.5" font-weight="800">• Avatares 30fps lisos</text>
+          <text x="122" y="120" text-anchor="middle" font-size="12.5" font-weight="800">• Sem cortar fala/outro</text>
+        </g>
+        <!-- 7 -->
+        <g transform="translate(595, 235)">
+          <rect x="0" y="0" width="230" height="145" rx="20" fill="#fef08a" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="115" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#1e1b4b">7. 🕵️ INSPETOR QA</text>
+          <text x="115" y="55" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#854d0e">self_audit.py</text>
+          <text x="115" y="80" text-anchor="middle" font-size="12.5" font-weight="800" fill="#15803d">• APPROVED=True</text>
+          <text x="115" y="100" text-anchor="middle" font-size="12.5" font-weight="800">• Issues=0</text>
+          <text x="115" y="120" text-anchor="middle" font-size="12.5" font-weight="800">• Opcional --vision-audit</text>
+        </g>
+        <!-- 8 -->
+        <g transform="translate(870, 235)">
+          <rect x="0" y="0" width="230" height="145" rx="20" fill="#fecaca" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="115" y="30" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="16" font-weight="700" fill="#1e1b4b">8. 🚀 YOUTUBE PT-BR</text>
+          <text x="115" y="55" text-anchor="middle" font-family="Fira Code, monospace" font-size="12" font-weight="700" fill="#991b1b">youtube_publisher.py</text>
+          <text x="115" y="80" text-anchor="middle" font-size="12.5" font-weight="800" fill="#15803d">• MadeForKids = FALSE</text>
+          <text x="115" y="100" text-anchor="middle" font-size="12.5" font-weight="800">• Sobe 16:9 + 3 Shorts</text>
+          <text x="115" y="120" text-anchor="middle" font-size="12.5" font-weight="800">• Tudo linkado!</text>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- CAPÍTULO 3: CENTRAL DO GOOGLE FLOW & CONTAS CHROME -->
+  <section class="comic-panel" style="background: #fff7ed;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#f97316;">3</span>
+      <h2>Capítulo 3: Central do Google Flow &amp; Contas Chrome (Incluir, Ver, Ensinar e Excluir!)</h2>
+    </div>
+    <div class="speech-bubble" style="background:#fed7aa;">🚂 5 contas ligadas em sequência (`acc_1` até `acc_5`) = 250 créditos por dia sem travar!</div>
+
+    <div class="art-frame" style="background: linear-gradient(180deg, #ffedd5 0%, #fef9c3 100%); margin-bottom:18px;">
+      <svg viewBox="0 0 1080 155" width="1080" height="155" xmlns="http://www.w3.org/2000/svg">
+        <line x1="20" y1="130" x2="1060" y2="130" stroke="#1e1b4b" stroke-width="6" stroke-linecap="round"/>
+        <g transform="translate(20, 16)">
+          <rect x="0" y="0" width="170" height="96" rx="18" fill="#38bdf8" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="85" y="28" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700">acc_1 (:18800)</text>
+          <text x="85" y="54" text-anchor="middle" font-size="13" font-weight="900">🪙 50 moedas</text>
+          <text x="85" y="78" text-anchor="middle" font-size="11.5" font-weight="800">Acabou? Pula ➔</text>
+          <circle cx="38" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+          <circle cx="132" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+        </g>
+        <path d="M192,64 L222,64" stroke="#1e1b4b" stroke-width="5"/>
+        <g transform="translate(225, 16)">
+          <rect x="0" y="0" width="170" height="96" rx="18" fill="#a78bfa" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="85" y="28" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700">acc_2 (:18801)</text>
+          <text x="85" y="54" text-anchor="middle" font-size="13" font-weight="900">🪙 50 moedas</text>
+          <text x="85" y="78" text-anchor="middle" font-size="11.5" font-weight="800">Failover ➔</text>
+          <circle cx="38" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+          <circle cx="132" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+        </g>
+        <path d="M397,64 L427,64" stroke="#1e1b4b" stroke-width="5"/>
+        <g transform="translate(430, 16)">
+          <rect x="0" y="0" width="170" height="96" rx="18" fill="#f472b6" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="85" y="28" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700">acc_3 (:18802)</text>
+          <text x="85" y="54" text-anchor="middle" font-size="13" font-weight="900">🪙 50 moedas</text>
+          <text x="85" y="78" text-anchor="middle" font-size="11.5" font-weight="800">Failover ➔</text>
+          <circle cx="38" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+          <circle cx="132" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+        </g>
+        <path d="M602,64 L632,64" stroke="#1e1b4b" stroke-width="5"/>
+        <g transform="translate(635, 16)">
+          <rect x="0" y="0" width="170" height="96" rx="18" fill="#fb923c" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="85" y="28" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700">acc_4 (:18803)</text>
+          <text x="85" y="54" text-anchor="middle" font-size="13" font-weight="900">🪙 50 moedas</text>
+          <text x="85" y="78" text-anchor="middle" font-size="11.5" font-weight="800">Failover ➔</text>
+          <circle cx="38" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+          <circle cx="132" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+        </g>
+        <path d="M807,64 L837,64" stroke="#1e1b4b" stroke-width="5"/>
+        <g transform="translate(840, 10)">
+          <rect x="0" y="6" width="215" height="96" rx="18" fill="#4ade80" stroke="#1e1b4b" stroke-width="4"/>
+          <text x="107" y="34" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700">acc_5 (:18804)</text>
+          <text x="107" y="58" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="13.5" font-weight="700">🏆 TOTAL = 250 / DIA</text>
+          <text x="107" y="82" text-anchor="middle" font-size="11.5" font-weight="900" fill="#14532d">Nano Banana = 0 | Veo = 10</text>
+          <circle cx="45" cy="110" r="11" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+          <circle cx="165" cy="110" r="11" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
+        </g>
+      </svg>
+    </div>
+
     <div class="grid-2">
-      <div class="mini-card" style="border-color:rgba(52,211,153,0.5);">
-        <h3><span class="tag tag-ok">✅ SEMPRE FAZER</span></h3>
-        <ul style="margin:8px 0 0; padding-left:18px; display:flex; flex-direction:column; gap:8px;">
-          <li><b>Voz Gemini Emotion:</b> Kore (Narrador), Sulafat (Frida), Leda (Luna) + Whisper QA.</li>
-          <li><b>YouTube Todo Público:</b> <code>"selfDeclaredMadeForKids": False</code>.</li>
-          <li><b>Cânone Infantil:</b> Frida e Luna sempre filhotes (<code>1 year old max</code>).</li>
-          <li><b>Cérebro Graphify:</b> Ler <code>GRAPH_REPORT.md</code> ao entrar e rodar <code>graphify update</code> após cada commit.</li>
-          <li><b>Python:</b> Usar sempre <code>C:\Docling\venv\Scripts\python.exe</code>.</li>
+      <div class="story-card" style="background:#eff6ff;">
+        <h3><span>🔍 1. Ver Contas &amp; Créditos</span> <span class="sticker st-blue">Status</span></h3>
+        <p style="margin:0; font-weight:700;">Mostra todas as contas (`acc_1..acc_5`), e-mail logado, se o Chrome está aberto, créditos de hoje e se Frida/Luna já existem lá.</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --flow-accounts-status</div>
+      </div>
+
+      <div class="story-card" style="background:#fefce8;">
+        <h3><span>➕ 2. Incluir / Logar Conta Chrome</span> <span class="sticker st-amber">Login</span></h3>
+        <p style="margin:0; font-weight:700;">Abre um Chrome exclusivo para você fazer login no Google Flow (troque <code>acc_2</code> por <code>acc_1..acc_5</code>).</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --setup-flow-account acc_2</div>
+      </div>
+
+      <div class="story-card" style="background:#faf5ff;">
+        <h3><span>🎓 3. Ensinar Contas (Modo Aprendizado)</span> <span class="sticker st-purp">Cliques</span></h3>
+        <p style="margin:0; font-weight:700;">Guia conta por conta gravando seus cliques/projeto, ou salva na hora a sessão de uma conta aberta!</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --learn-flow-accounts --flow-account-ids acc_2,acc_3
+C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --save-learned-session acc_2</div>
+      </div>
+
+      <div class="story-card" style="background:#fff1f2;">
+        <h3><span>🗑️ 4. Desativar ou Excluir Conta Chrome</span> <span class="sticker st-red">Limpeza</span></h3>
+        <p style="margin:0; font-weight:700;">Para desligar uma conta sem apagar nada, mude <code>"enabled": false</code> em <code>flow_accounts.json</code>. Para <b>excluir de vez</b> o perfil Chrome dela, apague a pasta:</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>Remove-Item -Recurse -Force "E:\videos\videomaker_v2\.chrome-flow-accounts\acc_2"</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPÍTULO 4: COMANDOS PRINCIPAIS DE PRODUÇÃO -->
+  <section class="comic-panel" style="background: #ecfdf5;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#22c55e;">4</span>
+      <h2>Capítulo 4: Os 6 Modos de Produção (Copiar e Colar!)</h2>
+    </div>
+    <div class="grid-2">
+      <div class="story-card" style="background:#fefce8;">
+        <h3><span>♻️ 1. Refazer Vídeo Antigo</span> <span class="sticker st-green">Favorito</span></h3>
+        <p style="margin:0; font-weight:700;">Audita uma pasta antiga, aproveita imagens limpas e gera 16:9 + 3 Shorts + 3 Thumbs.</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --legacy-dir "E:\videos\NOME_DA_PASTA" --burn-captions</div>
+      </div>
+
+      <div class="story-card" style="background:#eff6ff;">
+        <h3><span>✨ 2. Inventar História Nova do Zero</span> <span class="sticker st-blue">Inédito</span></h3>
+        <p style="margin:0; font-weight:700;">Cria roteiro (3 atos), vozes, imagens, vídeos Veo, 16:9 e 3 Shorts.</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --prompt "Frida e Luna acham um mapa secreto" --slug mapa-secreto --burn-captions</div>
+      </div>
+
+      <div class="story-card" style="background:#fdf2f8;">
+        <h3><span>📦 3. Escanear Todos os Vídeos</span> <span class="sticker st-pink">Lote</span></h3>
+        <p style="margin:0; font-weight:700;">Varre uma pasta inteira cheia de projetos antigos e mostra quais precisam de upgrade.</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --batch-scan E:\videos</div>
+      </div>
+
+      <div class="story-card" style="background:#faf5ff;">
+        <h3><span>🐕 4. Gerar Avatar da Luna</span> <span class="sticker st-purp">Avatar</span></h3>
+        <p style="margin:0; font-weight:700;">Cria ou atualiza o pacote de avatar falante da Luna (<code>reposo</code> + <code>hablando</code>).</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --build-avatar luna --stage avatar-only</div>
+      </div>
+
+      <div class="story-card" style="background:#fffbeb;">
+        <h3><span>🎯 5. Rodar Só Uma Etapa (--stage)</span> <span class="sticker st-amber">Cirúrgico</span></h3>
+        <p style="margin:0; font-weight:700;">Escolha uma etapa: <code>all</code>, <code>avatar-only</code>, <code>script</code>, <code>tts</code>, <code>pacing</code>, <code>images</code>, <code>shorts</code>, <code>audit</code> ou <code>publish</code>.</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --slug MEU_SLUG --stage shorts --short-engine split_70_30</div>
+      </div>
+
+      <div class="story-card" style="background:#fff1f2;">
+        <h3><span>🚀 6. Publicar no YouTube PT-BR</span> <span class="sticker st-red">Só Após Ver Frames</span></h3>
+        <p style="margin:0; font-weight:700;">Publica o vídeo principal e os 3 Shorts linkados (sempre <code>selfDeclaredMadeForKids=False</code>).</p>
+        <div class="cmd-box"><button class="copy-btn" onclick="copyCmd(this)">📋 Copiar</button>C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --slug MEU_SLUG --stage publish --publish-pt --publish-shorts-pt --publish-privacy public</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPÍTULO 5: TODAS AS OPÇÕES DO PIPELINE (PAINEL DE BOTÕES) -->
+  <section class="comic-panel" style="background: #f5f3ff;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#8b5cf6;">5</span>
+      <h2>Capítulo 5: Painel Completo de Opções (Todos os Botões Secretos!)</h2>
+    </div>
+    <div class="speech-bubble" style="background:#e9d5ff;">🎛️ Você pode misturar qualquer um desses botões nos comandos acima!</div>
+
+    <div class="grid-3">
+      <div class="story-card">
+        <h3>📝 Roteiro &amp; Duração</h3>
+        <div class="flag-grid">
+          <div class="flag-chip"><code>--script-file</code> Roteiro JSON pronto</div>
+          <div class="flag-chip"><code>--min-words</code> Mínimo palavras</div>
+          <div class="flag-chip"><code>--max-words</code> Máximo palavras</div>
+          <div class="flag-chip"><code>--target-minutes</code> Minutos alvo</div>
+          <div class="flag-chip"><code>--character-age-mode</code> <code>child</code> | <code>baby</code></div>
+          <div class="flag-chip"><code>--force</code> Sobrescreve arquivos</div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <h3>🎨 Visual, PiP &amp; Partículas</h3>
+        <div class="flag-grid">
+          <div class="flag-chip"><code>--overlay-style</code> <code>auto</code>, <code>zzz</code>, <code>hearts</code>, <code>steam</code>, <code>fire</code>, <code>bees</code>, <code>birds</code>, <code>fireflies</code>, <code>sparkles</code>, <code>leaves</code>, <code>none</code></div>
+          <div class="flag-chip"><code>--avatar-mode</code> <code>auto</code>, <code>duo</code>, <code>frida</code>, <code>luna</code>, <code>none</code></div>
+          <div class="flag-chip"><code>--no-avatar</code> Desliga PiP</div>
+          <div class="flag-chip"><code>--max-clip-seconds</code> Teto 5s/foto</div>
+          <div class="flag-chip"><code>--burn-captions</code> Legenda Pop</div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <h3>📱 Shorts &amp; Capas (Thumbs)</h3>
+        <div class="flag-grid">
+          <div class="flag-chip"><code>--short-engine</code> <code>auto</code>, <code>split_70_30</code>, <code>split_60_40</code>, <code>motion_hud</code>, <code>remotion</code></div>
+          <div class="flag-chip"><code>--short-seconds</code> Duração do Short</div>
+          <div class="flag-chip"><code>--thumb-hook</code> Frase viral da capa</div>
+          <div class="flag-chip"><code>--thumb-badge</code> Selo superior</div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <h3>🔊 Voz, Música &amp; Volume</h3>
+        <div class="flag-grid">
+          <div class="flag-chip"><code>--tts-provider gemini_emotion</code></div>
+          <div class="flag-chip"><code>--bgm</code> Música .wav própria</div>
+          <div class="flag-chip"><code>--sfx-volume 0.35</code> Teto SFX</div>
+          <div class="flag-chip"><code>--bgm-volume 0.22</code> Volume fundo</div>
+          <div class="flag-chip"><code>--target-lufs -14.0</code> Volume YouTube</div>
+          <div class="flag-chip"><code>--allow-flat-fallback</code></div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <h3>⚡ Velocidade, Pulos &amp; QA</h3>
+        <div class="flag-grid">
+          <div class="flag-chip"><code>--cpu-workers</code> Núcleos CPU</div>
+          <div class="flag-chip"><code>--disable-nvenc</code> Força CPU x264</div>
+          <div class="flag-chip"><code>--vision-audit</code> Checa imagens c/ IA</div>
+          <div class="flag-chip"><code>--skip-images</code> Pula imagens</div>
+          <div class="flag-chip"><code>--skip-short</code> Pula Shorts</div>
+          <div class="flag-chip"><code>--skip-thumbs</code> Pula capas</div>
+          <div class="flag-chip"><code>--skip-whisper-qa</code> / <code>--skip-prosody-gate</code></div>
+        </div>
+      </div>
+
+      <div class="story-card">
+        <h3>📺 YouTube &amp; 🧠 Graphify</h3>
+        <div class="flag-grid">
+          <div class="flag-chip"><code>--publish-pt</code> Vídeo 16:9</div>
+          <div class="flag-chip"><code>--publish-shorts-pt</code> 3 Shorts</div>
+          <div class="flag-chip"><code>--publish-privacy</code> <code>public</code> | <code>unlisted</code> | <code>private</code></div>
+          <div class="flag-chip"><code>--publish-title</code> / <code>--publish-description</code></div>
+          <div class="flag-chip"><code>graphify update</code> Atualiza cérebro</div>
+          <div class="flag-chip"><code>graphify query "..."</code> Pergunta ao grafo</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPÍTULO 6: ESCUDO VERDE VS VERMELHO -->
+  <section class="comic-panel" style="background: #fefce8;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#ef4444;">6</span>
+      <h2>Capítulo 6: Escudo Verde vs Escudo Vermelho!</h2>
+    </div>
+    <div class="grid-2">
+      <div class="story-card" style="background:#dcfce7;">
+        <h3><span>🛡️ Escudo Verde — SEMPRE FAZER!</span> <span class="sticker st-green">Super Poder</span></h3>
+        <ul class="rule-list">
+          <li>🎤 <b>Vozes com Emoção:</b> Kore (Narrador), Sulafat (Frida), Leda (Luna) + Whisper QA.</li>
+          <li>👨‍👩‍👧‍👦 <b>YouTube Todo Público:</b> <code>"selfDeclaredMadeForKids": False</code>.</li>
+          <li>🐶 <b>Sempre Filhotinhas:</b> Frida e Luna até 1 aninho (<code>1 year old max</code>).</li>
+          <li>🧠 <b>Cérebro Graphify:</b> Ler <code>GRAPH_REPORT.md</code> ao entrar e rodar <code>graphify update</code> pós-commit.</li>
+          <li>🐍 <b>Python Oficial:</b> Usar sempre <code>C:\Docling\venv\Scripts\python.exe</code>.</li>
         </ul>
       </div>
 
-      <div class="mini-card" style="border-color:rgba(248,113,113,0.5);">
-        <h3><span class="tag tag-no">🚫 NUNCA FAZER</span></h3>
-        <ul style="margin:8px 0 0; padding-left:18px; display:flex; flex-direction:column; gap:8px;">
-          <li><b>Edge TTS:</b> Bloqueado no motor! Nunca usar voz robótica.</li>
-          <li><b>Avatar Mudo no PiP:</b> Se a personagem não está falando, não deixar ela muda olhando à toa.</li>
-          <li><b>Subir Segredos pro GitHub:</b> Nunca commitar <code>.env</code>, <code>.credentials/</code>, <code>projects/</code> ou <code>.mp4</code>.</li>
-          <li><b>Publicar Sem Ver Frames:</b> Sempre extrair frames com FFmpeg e olhar antes de subir.</li>
-          <li><b>Usar <code>E:\videos\.venv</code>:</b> Quebra dependências; use <code>C:\Docling\venv</code>.</li>
+      <div class="story-card" style="background:#fee2e2;">
+        <h3><span>🚨 Escudo Vermelho — NUNCA FAZER!</span> <span class="sticker st-red">Perigo!</span></h3>
+        <ul class="rule-list">
+          <li>🤖 <b>Edge TTS:</b> Bloqueado! Jamais usar voz de robô sem emoção.</li>
+          <li>🤐 <b>Avatar Estátua no PiP:</b> Se não está falando, não deixar a cachorrinha muda olhando pro nada.</li>
+          <li>🔐 <b>Segredos no GitHub:</b> Nunca subir <code>.env</code>, <code>.credentials/</code>, <code>projects/</code> ou <code>.mp4</code>.</li>
+          <li>🙈 <b>Publicar no Escuro:</b> Sempre extrair frames com FFmpeg e olhar antes de subir.</li>
+          <li>💥 <b>Usar <code>E:\videos\.venv</code>:</b> Quebra tudo! Fique firme no <code>C:\Docling\venv</code>.</li>
         </ul>
       </div>
     </div>
   </section>
 
-  <!-- SEÇÃO 7: CHECKLIST CLICÁVEL -->
-  <section>
-    <h2 class="sec-title">
-      <span class="sec-badge" style="background:#0d9488;">7</span>
-      Checklist Rápido (Clique para Marcar)
-    </h2>
-    <div class="checklist">
-      <label class="chk-item"><input type="checkbox" onchange="this.parentElement.classList.toggle('done', this.checked)"> <span>1. Abri conversa em <b>E:\videos\videomaker_v2</b></span></label>
-      <label class="chk-item"><input type="checkbox" onchange="this.parentElement.classList.toggle('done', this.checked)"> <span>2. Agente leu <b>GRAPH_REPORT.md</b></span></label>
-      <label class="chk-item"><input type="checkbox" onchange="this.parentElement.classList.toggle('done', this.checked)"> <span>3. Auto-Auditoria deu <b>APPROVED=True</b></span></label>
-      <label class="chk-item"><input type="checkbox" onchange="this.parentElement.classList.toggle('done', this.checked)"> <span>4. Vi frames do <b>16:9</b> e dos <b>3 Shorts</b></span></label>
-      <label class="chk-item"><input type="checkbox" onchange="this.parentElement.classList.toggle('done', this.checked)"> <span>5. Publiquei com <b>MadeForKids = False</b></span></label>
-      <label class="chk-item"><input type="checkbox" onchange="this.parentElement.classList.toggle('done', this.checked)"> <span>6. Rodei <b>graphify update</b> após commit</span></label>
+  <!-- CAPÍTULO 7: CHECKLIST -->
+  <section class="comic-panel" style="background: #f0fdf4;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#14b8a6;">7</span>
+      <h2>Capítulo 7: Jogo das 6 Estrelas (Marque Conforme Avança!)</h2>
+    </div>
+    <div class="checklist" id="missionList">
+      <label class="chk-item"><input type="checkbox" onchange="updateProgress()"> <span>⭐ 1. Abri conversa em <b>E:\videos\videomaker_v2</b></span></label>
+      <label class="chk-item"><input type="checkbox" onchange="updateProgress()"> <span>⭐ 2. Agente leu <b>GRAPH_REPORT.md</b></span></label>
+      <label class="chk-item"><input type="checkbox" onchange="updateProgress()"> <span>⭐ 3. Contas Flow checadas (<code>--flow-accounts-status</code>)</span></label>
+      <label class="chk-item"><input type="checkbox" onchange="updateProgress()"> <span>⭐ 4. Olhei frames do <b>16:9</b> e dos <b>3 Shorts</b></span></label>
+      <label class="chk-item"><input type="checkbox" onchange="updateProgress()"> <span>⭐ 5. Publiquei com <b>MadeForKids = False</b></span></label>
+      <label class="chk-item"><input type="checkbox" onchange="updateProgress()"> <span>⭐ 6. Rodei <b>graphify update</b> após commit</span></label>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-fill" id="progressFill"></div>
+      <div class="progress-label" id="progressLabel">0 de 6 Estrelas Conquistadas! 🚀</div>
     </div>
   </section>
 
@@ -534,15 +718,27 @@ C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\scripts\verify_contra
 <script>
 function copyCmd(btn) {
   const box = btn.parentElement;
-  const text = box.innerText.replace(/^Copiar\n?|^Copiado!\n?/, "").trim();
+  const text = box.innerText.replace(/^📋 Copiar\n?|^✅ Copiado!\n?/, "").trim();
   navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = "Copiado!";
+    btn.textContent = "✅ Copiado!";
     btn.classList.add("copied");
-    setTimeout(() => {
-      btn.textContent = "Copiar";
-      btn.classList.remove("copied");
-    }, 1600);
+    setTimeout(() => { btn.textContent = "📋 Copiar"; btn.classList.remove("copied"); }, 1600);
   });
+}
+function updateProgress() {
+  const items = document.querySelectorAll('#missionList .chk-item');
+  let done = 0;
+  items.forEach(item => {
+    const cb = item.querySelector('input');
+    item.classList.toggle('done', cb.checked);
+    if (cb.checked) done++;
+  });
+  const pct = Math.round((done / items.length) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  const label = document.getElementById('progressLabel');
+  label.textContent = done === items.length
+    ? '🏆 PARABÉNS! 6 de 6 Estrelas — Episódio Lançado com Sucesso! 🎉'
+    : `${done} de ${items.length} Estrelas Conquistadas! 🚀`;
 }
 </script>
 </body>
