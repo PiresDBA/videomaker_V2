@@ -26,7 +26,7 @@ from core.script_engine import generate_script, normalize_script_records, valida
 from core.self_audit import run_final_audit
 from core.video_assembler import assemble_video, export_short_9_16
 from core.voice_studio import synthesize_all_scenes
-from core.youtube_publisher import publish_episode_youtube_pt
+from core.youtube_publisher import publish_episode_youtube_pt, publish_shorts_pack_youtube_pt
 
 
 def slugify(text: str, max_len: int = 44) -> str:
@@ -308,6 +308,24 @@ def run_pipeline(args: argparse.Namespace) -> int:
             badge_text=getattr(args, "thumb_badge", "VOCÊ NÃO VAI ACREDITAR!"),
         )
         print(f"YouTube PT publicado: {rec['url']} | Title: {rec['title']}", flush=True)
+
+    if getattr(args, "publish_shorts_pt", False):
+        short_files = [
+            output_dir / f"{slug}_short_01_hook.mp4",
+            output_dir / f"{slug}_short_02_storybook.mp4",
+            output_dir / f"{slug}_short_03_final.mp4",
+        ]
+        short_files = [p for p in short_files if p.is_file()]
+        if not short_files and out_9_16 is not None and out_9_16.is_file():
+            short_files = [out_9_16]
+        s_recs = publish_shorts_pack_youtube_pt(
+            proj_dir=proj_dir,
+            script_data=script_data,
+            shorts_paths=short_files,
+            privacy=getattr(args, "publish_privacy", "public"),
+        )
+        for sr in s_recs:
+            print(f"YouTube PT Short publicado: {sr['url']} | Title: {sr['title']}", flush=True)
     return 0
 
 
@@ -349,6 +367,7 @@ def main() -> int:
     ap.add_argument("--bgm", default="", help="Trilha instrumental opcional (.wav)")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--publish-pt", action="store_true", help="Publica episodio no YouTube PT-BR (todo publico, sem restricao infantil)")
+    ap.add_argument("--publish-shorts-pt", action="store_true", help="Publica os 3 Shorts 9:16 no YouTube PT-BR (todo publico, linkando ao episodio)")
     ap.add_argument("--publish-privacy", choices=("public", "unlisted", "private"), default="public")
     ap.add_argument("--publish-title", default="", help="Titulo viral customizado para publicacao YouTube PT")
     ap.add_argument("--publish-description", default="", help="Descricao customizada para publicacao YouTube PT")

@@ -277,3 +277,151 @@ def publish_episode_youtube_pt(
     art_dir.mkdir(parents=True, exist_ok=True)
     (art_dir / "youtube_publish_pt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")
     return receipt
+
+
+def build_short_pt_metadata(
+    script_data: dict[str, Any],
+    short_variant: str,
+    main_video_url: str = "",
+) -> tuple[str, str, list[str]]:
+    """Constroi titulo, descricao e tags virais PT-BR para cada Short (todo publico, com link do episodio)."""
+    base_title = " ".join(str(script_data.get("title") or "Frida e Luna").split())
+    hook = " ".join(str(script_data.get("thumb_hook") or "ELAS FALARAM?!").split())
+    v = short_variant.lower()
+
+    if "hook" in v or "01" in v:
+        title = f"{hook} {base_title} 🐶😱 #Shorts"
+        lead = (
+            "Imagina acordar na pracinha e ouvir sua cachorrinha falando igual gente?! 😱🐶 "
+            "Olha a reação impagável da Frida e da Luna!"
+        )
+        cta_q = "💬 Se o seu cachorro falasse por 1 dia, qual seria a primeira coisa que ele pediria? Comenta aqui!"
+    elif "storybook" in v or "02" in v:
+        title = f"Capítulo Secreto: A Confusão da Frida e da Luna! 😂🐶 #Shorts"
+        lead = (
+            "A Luninha tentou dar ordens no parque inteiro e acabou arrumando a maior confusão! 😂🐾 "
+            "Será que a Frida vai conseguir salvar o plano?"
+        )
+        cta_q = "💬 Você é mais calmo igual a Frida ou agitado igual a Luna? Conta nos comentários!"
+    else:
+        title = f"O Final Mais Fofo da Frida e da Luna! 🥹✨ #Shorts"
+        lead = (
+            "No último segundo da magia, a Frida e a Luna descobriram a lição mais linda de todas! 🥹💛 "
+            "Assista até o final!"
+        )
+        cta_q = "💬 O que você achou desse final? Deixe seu like e comenta qual aventura você quer ver amanhã!"
+
+    if len(title) > 98:
+        title = title[:89].rstrip(" -:|") + " #Shorts"
+
+    link_block = (
+        f"🎬 ASSISTA O EPISÓDIO COMPLETO AQUI: {main_video_url}\n"
+        "👉 Clique também no vídeo relacionado aqui no Short para ver a história inteira!"
+        if main_video_url
+        else "🎬 Assista o episódio completo no nosso canal e se inscreva para novas histórias da Frida e da Luna!"
+    )
+
+    description = "\n\n".join([
+        lead,
+        link_block,
+        cta_q,
+        (
+            "🤖 Transparência criativa: animação digital feita com inteligência artificial para quem ama pets, "
+            "humor e histórias divertidas para todas as idades."
+        ),
+        "#Shorts #cachorros #fridaeluna #cachorrofalante #pets #humorpets #animacao3d #buldogueingles #dachshund #salsichinha",
+    ])[:4950]
+
+    tags = [
+        "shorts", "cachorros", "frida e luna", "cachorro falante", "pets", "humor pet",
+        "animacao 3d", "buldogue ingles", "dachshund", "salsichinha", "historia", "familia",
+    ]
+    return title, description, tags
+
+
+def publish_shorts_pack_youtube_pt(
+    proj_dir: Path,
+    script_data: dict[str, Any],
+    shorts_paths: list[Path],
+    privacy: str = "public",
+    scripts_dir: Path | None = None,
+    main_video_url: str = "",
+) -> list[dict[str, Any]]:
+    """Publica os 3 Shorts 9:16 no canal YouTube PT-BR (selfDeclaredMadeForKids=False / Todo Publico)."""
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+
+    art_dir = proj_dir / "artifacts"
+    art_dir.mkdir(parents=True, exist_ok=True)
+    if not main_video_url:
+        main_rec_p = art_dir / "youtube_publish_pt.json"
+        if main_rec_p.is_file():
+            try:
+                main_video_url = str(json.loads(main_rec_p.read_text(encoding="utf-8")).get("url") or "")
+            except Exception:
+                main_video_url = ""
+
+    cs_path, tk_path = resolve_pt_credentials(scripts_dir)
+    creds = Credentials.from_authorized_user_file(str(tk_path), SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            tk_path.write_text(creds.to_json(), encoding="utf-8")
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(str(cs_path), SCOPES)
+            creds = flow.run_local_server(port=0)
+            tk_path.write_text(creds.to_json(), encoding="utf-8")
+
+    service = build("youtube", "v3", credentials=creds)
+    receipts: list[dict[str, Any]] = []
+
+    for sp in shorts_paths:
+        if not sp.is_file():
+            raise FileNotFoundError(f"Short MP4 nao encontrado: {sp}")
+        title, description, tags = build_short_pt_metadata(script_data, sp.stem, main_video_url=main_video_url)
+        body = {
+            "snippet": {
+                "title": title[:100],
+                "description": description[:5000],
+                "tags": tags[:25],
+                "categoryId": "24",
+                "defaultLanguage": "pt-BR",
+                "defaultAudioLanguage": "pt-BR",
+            },
+            "status": {
+                "privacyStatus": privacy,
+                "selfDeclaredMadeForKids": False,
+            },
+        }
+        media = MediaFileUpload(str(sp), chunksize=8 * 1024 * 1024, resumable=True, mimetype="video/mp4")
+        req = service.videos().insert(part="snippet,status", body=body, media_body=media)
+        response = None
+        while response is None:
+            st_up, response = req.next_chunk()
+            if st_up:
+                print(f"  [YouTube PT Short {sp.name}] Upload {int(st_up.progress() * 100)}%", flush=True)
+
+        vid = response["id"]
+        short_url = f"https://youtube.com/shorts/{vid}"
+        print(f"  [YouTube PT Short] Publicado ({privacy}, MadeForKids=False): {short_url}", flush=True)
+        receipts.append({
+            "file": sp.name,
+            "video_id": vid,
+            "url": short_url,
+            "watch_url": f"https://youtu.be/{vid}",
+            "studio_url": f"https://studio.youtube.com/video/{vid}/edit",
+            "title": title,
+            "description": description,
+            "privacy": privacy,
+            "selfDeclaredMadeForKids": False,
+            "main_video_url": main_video_url,
+            "published_at": dt.datetime.now().isoformat(timespec="seconds"),
+        })
+
+    (art_dir / "youtube_shorts_publish_pt.json").write_text(
+        json.dumps(receipts, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return receipts
