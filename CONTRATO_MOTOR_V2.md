@@ -100,6 +100,22 @@ python pipeline_v2.py --flow-accounts-status
 
 ### Verificar integridade e proteções do motor (Hooks & Guard)
 ```powershell
-python scripts/verify_contract_guard.py
-python tests/test_pipeline_v2.py
+C:\Docling\venv\Scripts\python.exe scripts/verify_contract_guard.py
+C:\Docling\venv\Scripts\python.exe tests/test_pipeline_v2.py
 ```
+
+---
+
+## 5. Grafo de Conhecimento & Cérebro (`graphify`) — Economia de Contexto
+
+Para evitar varreduras manuais extensas e reduzir drasticamente o consumo de contexto dos agentes:
+
+1. **Leitura obrigatória ao entrar no repositório:**
+   - Consultar primeiro `graphify-out/GRAPH_REPORT.md` (visão geral, *god nodes* e comunidades) e `graphify-out/wiki/index.md` (cérebro navegável por módulo), ou usar `graphify query "<pergunta>"` / `graphify explain "<nó>"`.
+   - Caso `graphify-out/` ainda não exista localmente, gerar com `graphify update E:\videos\videomaker_v2`.
+2. **Atualização obrigatória após cada commit:**
+   - Sempre que alterações de código forem finalizadas e commitadas (`git commit`), rodar imediatamente:
+     ```powershell
+     graphify update E:\videos\videomaker_v2
+     ```
+   - Isso mantém `graphify-out/graph.json`, `graphify-out/GRAPH_REPORT.md`, `graphify-out/graph.html` e `graphify-out/wiki/` sincronizados com o código atual sem custo de LLM para arquivos de código.

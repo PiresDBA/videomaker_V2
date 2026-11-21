@@ -46,8 +46,9 @@ vendor/earshot-sfx/
 *.exe
 *.dll
 
-# Python / IDE
+# Python / IDE / Graphify
 __pycache__/
 *.py[cod]
 *.log
 .pytest_cache/
+graphify-out/
