@@ -183,7 +183,13 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     # 1. ROTEIRO / IMPORTACAO DE LEGADO
     if args.legacy_dir and (not script_path.exists() or args.force):
-        imp = import_and_upgrade_legacy(Path(args.legacy_dir), proj_dir, reuse_clean_images=True, vision_filter=True)
+        imp = import_and_upgrade_legacy(
+            Path(args.legacy_dir),
+            proj_dir,
+            reuse_clean_images=True,
+            vision_filter=True,
+            force=args.force,
+        )
         print(f"Legado importado: {imp['images_reused']} imagens limpas reaproveitadas | acoes={imp['audit']['recommended_actions']}")
         script_data = normalize_script_records(json.loads(script_path.read_text(encoding="utf-8")))
     elif args.script_file:

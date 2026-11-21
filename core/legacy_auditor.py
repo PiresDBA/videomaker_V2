@@ -196,6 +196,7 @@ def import_and_upgrade_legacy(
     target_proj_dir: Path,
     reuse_clean_images: bool = True,
     vision_filter: bool = True,
+    force: bool = False,
 ) -> dict[str, Any]:
     """Converte um projeto legado para v2: reescreve roteiro em 3 atos e so reaproveita imagens aprovadas na visao."""
     report = scan_legacy_project(legacy_dir)
@@ -213,11 +214,11 @@ def import_and_upgrade_legacy(
 
     out_script = target_proj_dir / "artifacts" / "script_v2.json"
     out_script.parent.mkdir(parents=True, exist_ok=True)
-    if not out_script.exists():
+    if force or not out_script.exists():
         prompt = (
             f"{SYSTEM_PROMPT}\n\n"
             f"ADAPTE E MELHORE ESTA HISTÓRIA EXISTENTE DO CANAL ('{legacy_title}') PARA O FORMATO V2 DE ALTA RETENÇÃO (OBRIGATÓRIO: ENTRE 450 E 550 PALAVRAS NO TOTAL, 3 ATOS, DIÁLOGO VIVO FRIDA x LUNA, COM 'story_props' PARA OBJETOS RECORRENTES E 'secondary_characters' SE HOUVER OUTROS PERSONAGENS).\n"
-            f"IMPORTANTE: Frida é uma buldogue inglesa caramelo-dourada de colar de pérolas (NUNCA preta/branca manchada); Luna é uma salsicha marrom-chocolate de correntinhas douradas.\n"
+            f"IMPORTANTE: Frida é uma buldogue inglesa caramelo-dourada de colar de pérolas (NUNCA Golden Retriever, nunca preta/branca manchada); Luna é uma dachshund salsicha marrom-chocolate de correntinhas douradas (NUNCA Cocker Spaniel).\n"
             f"BASE DA HISTÓRIA:\n{summary_text}"
         )
         raw_resp = _call_gemini_text_api(prompt)
@@ -244,7 +245,7 @@ def import_and_upgrade_legacy(
                 break
             src_im = usable[idx]
             dst_im = images_dir / f"{sc['scene_id']}_p1.jpg"
-            if dst_im.exists():
+            if not force and dst_im.exists():
                 continue
             if vision_filter:
                 v = audit_image_with_vision(
