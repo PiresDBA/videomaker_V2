@@ -171,7 +171,8 @@ def get_next_available_accounts(ignore_soft_daily_cap: bool = False) -> list[dic
         rec = st.get("accounts", {}).get(acc["id"], {})
         if rec.get("exhausted_today"):
             continue
-        if (not ignore_soft_daily_cap) and (int(rec.get("credits_used_today", 0)) + cost > max_cr):
+        acc_max_cr = int(acc.get("max_credits") or max_cr)
+        if (not ignore_soft_daily_cap) and (int(rec.get("credits_used_today", 0)) + cost > acc_max_cr):
             continue
         candidates.append({**acc, "state": rec})
     return candidates
@@ -542,13 +543,18 @@ async def generate_video_with_failover(
                 except Exception as exc:
                     err_txt = str(exc)
                     # Confere texto visivel na pagina por aviso de creditos esgotados
-                    body_low = (await page.evaluate("() => (document.body && document.body.innerText || '').slice(0, 1800)")).lower()
+                    body_low = ""
+                    try:
+                        body_low = (await page.evaluate("() => (document.body && document.body.innerText || '').slice(0, 1800)")).lower()
+                    except Exception:
+                        pass
                     if is_quota_error_text(err_txt) or is_quota_error_text(body_low):
                         print(f"[FlowFailover] Cota esgotada em {acc['id']} ({email}); alternando para proxima conta...", flush=True)
                         mark_account_usage(acc["id"], credits_delta=0, exhausted=True, email=email)
-                        last_err = exc
-                        continue
-                    raise
+                    else:
+                        print(f"[FlowFailover] Erro de UI/sessao em {acc['id']} ({email}): {err_txt}; tentando proxima conta...", flush=True)
+                    last_err = exc
+                    continue
             finally:
                 await b.close()
 

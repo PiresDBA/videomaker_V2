@@ -140,6 +140,7 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
             }.get(spk, "narrativa viva e envolvente")
 
         txt_clean = " ".join(str(sc.get("text") or "").split())
+        txt_clean = re.sub(r"@(?=[A-Za-zÀ-ÿ0-9_])", "", txt_clean)
         act_clean = " ".join(str(sc.get("visual_action") or "").split())
         raw_chars = sc.get("characters")
         if isinstance(raw_chars, list) and raw_chars:

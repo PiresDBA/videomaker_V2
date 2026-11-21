@@ -26,6 +26,7 @@ from core.flow_accounts import (  # noqa: E402
     cdp_is_alive,
     check_needs_google_login,
     detect_logged_email,
+    ensure_account_cdp,
     ensure_flow_project,
     load_accounts_config,
 )
@@ -299,7 +300,7 @@ def _vision_match_scene(
         "- Luna MUST be a dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel, NEVER random breed).\n"
         "- NO unrequested extra dog breeds or literal red furry monster creatures.\n"
         + (f"- Story Objects (MUST match exact color/style): {props_desc}\n" if props_desc else "")
-        + ("The LAST image attached is the reference anchor for the red velvet heart bed.\n" if anchor_prop_image and anchor_prop_image.exists() else "")
+        + ("The LAST image attached is the reference anchor portrait for the story's key object/prop.\n" if anchor_prop_image and anchor_prop_image.exists() else "")
         + f"\nCandidate Scenes:\n{scenes_summary}\n\n"
         "Identify if this media cleanly matches ONE of the candidate scenes AND passes all breed/object/quality rules (no collage, no text/watermark).\n"
         "Respond ONLY in JSON (confidence MUST be a float strictly on a 0.0 to 1.0 scale, e.g. 0.95 — NOT 0 to 10 or 0 to 100): "
@@ -318,7 +319,7 @@ def _vision_match_scene(
 
     import time as _time
     for round_idx in range(2):
-        for model in ("gemini-3-flash-preview", "gemini-3.1-flash-lite-preview"):
+        for model in ("gemini-3.1-flash-lite-preview", "gemini-3-flash-preview"):
             for key in keys:
                 url = (
                     f"https://generativelanguage.googleapis.com/v1beta/models/"
@@ -351,6 +352,8 @@ async def recover_and_audit(
     legacy_dir: Path | None = None,
     apply_reuse: bool = True,
     local_only: bool = False,
+    launch_closed: bool = False,
+    min_confidence: float = 0.75,
 ) -> dict[str, Any]:
     script_data = normalize_script_records(
         json.loads((proj_dir / "artifacts" / "script_v2.json").read_text(encoding="utf-8"))
@@ -363,7 +366,13 @@ async def recover_and_audit(
     seen_paths: set[str] = set()
     if not local_only:
         for acc in cfg.get("accounts", []):
-            if cdp_is_alive(int(acc["cdp_port"])):
+            port = int(acc["cdp_port"])
+            if not cdp_is_alive(port) and launch_closed:
+                try:
+                    ensure_account_cdp(acc, wait_s=18)
+                except Exception as exc:
+                    print(f"[RecoverFlow] Nao foi possivel abrir {acc['id']}: {exc}", flush=True)
+            if cdp_is_alive(port):
                 items = await _harvest_account_tiles(acc, cfg, work_rec / acc["id"])
                 for it in items:
                     rp = str(Path(it["path"]).resolve())
@@ -420,7 +429,14 @@ async def recover_and_audit(
     harvested.sort(key=lambda x: 0 if x["kind"] == "video" else 1)
 
     chars_dir = proj_dir / "assets" / "characters"
-    anchor = next(iter(sorted(chars_dir.glob("*_portrait.jpg"))), None)
+    anchor: Path | None = None
+    for pr in (script_data.get("story_props") or []):
+        if isinstance(pr, dict) and pr.get("name"):
+            safe_slug = re.sub(r"[^a-z0-9]+", "_", str(pr["name"]).strip().lower()).strip("_") or "objeto"
+            cand = chars_dir / f"{safe_slug}_portrait.jpg"
+            if cand.exists() and cand.stat().st_size > 10_000:
+                anchor = cand
+                break
     videos_dir = proj_dir / "assets" / "videos"
     images_dir = proj_dir / "assets" / "images"
     videos_dir.mkdir(parents=True, exist_ok=True)
@@ -428,30 +444,39 @@ async def recover_and_audit(
 
     reused_videos: dict[str, str] = {}
     reused_images: dict[str, str] = {}
+    best_videos: dict[str, tuple[float, dict[str, Any]]] = {}
+    best_images: dict[str, tuple[float, dict[str, Any]]] = {}
     audited_rows: list[dict[str, Any]] = []
 
     for it in harvested:
         res = _match_and_audit_media_against_script(it, script_data, anchor)
         sid = str(res.get("best_scene_id") or "").strip()
-        ok = bool(res.get("approved")) and bool(sid)
+        conf = float(res.get("confidence") or 0.0)
+        ok = bool(res.get("approved")) and bool(sid) and (conf >= min_confidence)
         row = {**it, "audit": res}
         audited_rows.append(row)
         print(
             f"  [RECOVER-{it['kind'].upper()}] {Path(it['path']).name} ({it['account_id']}) -> "
-            f"scene={sid or '-'} | approved={ok} | {res.get('reason', '')}",
+            f"scene={sid or '-'} | conf={conf:.2f} | approved={ok} | {res.get('reason', '')}",
             flush=True,
         )
-        if apply_reuse and ok:
-            if it["kind"] == "video" and sid not in reused_videos:
-                dst = videos_dir / f"{sid}.mp4"
-                if not (dst.exists() and dst.stat().st_size > 80_000):
-                    shutil.copy2(it["path"], dst)
-                reused_videos[sid] = str(dst)
-            elif it["kind"] == "image" and sid not in reused_images:
-                dst = images_dir / f"{sid}_p1.jpg"
-                if not dst.exists():
-                    shutil.copy2(it["path"], dst)
-                reused_images[sid] = str(dst)
+        if ok:
+            target_map = best_videos if it["kind"] == "video" else best_images
+            prev = target_map.get(sid)
+            if prev is None or conf > prev[0]:
+                target_map[sid] = (conf, it)
+
+    if apply_reuse:
+        for sid, (_conf, it) in sorted(best_videos.items()):
+            dst = videos_dir / f"{sid}.mp4"
+            if not (dst.exists() and dst.stat().st_size > 80_000):
+                shutil.copy2(it["path"], dst)
+            reused_videos[sid] = str(dst)
+        for sid, (_conf, it) in sorted(best_images.items()):
+            dst = images_dir / f"{sid}_p1.jpg"
+            if not dst.exists():
+                shutil.copy2(it["path"], dst)
+            reused_images[sid] = str(dst)
 
     rep = {
         "total_harvested": len(harvested),
@@ -474,6 +499,8 @@ def main() -> int:
     ap.add_argument("--legacy-dir", default="")
     ap.add_argument("--no-apply", action="store_true", help="Apenas baixa e audita, sem copiar para assets/")
     ap.add_argument("--local-only", action="store_true", help="Audita apenas arquivos ja baixados em work/flow_recovered")
+    ap.add_argument("--launch-closed", action="store_true", help="Abre contas com Chrome CDP fechado antes de coletar")
+    ap.add_argument("--min-confidence", type=float, default=0.75, help="Confianca minima (0.0-1.0) para reaproveitar")
     args = ap.parse_args()
 
     rep = asyncio.run(
@@ -482,6 +509,8 @@ def main() -> int:
             legacy_dir=(Path(args.legacy_dir) if args.legacy_dir else None),
             apply_reuse=not args.no_apply,
             local_only=args.local_only,
+            launch_closed=args.launch_closed,
+            min_confidence=args.min_confidence,
         )
     )
     print(

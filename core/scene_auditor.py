@@ -213,7 +213,7 @@ def audit_scene_visual_with_vision(
         + (f"Story Key Objects (treated as FIXED characters, MUST keep exact same color, material and shape across ALL scenes): {props_desc}\n" if props_desc else "")
         + ("NOTE: The first images attached are sequential temporal keyframes extracted from ONE single 8-second continuous video. Do NOT treat multiple sequential frames as a collage or split-screen; evaluate collage ONLY within an individual frame.\n"
            if len(valid_frames) > 1 else "")
-        + ("The LAST image attached is the reference anchor portrait for the story's key object/prop. REJECT (matches_story_props=false) if the key object in the scene changed color (e.g. white or pink instead of red velvet with golden hearts), changed design, or vanished when expected.\n"
+        + ("The LAST image attached is the reference anchor portrait for the story's key object/prop. REJECT (matches_story_props=false) if the key object in the scene changed color (e.g. changed color, material, or shape compared to the attached anchor portrait), changed design, or vanished when expected.\n"
            if anchor_prop_image and anchor_prop_image.exists() else "")
         + "Reject (false) if: the visual contradicts or ignores what the narration is saying, shows wrong dog breeds/colors, "
           "changes the key story object's appearance/color, has comic-strip/split-screen panels, or has visible watermark/text.\n"
@@ -236,7 +236,7 @@ def audit_scene_visual_with_vision(
 
     last_err = "timeout/erro"
     for round_idx in range(2):
-        for model in ("gemini-3-flash-preview", "gemini-3.1-flash-lite-preview"):
+        for model in ("gemini-3.1-flash-lite-preview", "gemini-3-flash-preview"):
             for key in keys:
                 url = (
                     f"https://generativelanguage.googleapis.com/v1beta/models/"
@@ -491,11 +491,13 @@ def generate_and_audit_scenes(
                 v_fix_hint = ""
                 v_approved = False
                 v_vis: dict[str, Any] = {"checked": False, "ok": False}
+                last_veo_vision_unavail = False
 
                 for v_try in range(1, v_attempts + 1):
                     need_veo_gen = (
-                        should_run_veo_inline and (force or not v_mp4.exists() or v_mp4.stat().st_size < 50000 or v_try > 1)
-                    ) or (should_audit_existing and v_try > 1)
+                        should_run_veo_inline
+                        and (force or not v_mp4.exists() or v_mp4.stat().st_size < 50000 or (v_try > 1 and not last_veo_vision_unavail))
+                    ) or (should_audit_existing and v_try > 1 and not last_veo_vision_unavail)
 
                     if need_veo_gen:
                         try:
@@ -541,14 +543,16 @@ def generate_and_audit_scenes(
                         print(f"  [AUDIT-VIDEO] {sid}.mp4: APROVADO ({v_vis.get('reason', 'OK')})", flush=True)
                         break
 
+                    last_veo_vision_unavail = bool(v_vis.get("vision_unavailable"))
                     print(
                         f"  [AUDIT-VIDEO] {sid}.mp4 tentativa {v_try}/{v_attempts} REPROVADO: {v_vis.get('reason')}",
                         flush=True,
                     )
+                    if last_veo_vision_unavail:
+                        time.sleep(4.0)
+                        continue
                     v_fix_hint = str(v_vis.get("fix_prompt_hint") or v_vis.get("reason") or "")
-                    if auto_fix and v_try < v_attempts:
-                        v_mp4.unlink(missing_ok=True)
-                    elif auto_fix:
+                    if auto_fix:
                         v_mp4.unlink(missing_ok=True)
 
                 vid_entry = {"scene_id": sid, "video_path": str(v_mp4), **v_vis}

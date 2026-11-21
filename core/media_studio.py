@@ -313,7 +313,7 @@ def generate_single_image(
     cmd_flow = [
         sys.executable, str(flow_script),
         "--kind", "image",
-        "--characters", "",
+        "--characters", ",".join(characters or ("Frida", "Luna")),
         "--prompt", sanitize_image_prompt(prompt),
         "--name", out_path.stem,
         "--out-dir", str(out_path.parent),

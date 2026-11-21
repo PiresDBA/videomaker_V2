@@ -770,6 +770,109 @@ class TestVideomakerV2Unified(unittest.TestCase):
             self.assertIn("Actual Audio Heard in WAV", captured_prompts[0])
             self.assertIn("Olha a caminha vermelha!", captured_prompts[0])
 
+    def test_audit_fixes_v2_veo_vision_unavail_acc5_credits_and_at_strip(self):
+        from unittest import mock
+        import numpy as np
+        import core.flow_accounts as fa
+        import core.scene_auditor as sa
+
+        # 1. Strip @ apenas no campo 'text' falado, preservando @Nome em visual_action
+        norm = normalize_script_records({
+            "title": "Teste Arroba",
+            "story_props": [{"name": "Almofada Rosa", "description": "Pink plush cushion"}],
+            "scenes": [{
+                "scene_id": "sc_01",
+                "speaker": "luna",
+                "text": "Olha a @Almofada Rosa e o @Pipoca!",
+                "location": "sala",
+                "visual_action": "Luna pula na @Almofada Rosa perto de @Pipoca",
+            }],
+        })
+        self.assertEqual(norm["scenes"][0]["text"], "Olha a Almofada Rosa e o Pipoca!")
+        self.assertIn("@Almofada Rosa", norm["scenes"][0]["visual_action"])
+
+        # 2. Suporte a max_credits por conta (acc_5 = 1050 creditos)
+        fake_cfg = {
+            "max_credits_per_account_per_day": 50,
+            "credits_per_veo_lite_8s": 10,
+            "accounts": [
+                {"id": "acc_1", "enabled": True},
+                {"id": "acc_5", "enabled": True, "max_credits": 1050},
+            ],
+        }
+        fake_state = {
+            "date": "2026-11-21",
+            "accounts": {
+                "acc_1": {"credits_used_today": 50, "exhausted_today": False},
+                "acc_5": {"credits_used_today": 80, "exhausted_today": False},
+            },
+        }
+        with mock.patch.object(fa, "load_accounts_config", return_value=fake_cfg), \
+             mock.patch.object(fa, "load_accounts_state", return_value=fake_state):
+            avail = fa.get_next_available_accounts()
+        self.assertEqual([a["id"] for a in avail], ["acc_5"])
+
+        # 3. vision_unavailable nao apaga video Veo existente no disco
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td)
+            imgs_dir = proj / "assets" / "images"
+            vids_dir = proj / "assets" / "videos"
+            imgs_dir.mkdir(parents=True, exist_ok=True)
+            vids_dir.mkdir(parents=True, exist_ok=True)
+            (proj / "artifacts").mkdir(parents=True, exist_ok=True)
+
+            rng = np.random.default_rng(11)
+            arr = rng.integers(50, 210, (360, 640, 3), dtype=np.uint8)
+            Image.fromarray(arr).save(imgs_dir / "sc_01_p1.jpg", quality=92)
+            v_mp4 = vids_dir / "sc_01.mp4"
+            v_mp4.write_bytes(b"\x01" * 70000)
+
+            script = {
+                "title": "Preserva Veo",
+                "scenes": [{
+                    "scene_id": "sc_01", "act": 1, "speaker": "narrador",
+                    "text": "Frida brinca no jardim!", "location": "garden",
+                    "visual_action": "Frida plays in garden", "characters": ["Frida"],
+                }],
+            }
+            vclips = [{"clip_id": "sc_01_p1", "scene_id": "sc_01", "prompt_variant": "main"}]
+            prompts = {"sc_01_p1": {"positive": "test", "negative": "test"}}
+
+            def _fake_vis(frames, scene, **kwargs):
+                if any("sc_01_f" in p.name or "frame" in p.name for p in frames):
+                    return {"checked": False, "ok": False, "vision_unavailable": True, "reason": "429"}
+                return {"checked": True, "ok": True, "reason": "OK"}
+
+            def _fake_kf(mp4, out_dir, prefix, count=3):
+                kf = out_dir / f"{prefix}_f1.jpg"
+                Image.fromarray(arr).save(kf, quality=92)
+                return [kf]
+
+            def _fake_gen_img(prompt, out_path, **kwargs):
+                Image.fromarray(arr).save(out_path, quality=92)
+                return out_path
+
+            with mock.patch.object(sa, "generate_single_image", side_effect=_fake_gen_img), \
+                 mock.patch.object(sa, "audit_scene_visual_with_vision", side_effect=_fake_vis), \
+                 mock.patch.object(sa, "_extract_video_keyframes", side_effect=_fake_kf), \
+                 mock.patch.object(sa.time, "sleep"):
+                rep = sa.generate_and_audit_scenes(
+                    proj_dir=proj,
+                    script_data=script,
+                    visual_clips=vclips,
+                    prompts_manifest=prompts,
+                    images_dir=imgs_dir,
+                    videos_dir=vids_dir,
+                    veo_scene_ids={"sc_01"},
+                    generate_veo_inline=False,
+                    auto_fix=True,
+                    veo_max_retries=2,
+                    strict_vision=True,
+                    stop_on_scene_failure=True,
+                )
+            self.assertFalse(rep["approved"])
+            self.assertTrue(v_mp4.exists(), "vision_unavailable nao pode apagar .mp4 existente!")
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():
