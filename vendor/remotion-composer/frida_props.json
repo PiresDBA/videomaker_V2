@@ -1,0 +1,11 @@
+{
+  "videoSrc": "D:/CRAFT/work/clones/frida-luna/avatar/frida.mp4",
+  "captions": [],
+  "overlays": [
+    { "type": "section_title", "text": "DARK · IA", "subtitle": "100% avatá · 2026" },
+    { "type": "hero_title", "text": "FRIDA", "subtitle": "apresentadora", "in_seconds": 0.4, "out_seconds": 2.6 }
+  ],
+  "wordsPerPage": 4,
+  "fontSize": 52,
+  "highlightColor": "#E04848"
+}

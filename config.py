@@ -24,8 +24,10 @@ FRIDA_LUNA_REF_SHEET = REFERENCE_DIR / "frida_luna_reference.jpg"
 
 
 def resolve_ffmpeg() -> tuple[str, str]:
-    """Localiza ffmpeg e ffprobe disponiveis no ambiente."""
+    """Localiza ffmpeg e ffprobe priorizando binarios internos (autocontido) e depois PATH/utilitarios."""
     candidates = [
+        (BASE_DIR / "bin" / "ffmpeg.exe", BASE_DIR / "bin" / "ffprobe.exe"),
+        (VENDOR_DIR / "ffmpeg" / "bin" / "ffmpeg.exe", VENDOR_DIR / "ffmpeg" / "bin" / "ffprobe.exe"),
         (Path(r"D:\Utilitarios\ffmpeg\bin\ffmpeg.exe"), Path(r"D:\Utilitarios\ffmpeg\bin\ffprobe.exe")),
         (Path(r"C:\videomaker\ffmpeg\bin\ffmpeg.exe"), Path(r"C:\videomaker\ffmpeg\bin\ffprobe.exe")),
     ]

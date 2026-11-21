@@ -63,7 +63,9 @@ def gerar_som_earshot(
     if caminho_saida.exists() and caminho_saida.stat().st_size > 0:
         return caminho_saida
 
-    cli = _shutil.which("earshot")
+    _base_root = Path(__file__).resolve().parent.parent
+    _local_cli = _base_root / "bin" / "earshot.exe"
+    cli = str(_local_cli) if _local_cli.is_file() else _shutil.which("earshot")
     if cli:
         comando = [cli, "sfx", "render", efeito_id, "-o", str(caminho_saida)]
         if duracao is not None:
@@ -78,11 +80,12 @@ def gerar_som_earshot(
             raise RuntimeError(f"Earshot CLI falhou para '{efeito_id}': {r.stderr or r.stdout}")
         return caminho_saida
 
-    # Fallback local: earshot.forge.bank (252 sons), sem depender da CLI.
+    # Fallback local: vendor/earshot-sfx ou C:\videomaker\earshot-sfx
     import sys as _sys
     import numpy as _np
     import soundfile as _sf
-    _sfx = r"C:\videomaker\earshot-sfx"
+    _local_sfx = Path(__file__).resolve().parent / "earshot-sfx"
+    _sfx = str(_local_sfx) if _local_sfx.exists() else r"C:\videomaker\earshot-sfx"
     if _sfx not in _sys.path:
         _sys.path.insert(0, _sfx)
     # Conflito: earshot pip (VAD) e earshot-sfx (banco) têm o mesmo nome.
@@ -107,12 +110,12 @@ def gerar_som_earshot(
 
 def buscar_som_local(nome_arquivo: str) -> Path:
     """SFX domestico real (nunca caminho ficticio): so aceita arquivo existente."""
+    _base = Path(__file__).resolve().parent.parent
     candidatos = [
         Path("assets/audio/sons") / nome_arquivo,
-        Path(__file__).resolve().parent.parent / "assets" / "audio" / "sons" / nome_arquivo,
+        _base / "assets" / "audio" / "sons" / nome_arquivo,
     ]
-    from pathlib import Path as _P
-    for projeto in (_P(r"C:\videomaker\projects")).glob("*"):
+    for projeto in (_base / "projects").glob("*"):
         candidatos.append(projeto / "assets" / "audio" / "sons" / nome_arquivo)
     for c in candidatos:
         if c.is_file() and c.stat().st_size > 0:

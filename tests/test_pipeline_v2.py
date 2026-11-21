@@ -245,7 +245,7 @@ class TestVideomakerV2Unified(unittest.TestCase):
             audio_dir, images_dir, work_dir, out_dir = tmp / "audio", tmp / "images", tmp / "work", tmp / "output"
             images_dir.mkdir()
 
-            timings = synthesize_all_scenes(mini, audio_dir, provider="edge", enable_whisper_qa=True, enable_prosody_gate=False)
+            timings = synthesize_all_scenes(mini, audio_dir, provider="gemini_emotion", enable_whisper_qa=True, enable_prosody_gate=False)
             self.assertEqual(len(timings), 4)
             for t in timings:
                 self.assertTrue(t["qa"]["ok"], f"Whisper QA falhou em {t['scene_id']}: {t['qa']}")
@@ -279,6 +279,74 @@ class TestVideomakerV2Unified(unittest.TestCase):
             self.assertEqual(non_script_issues, [], f"Auto-auditoria detectou problemas: {non_script_issues}")
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_contextual_overlays_secondary_chars_and_youtube_pt_metadata(self):
+        from core.video_assembler import infer_scene_overlay_style
+        from core.youtube_publisher import (
+            build_viral_pt_description,
+            build_viral_pt_title,
+            generate_viral_pt_thumbnail,
+        )
+
+        self.assertEqual(infer_scene_overlay_style({"text": "O gato Pingo dormia no cochilo"}), "zzz")
+        self.assertEqual(infer_scene_overlay_style({"text": "Deu um abraço com carinho e amizade"}), "hearts")
+        self.assertEqual(infer_scene_overlay_style({"text": "Os biscoitos de ossinho estavam no pote"}), "steam")
+        self.assertEqual(infer_scene_overlay_style({"text": "Perto das margaridas do jardim"}), "bees")
+        self.assertEqual(infer_scene_overlay_style({"text": "O pombo voou da fonte"}), "birds")
+        self.assertEqual(infer_scene_overlay_style({"text": "Brilhou uma poeira dourada no ar"}), "sparkles")
+
+        norm = normalize_script_records({
+            "title": "A Aventura do Gato Pingo!",
+            "secondary_characters": [{"name": "Pingo", "description": "Cute 3D Disney grey cat"}],
+            "scenes": [
+                {"scene_id": "sc_01", "speaker": "narrador", "text": "Frida e Pingo correram.", "location": "park", "visual_action": "Frida and Pingo"},
+                {"scene_id": "sc_02", "speaker": "luna", "text": "Luna riu alto!", "location": "park", "visual_action": "Luna smiling"},
+            ],
+        })
+        self.assertEqual(norm["secondary_characters"][0]["name"], "Pingo")
+        self.assertIn("Pingo", norm["scenes"][0]["characters"])
+        self.assertNotIn("Pingo", norm["scenes"][1]["characters"])
+
+        v_title = build_viral_pt_title(norm)
+        v_desc = build_viral_pt_description(norm)
+        self.assertIn("Frida", v_title)
+        self.assertIn("#cachorros", v_desc)
+        self.assertIn("inteligência artificial", v_desc.lower())
+        self.assertNotIn("#infantil", v_desc.lower())
+
+        with tempfile.TemporaryDirectory() as td:
+            hero = Path(td) / "hero.jpg"
+            out_th = Path(td) / "thumb_viral_pt.jpg"
+            Image.new("RGB", (1920, 1080), (240, 180, 60)).save(hero)
+            generate_viral_pt_thumbnail(hero, out_th, main_hook="ELAS FALARAM?!")
+            self.assertTrue(out_th.exists() and out_th.stat().st_size > 15000)
+
+    def test_shorts_70_30_strict_mouth_sync_and_no_edge_tts(self):
+        from core.motion_shorts import (
+            SHORT_SPLIT_BOT_H,
+            SHORT_SPLIT_TOP_H,
+            SHORT_SPLIT_TOP_RATIO,
+            resolve_split_avatar_states,
+        )
+
+        # Split oficial 70% topo / 30% base (1344 + 576 = 1920)
+        self.assertAlmostEqual(SHORT_SPLIT_TOP_RATIO, 0.70, places=2)
+        self.assertEqual(SHORT_SPLIT_TOP_H, 1344)
+        self.assertEqual(SHORT_SPLIT_BOT_H, 576)
+
+        # Sincronia labial estrita: narrador e secundarios NUNCA mexem a boca dos avatares
+        self.assertEqual(resolve_split_avatar_states("narrador", 2), (False, False))
+        self.assertEqual(resolve_split_avatar_states("secundario", 2), (False, False))
+        self.assertEqual(resolve_split_avatar_states("gato_pingo", 2), (False, False))
+        self.assertEqual(resolve_split_avatar_states("frida", 0), (False, False))
+        self.assertEqual(resolve_split_avatar_states("luna", 0), (False, False))
+        self.assertEqual(resolve_split_avatar_states("frida", 2), (True, False))
+        self.assertEqual(resolve_split_avatar_states("luna", 1), (False, True))
+
+        # Regra de Ouro: Edge TTS estritamente proibido
+        with tempfile.TemporaryDirectory() as td:
+            with self.assertRaises(ValueError):
+                synthesize_all_scenes({"scenes": []}, Path(td), provider="edge")
 
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")

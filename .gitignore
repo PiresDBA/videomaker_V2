@@ -26,6 +26,9 @@ assets/avatars/
 assets/reference/
 assets/music/
 projects/
+.credentials/
+*client_secret*.json
+*youtube_token*.json
 flow_accounts.json
 flow_accounts_state.json
 flow_learned_sessions.json
@@ -33,6 +36,15 @@ flow_learned_sessions.json
 .chrome-flow-profile/
 .chrome-*-profile/
 legacy_batch_audit.json
+
+# Binarios pesados locais e node_modules (ficam na pasta para portabilidade, fora do git)
+bin/
+vendor/soundcraft/
+vendor/remotion-composer/node_modules/
+vendor/remotion-composer/public/
+vendor/earshot-sfx/
+*.exe
+*.dll
 
 # Python / IDE
 __pycache__/

@@ -411,7 +411,17 @@ def synthesize_all_scenes(
     max_attempts: int = 3,
     force: bool = False,
 ) -> list[dict[str, Any]]:
-    """Sintetiza todas as cenas com casting emocional, Portao de Prosodia e Whisper QA."""
+    """Sintetiza todas as cenas com casting emocional Gemini TTS (Kore/Sulafat/Leda), Prosodia e Whisper QA.
+
+    REGRA DE OURO: Edge TTS e estritamente proibido em producao (sem emocao).
+    """
+    prov = str(provider or "gemini_emotion").strip().lower()
+    if prov not in ("gemini", "gemini_emotion", "auto"):
+        raise ValueError(
+            f"REGRA DE OURO VIOLADA: provedor '{provider}' nao permitido. "
+            "Edge TTS e proibido pois nao tem emocao; use apenas 'gemini_emotion' (Kore/Sulafat/Leda)."
+        )
+
     raw_dir = audio_dir / "raw"
     wav_dir = audio_dir / "wav"
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -447,26 +457,17 @@ def synthesize_all_scenes(
 
         for attempt in range(1, max_attempts + 1):
             try:
-                if provider in ("gemini", "gemini_emotion", "auto"):
-                    v_choice = alt_voices[(attempt - 1) % len(alt_voices)] if attempt >= 2 else alt_voices[0]
-                    try:
-                        used_voice, emo_mode = _synthesize_gemini_direct(
-                            tts_text, speaker, emo_dir, mp3_path,
-                            voice_override=v_choice, energy_boost=(attempt >= 2),
-                        )
-                    except Exception:
-                        if allow_flat_fallback:
-                            used_voice, emo_mode = _synthesize_edge(tts_text, speaker, mp3_path, slow_retry=(attempt >= 2))
-                        else:
-                            raise
-                else:
-                    used_voice, emo_mode = _synthesize_edge(tts_text, speaker, mp3_path, slow_retry=(attempt >= 2))
+                v_choice = alt_voices[(attempt - 1) % len(alt_voices)] if attempt >= 2 else alt_voices[0]
+                used_voice, emo_mode = _synthesize_gemini_direct(
+                    tts_text, speaker, emo_dir, mp3_path,
+                    voice_override=v_choice, energy_boost=(attempt >= 2),
+                )
 
                 dur = _to_wav_norm(mp3_path, wav_path)
                 if dur <= 0.25:
                     raise RuntimeError(f"duracao invalida ({dur}s)")
 
-                if enable_prosody_gate and emo_mode != "pitch":
+                if enable_prosody_gate:
                     prosody_report = analyze_prosody(wav_path, text=orig_text)
                     if not prosody_report["ok"] and attempt < max_attempts:
                         print(f"  [PROSODIA] {sid} tentativa {attempt}/{max_attempts}: {prosody_report['motivos']}; regenerando com mais emocao...", flush=True)

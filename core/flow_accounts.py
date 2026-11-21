@@ -20,6 +20,7 @@ from core.flow_continuity import (
     clear_attached_chips,
     configure_flow_mode,
     ensure_direct_mode,
+    generate_flow_image,
     generate_flow_video,
 )
 
@@ -62,9 +63,9 @@ def default_accounts_config() -> dict[str, Any]:
                 "label": f"Conta Google {i}",
                 "cdp_port": 18799 + i,
                 "profile_dir": (
-                    r"C:\videomaker\.chrome-gemini-profile"
-                    if i == 1
-                    else str(BASE_DIR / ".chrome-flow-accounts" / f"acc_{i}")
+                    str(BASE_DIR / ".chrome-flow-accounts" / f"acc_{i}")
+                    if (BASE_DIR / ".chrome-flow-accounts" / f"acc_{i}").exists() or i != 1
+                    else r"C:\videomaker\.chrome-gemini-profile"
                 ),
                 "project_url": DEFAULT_FLOW_PROJECT_URL if i == 1 else "",
                 "enabled": True,
@@ -678,6 +679,45 @@ async def ensure_all_characters_created(page, project_url: str) -> dict[str, boo
         if not present.get(cname):
             ok = await create_character_in_flow(page, cname, p_path, desc, project_url)
             present[cname] = ok
+    return present
+
+
+async def ensure_story_characters_created(
+    page,
+    script_data: dict[str, Any],
+    project_url: str,
+) -> dict[str, bool]:
+    """Cria Frida, Luna e todo personagem secundario recorrente do roteiro na aba Personagens."""
+    present = await ensure_all_characters_created(page, project_url)
+    for sec in script_data.get("secondary_characters") or []:
+        cname = str(sec.get("name") or "").strip()
+        cdesc = str(sec.get("description") or "").strip()
+        if not cname:
+            continue
+        cur = await check_characters_present(page, required=(cname,))
+        if cur.get(cname):
+            present[cname] = True
+            continue
+        safe_slug = re.sub(r"[^a-z0-9]+", "_", cname.lower()).strip("_") or "personagem"
+        portrait = CHARACTERS_REF_DIR / f"{safe_slug}_portrait.jpg"
+        if not portrait.exists() and cdesc:
+            try:
+                await generate_flow_image(
+                    page,
+                    prompt=(
+                        f"Single stylized 3D Disney Pixar animated character portrait centered on soft neutral studio background, "
+                        f"friendly appealing child-like cartoon expression, clear silhouette, NOT realistic: {cdesc}"
+                    ),
+                    out_jpg=portrait,
+                    characters=(),
+                    wait_s=130,
+                )
+            except Exception as exc:
+                print(f"  [FlowChars] Aviso ao gerar retrato 0-cred para '{cname}': {exc}", flush=True)
+        ok = False
+        if portrait.exists():
+            ok = await create_character_in_flow(page, cname, portrait, cdesc or cname, project_url)
+        present[cname] = ok
     return present
 
 

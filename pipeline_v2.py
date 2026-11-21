@@ -9,19 +9,24 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from config import PROJECTS_DIR
+from config import CPU_WORKERS, MAX_IMAGE_SECONDS, PROJECTS_DIR, SCRIPT_MAX_WORDS, SCRIPT_MIN_WORDS, SHORT_TARGET_SECONDS
+import core.pacing_planner as _pacing_mod
+import core.self_audit as _audit_mod
 from core.avatar_studio import build_luna_avatar_pack
+from core.flow_continuity import FLOW_YOUTHFUL_PUPPY_STYLE_PREFIX
 from core.legacy_auditor import batch_scan_legacy_root, import_and_upgrade_legacy
 from core.media_studio import (
     generate_images_for_plan,
     generate_prompts_for_script,
     generate_thumbnail_variants,
 )
+from core.motion_shorts import export_3_shorts_pack
 from core.pacing_planner import build_pacing_plan
 from core.script_engine import generate_script, normalize_script_records, validate_script_schema
 from core.self_audit import run_final_audit
 from core.video_assembler import assemble_video, export_short_9_16
 from core.voice_studio import synthesize_all_scenes
+from core.youtube_publisher import publish_episode_youtube_pt
 
 
 def slugify(text: str, max_len: int = 44) -> str:
@@ -117,6 +122,10 @@ def run_pipeline(args: argparse.Namespace) -> int:
         print("Sessao aprendida e salva:", json.dumps(rec, ensure_ascii=False, indent=2))
         return 0
 
+    if getattr(args, "max_clip_seconds", None):
+        _pacing_mod.MAX_IMAGE_SECONDS = float(args.max_clip_seconds)
+        _audit_mod.MAX_IMAGE_SECONDS = float(args.max_clip_seconds)
+
     if args.legacy_dir:
         leg = Path(args.legacy_dir)
         slug = args.slug or slugify(leg.name)
@@ -147,7 +156,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     elif args.script_file:
         raw = json.loads(Path(args.script_file).read_text(encoding="utf-8"))
         script_data = normalize_script_records(raw)
-        errs = validate_script_schema(script_data)
+        errs = validate_script_schema(script_data, min_words=args.min_words, max_words=args.max_words)
         if errs:
             raise ValueError("Roteiro invalido:\n - " + "\n - ".join(errs))
         script_path.write_text(json.dumps(script_data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -156,7 +165,21 @@ def run_pipeline(args: argparse.Namespace) -> int:
     else:
         if not args.prompt:
             raise ValueError("Informe --prompt, --script-file ou --legacy-dir.")
-        script_data = generate_script(args.prompt, script_path)
+        script_data = generate_script(args.prompt, script_path, min_words=args.min_words, max_words=args.max_words)
+
+    if getattr(args, "target_minutes", None):
+        script_data["target_minutes"] = float(args.target_minutes)
+    if getattr(args, "thumb_hook", ""):
+        script_data["thumb_hook"] = " ".join(args.thumb_hook.split()).upper()
+    if getattr(args, "character_age_mode", "child") == "baby":
+        for sc in script_data.get("scenes", []):
+            if "newborn baby" not in (sc.get("visual_action") or "").lower():
+                sc["visual_action"] = f"Tiny 8-week-old newborn baby puppies: {sc.get('visual_action', '')}"
+    if getattr(args, "avatar_mode", "auto") != "auto":
+        mode_val = args.avatar_mode
+        for sc in script_data.get("scenes", []):
+            sc["avatar_mode"] = mode_val
+            sc["avatar_pip"] = mode_val != "none"
 
     meta_path.write_text(json.dumps({
         "title": script_data["title"],
@@ -203,8 +226,9 @@ def run_pipeline(args: argparse.Namespace) -> int:
     out_srt = output_dir / f"{slug}.srt"
     out_9_16 = None if args.skip_short else (output_dir / f"{slug}_short_9x16.mp4")
 
-    if args.stage != "audit":
+    if args.stage not in ("audit", "publish", "shorts"):
         bgm = Path(args.bgm) if args.bgm else None
+        use_av = (not args.no_avatar) and (getattr(args, "avatar_mode", "auto") != "none")
         assemble_video(
             visual_clips,
             images_dir,
@@ -212,22 +236,41 @@ def run_pipeline(args: argparse.Namespace) -> int:
             out_16_9,
             out_srt,
             bgm_wav=bgm,
-            with_avatar=not args.no_avatar,
+            with_avatar=use_av,
             burn_captions=args.burn_captions,
+            sfx_volume=float(getattr(args, "sfx_volume", 0.35)),
+            bgm_volume=float(getattr(args, "bgm_volume", 0.22)),
+            target_lufs=float(getattr(args, "target_lufs", -14.0)),
+            overlay_style=getattr(args, "overlay_style", "auto"),
+            cpu_workers=int(getattr(args, "cpu_workers", CPU_WORKERS) or CPU_WORKERS),
+            disable_nvenc=bool(getattr(args, "disable_nvenc", False)),
         )
         print(f"Video 16:9 pronto: {out_16_9}", flush=True)
 
+    if args.stage not in ("audit", "publish"):
         if out_9_16 is not None:
-            export_short_9_16(
-                out_16_9,
-                visual_clips,
-                out_9_16,
-                hook_badge=script_data["thumb_hook"],
-                engine=args.short_engine,
-            )
-            print(f"Short 9:16 ({args.short_engine}) pronto: {out_9_16}", flush=True)
+            if args.short_engine in ("auto", "split_70_30", "split_60_40"):
+                shorts_list = export_3_shorts_pack(
+                    out_16_9,
+                    visual_clips,
+                    output_dir,
+                    slug,
+                    hook_badge=script_data["thumb_hook"],
+                    target_seconds=getattr(args, "short_seconds", None),
+                )
+                print(f"3 Shorts Split 70/30 prontos ({len(shorts_list)}):", [s.name for s in shorts_list], flush=True)
+            else:
+                export_short_9_16(
+                    out_16_9,
+                    visual_clips,
+                    out_9_16,
+                    hook_badge=script_data["thumb_hook"],
+                    engine=args.short_engine,
+                    target_seconds=getattr(args, "short_seconds", None),
+                )
+                print(f"Short 9:16 ({args.short_engine}) pronto: {out_9_16}", flush=True)
 
-        if not args.skip_thumbs:
+        if args.stage != "shorts" and not args.skip_thumbs:
             first_img = images_dir / f"{visual_clips[0]['clip_id']}.jpg"
             if first_img.exists():
                 thumbs = generate_thumbnail_variants(first_img, thumbs_dir, hook_words=script_data["thumb_hook"])
@@ -250,6 +293,21 @@ def run_pipeline(args: argparse.Namespace) -> int:
         for iss in audit["issues"]:
             print("  [AUDIT-FAIL]", iss, flush=True)
         return 2
+
+    if getattr(args, "publish_pt", False) or args.stage == "publish":
+        hero = images_dir / f"{visual_clips[0]['clip_id']}.jpg"
+        rec = publish_episode_youtube_pt(
+            proj_dir=proj_dir,
+            script_data=script_data,
+            video_mp4=out_16_9,
+            srt_path=out_srt if out_srt.exists() else None,
+            hero_image=hero if hero.exists() else None,
+            privacy=getattr(args, "publish_privacy", "public"),
+            title_override=getattr(args, "publish_title", ""),
+            description_override=getattr(args, "publish_description", ""),
+            badge_text=getattr(args, "thumb_badge", "VOCÊ NÃO VAI ACREDITAR!"),
+        )
+        print(f"YouTube PT publicado: {rec['url']} | Title: {rec['title']}", flush=True)
     return 0
 
 
@@ -260,10 +318,25 @@ def main() -> int:
     ap.add_argument("--script-file", default="", help="Caminho para script_v2.json pronto")
     ap.add_argument("--legacy-dir", default="", help="Pasta de um video legado para auditar e refazer no motor v2")
     ap.add_argument("--batch-scan", default="", help="Escaneia e audita todas as pastas de video dentro de um diretorio")
-    ap.add_argument("--stage", choices=("all", "avatar-only", "script", "tts", "pacing", "images", "audit"), default="all")
+    ap.add_argument("--stage", choices=("all", "avatar-only", "script", "tts", "pacing", "images", "shorts", "audit", "publish"), default="all")
     ap.add_argument("--build-avatar", choices=("luna",), default="", help="Gera o pacote de avatar Luna dentro do programa")
-    ap.add_argument("--tts-provider", choices=("gemini_emotion", "edge"), default="gemini_emotion")
-    ap.add_argument("--short-engine", choices=("auto", "motion_hud", "remotion"), default="auto")
+    ap.add_argument("--tts-provider", choices=("gemini_emotion",), default="gemini_emotion", help="Vozes emocionais Gemini TTS (Regra de Ouro: Edge TTS proibido)")
+    ap.add_argument("--short-engine", choices=("auto", "split_70_30", "split_60_40", "motion_hud", "remotion"), default="auto")
+    ap.add_argument("--min-words", type=int, default=SCRIPT_MIN_WORDS, help="Minimo de palavras no roteiro")
+    ap.add_argument("--max-words", type=int, default=SCRIPT_MAX_WORDS, help="Maximo de palavras no roteiro")
+    ap.add_argument("--target-minutes", type=float, default=None, help="Duracao alvo em minutos")
+    ap.add_argument("--max-clip-seconds", type=float, default=None, help="Teto de segundos por imagem estatica")
+    ap.add_argument("--overlay-style", choices=("auto", "zzz", "hearts", "steam", "fire", "bees", "birds", "fireflies", "sparkles", "leaves", "none"), default="auto")
+    ap.add_argument("--character-age-mode", choices=("child", "baby"), default="child", help="Padrao crianca/pre-adolescente ou flashback bebe")
+    ap.add_argument("--sfx-volume", type=float, default=0.35, help="Teto de volume de SFX (padrao 0.35)")
+    ap.add_argument("--bgm-volume", type=float, default=0.22, help="Volume base da musica de fundo antes do ducking")
+    ap.add_argument("--target-lufs", type=float, default=-14.0, help="Loudness integrado alvo (LUFS)")
+    ap.add_argument("--avatar-mode", choices=("auto", "duo", "frida", "luna", "none"), default="auto", help="Controle do Dual-Avatar PiP")
+    ap.add_argument("--short-seconds", type=float, default=None, help="Duracao alvo do Short 9:16 em segundos")
+    ap.add_argument("--thumb-hook", default="", help="Sobrescreve frase viral da thumbnail")
+    ap.add_argument("--thumb-badge", default="VOCÊ NÃO VAI ACREDITAR!", help="Texto do selo superior na thumbnail viral PT")
+    ap.add_argument("--cpu-workers", type=int, default=CPU_WORKERS, help="Numero de workers paralelos em CPU")
+    ap.add_argument("--disable-nvenc", action="store_true", help="Forca encode em CPU (libx264) ignorando NVENC")
     ap.add_argument("--allow-flat-fallback", action="store_true")
     ap.add_argument("--skip-prosody-gate", action="store_true")
     ap.add_argument("--skip-whisper-qa", action="store_true")
@@ -275,6 +348,10 @@ def main() -> int:
     ap.add_argument("--no-avatar", action="store_true")
     ap.add_argument("--bgm", default="", help="Trilha instrumental opcional (.wav)")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--publish-pt", action="store_true", help="Publica episodio no YouTube PT-BR (todo publico, sem restricao infantil)")
+    ap.add_argument("--publish-privacy", choices=("public", "unlisted", "private"), default="public")
+    ap.add_argument("--publish-title", default="", help="Titulo viral customizado para publicacao YouTube PT")
+    ap.add_argument("--publish-description", default="", help="Descricao customizada para publicacao YouTube PT")
     ap.add_argument("--flow-accounts-status", action="store_true", help="Lista status/creditos/personagens das 5 contas Google Flow")
     ap.add_argument("--setup-flow-account", default="", help="Abre Chrome CDP dedicado para logar uma conta Flow (ex: acc_2..acc_5)")
     ap.add_argument("--learn-flow-accounts", action="store_true", help="Modo interativo de aprendizado passo a passo das contas Flow (sessao por sessao)")

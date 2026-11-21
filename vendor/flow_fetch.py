@@ -261,7 +261,7 @@ async def needs_login(page) -> bool:
 
 
 # ----------------------------------------------------------------- projeto
-DEFAULT_ROOT = r"C:\videomaker"
+DEFAULT_ROOT = str(Path(__file__).resolve().parent.parent)
 
 
 def latest_project(root: Path) -> Path | None:
@@ -1448,7 +1448,8 @@ async def grab_image(page, name, prompt, out_dir, wait_s, ref_image=None,
 def _copiar_para_banco(caminho_gerado: Path):
     """Copia a imagem gerada também para o banco de imagens global."""
     try:
-        banco = Path(r"C:\videomaker\banco de imagens")
+        _ref_local = Path(DEFAULT_ROOT) / "assets" / "reference"
+        banco = _ref_local if _ref_local.exists() else Path(r"C:\videomaker\banco de imagens")
         if not banco.exists():
             return
         nome = caminho_gerado.name

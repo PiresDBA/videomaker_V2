@@ -49,6 +49,7 @@ REGRAS OBRIGATÓRIAS DE RETENÇÃO, EMOÇÃO E ESTRUTURA:
 6. CENAS CURTAS E PORTUGUÊS LIMPO: 1 a 2 frases curtas por cena (12 a 26 palavras). Zero risadas escritas ("Hahaha", "kkkk") e acentuação perfeita ("cães", "já", "céu", "é", "patinha", "passarinhos", "coro", "piadas").
 7. CENÁRIO CONSISTENTE: Defina "location" em TODA cena preservando continuidade geográfica lógica.
 8. IDADE E ESTILO DOS PERSONAGENS (PADRÃO CRIANÇA / AVATAR 3D DISNEY-PIXAR): Em TODA descrição de "visual_action", descreva Frida e Luna com aparência jovem de criança/pré-adolescente (filhotes jovens de até 1 ano no máximo, equivalentes a crianças de 5 a 10 anos em animação 3D Disney/Pixar, fiéis ao avatar oficial: graciosas, olhos grandes expressivos, traços arredondados de desenho animado — NUNCA cães adultos/velhos nem cães reais fotorrealistas; use versão bebê recém-nascido apenas se a cena for explicitamente um flashback de quando eram bebês).
+9. CONTINUIDADE DE PERSONAGENS SECUNDÁRIOS: Sempre que houver outro personagem recorrente na história (ex.: gato Pingo, pombo, esquilo, outro cão), declare-o na lista de topo "secondary_characters": [{"name": "NomeCurto", "description": "Descrição visual 3D Disney/Pixar completa e fixa do personagem (espécie, cor exata da pelagem/penas, olhos, acessório)"}] e inclua o campo "characters": ["Frida", "Luna", "NomeCurto"] em TODA cena em que ele aparecer, repetindo suas características físicas em "visual_action".
 
 FORMATO DE SAÍDA (APENAS JSON puro, sem markdown):
 {
@@ -93,7 +94,17 @@ def _infer_avatar_mode(sc: dict[str, Any], spk: str) -> str:
 
 
 def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
-    """Normaliza schema do roteiro garantindo campos de emocao, duo e avatar."""
+    """Normaliza schema do roteiro garantindo campos de emocao, duo, avatar e personagens secundarios."""
+    sec_chars_in = data.get("secondary_characters") or []
+    sec_chars_out: list[dict[str, str]] = []
+    sec_names: list[str] = []
+    for item in sec_chars_in:
+        if isinstance(item, dict) and str(item.get("name") or "").strip():
+            cname = " ".join(str(item["name"]).split())
+            cdesc = " ".join(str(item.get("description") or "").split())
+            sec_chars_out.append({"name": cname, "description": cdesc})
+            sec_names.append(cname)
+
     raw_scenes = data.get("scenes", [])
     scenes_out = []
     for idx, sc in enumerate(raw_scenes, 1):
@@ -115,28 +126,48 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
                 "secundario": "teatral e divertida",
             }.get(spk, "narrativa viva e envolvente")
 
+        txt_clean = " ".join(str(sc.get("text") or "").split())
+        act_clean = " ".join(str(sc.get("visual_action") or "").split())
+        raw_chars = sc.get("characters")
+        if isinstance(raw_chars, list) and raw_chars:
+            chars = [" ".join(str(c).split()) for c in raw_chars if str(c).strip()]
+        else:
+            hay_c = f"{txt_clean} {act_clean}".lower()
+            chars = []
+            for main_c in ("Frida", "Luna"):
+                if main_c.lower() in hay_c or spk == main_c.lower():
+                    chars.append(main_c)
+            for sname in sec_names:
+                if sname.lower() in hay_c and sname not in chars:
+                    chars.append(sname)
+            if not chars:
+                chars = ["Frida", "Luna"]
+
         scenes_out.append({
             "scene_id": sid,
             "act": int(act),
             "speaker": spk,
             "emotion_direction": emotion_dir,
-            "text": " ".join(str(sc.get("text") or "").split()),
+            "text": txt_clean,
             "location": " ".join(str(sc.get("location") or "").split()),
-            "visual_action": " ".join(str(sc.get("visual_action") or "").split()),
+            "visual_action": act_clean,
             "sfx": sc.get("sfx") if sc.get("sfx") else None,
             "avatar_mode": avatar_mode,
             "avatar_pip": avatar_mode != "none",
+            "characters": chars,
         })
 
     title = " ".join(str(data.get("title") or "Frida e Luna").split())
-    return {
+    out = {
         "title": title,
         "thumb_hook": " ".join(str(data.get("thumb_hook") or "ELAS FALARAM?!").split()).upper(),
         "description": " ".join(str(data.get("description") or title).split()),
-        "tags": list(data.get("tags") or ["frida e luna", "desenho infantil", "cachorros falantes"]),
+        "tags": list(data.get("tags") or ["frida e luna", "cachorros falantes", "animacao 3d"]),
         "target_minutes": float(data.get("target_minutes") or 3.5),
+        "secondary_characters": sec_chars_out,
         "scenes": scenes_out,
     }
+    return out
 
 
 def validate_script_schema(
@@ -278,6 +309,8 @@ def generate_script(
     out_path: Path,
     wait_s: int = 120,
     max_attempts: int = 3,
+    min_words: int = SCRIPT_MIN_WORDS,
+    max_words: int = SCRIPT_MAX_WORDS,
 ) -> dict[str, Any]:
     """Gera roteiro via Gemini API (com fallback para gemini_fetch.py web) validando schema."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -285,7 +318,7 @@ def generate_script(
     fetch = VENDOR_DIR / "gemini_fetch.py"
 
     for attempt in range(1, max_attempts + 1):
-        prompt = f"{SYSTEM_PROMPT}\n\nTEMA DO EPISÓDIO: {theme_prompt}"
+        prompt = f"{SYSTEM_PROMPT}\n\nMETA DE PALAVRAS DO ROTEIRO: entre {min_words} e {max_words} palavras.\nTEMA DO EPISÓDIO: {theme_prompt}"
         if feedback:
             prompt += f"\n\nCORREÇÃO OBRIGATÓRIA DA TENTATIVA ANTERIOR:\n{feedback}"
 
@@ -319,7 +352,7 @@ def generate_script(
             feedback = f"JSON invalido ({exc}). Responda somente JSON valido."
             continue
 
-        errs = validate_script_schema(parsed)
+        errs = validate_script_schema(parsed, min_words=min_words, max_words=max_words)
         if not errs:
             out_path.write_text(json.dumps(parsed, ensure_ascii=False, indent=2), encoding="utf-8")
             return parsed

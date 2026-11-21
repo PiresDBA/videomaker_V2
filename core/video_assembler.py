@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import concurrent.futures
+import math
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
+
+import cv2
+import numpy as np
 
 from config import (
     AVATAR_PROFILES,
@@ -160,9 +165,10 @@ def _run_h264_ffmpeg(
     tail_args: list[str],
     quality: str = "fast",
     cwd: str | None = None,
+    allow_nvenc: bool = True,
 ) -> None:
     """Executa encode H.264 preferindo GPU (h264_nvenc) e caindo automaticamente para libx264 multi-thread."""
-    enc_args = get_h264_encoder_args(quality=quality, allow_nvenc=True)
+    enc_args = get_h264_encoder_args(quality=quality, allow_nvenc=allow_nvenc)
     try:
         subprocess.run(cmd_head + enc_args + tail_args, cwd=cwd, check=True)
     except subprocess.CalledProcessError:
@@ -172,7 +178,13 @@ def _run_h264_ffmpeg(
         subprocess.run(cmd_head + cpu_args + tail_args, cwd=cwd, check=True)
 
 
-def render_ken_burns_clip(image_path: Path, preset: str, duration: float, out_mp4: Path) -> Path:
+def render_ken_burns_clip(
+    image_path: Path,
+    preset: str,
+    duration: float,
+    out_mp4: Path,
+    allow_nvenc: bool = True,
+) -> Path:
     """Renderiza sub-clip estatico com Ken Burns suave em 1920x1080@30fps."""
     out_mp4.parent.mkdir(parents=True, exist_ok=True)
     _run_h264_ffmpeg(
@@ -180,8 +192,183 @@ def render_ken_burns_clip(image_path: Path, preset: str, duration: float, out_mp
          "-i", str(image_path), "-vf", _zoompan_filter(preset, duration), "-t", f"{duration:.3f}"],
         [str(out_mp4)],
         quality="fast",
+        allow_nvenc=allow_nvenc,
     )
     return out_mp4
+
+
+_OVERLAY_RULES: tuple[tuple[str, str], ...] = (
+    (r"dorm|cochil|sleep|acordou|pregui[cç]", "zzz"),
+    (r"lareira|fogueira|fogo|fireplace|chama", "fire"),
+    (r"biscoit|ossinh|lanche|comid|pote|biscuit|food", "steam"),
+    (r"abra[cç]|carinh|amig|obrigad|desculp|amor|cora[cç]|gentil|doce|hug|sweet", "hearts"),
+    (r"margarid|flor|jardim|abelh|borbolet|daisies|flower", "bees"),
+    (r"pombo|passarinh|pigeon|bird|voou|bico", "birds"),
+    (r"vagalum|firefl|noite|twilight", "fireflies"),
+    (r"poeira\s+dourada|m[aá]gic|espirr|brilh|sparkl", "sparkles"),
+)
+
+
+def infer_scene_overlay_style(clip: dict[str, Any]) -> str:
+    """Escolhe dinamicamente a animacao contextual sobre imagens estaticas."""
+    hay = f"{clip.get('text', '')} {clip.get('visual_action', '')} {clip.get('location', '')}".lower()
+    for rx, style in _OVERLAY_RULES:
+        if re.search(rx, hay, re.I):
+            return style
+    return "leaves"
+
+
+def _draw_heart_poly(x: int, y: int, r: int) -> np.ndarray:
+    ts = np.linspace(0, 2 * math.pi, 20)
+    xs = 16 * np.sin(ts) ** 3
+    ys = 13 * np.cos(ts) - 5 * np.cos(2 * ts) - 2 * np.cos(3 * ts) - np.cos(4 * ts)
+    s = r / 17.0
+    return np.array([[x + int(a * s), y - int(b * s)] for a, b in zip(xs, ys)], np.int32)
+
+
+def apply_contextual_particle_overlay(
+    clip_mp4: Path,
+    style: str,
+    seed: int = 42,
+    allow_nvenc: bool = True,
+) -> Path:
+    """Desenha overlay contextual animado suave (Zzz, coracoes, fumacinha, abelhas, etc.) em sub-clip estatico."""
+    if style == "none":
+        return clip_mp4
+    cap = cv2.VideoCapture(str(clip_mp4))
+    fps = cap.get(cv2.CAP_PROP_FPS) or float(VIDEO_FPS)
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or VIDEO_WIDTH
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or VIDEO_HEIGHT
+
+    counts = {
+        "zzz": 14, "hearts": 18, "steam": 15, "fire": 22,
+        "bees": 16, "birds": 12, "fireflies": 24, "sparkles": 26, "leaves": 20,
+    }
+    sizes = {
+        "zzz": (20, 38), "hearts": (11, 22), "steam": (20, 48), "fire": (5, 13),
+        "bees": (9, 16), "birds": (12, 22), "fireflies": (4, 8), "sparkles": (6, 14), "leaves": (9, 18),
+    }
+    speeds = {
+        "zzz": (26, 46), "hearts": (22, 42), "steam": (20, 38), "fire": (38, 72),
+        "bees": (42, 85), "birds": (55, 110), "fireflies": (12, 28), "sparkles": (10, 24), "leaves": (30, 60),
+    }
+    n_p = counts.get(style, 18)
+    slo, shi = sizes.get(style, (8, 16))
+    vlo, vhi = speeds.get(style, (18, 40))
+
+    rng = np.random.default_rng(seed)
+    parts = [
+        (
+            float(rng.uniform(40, w - 40)),
+            float(rng.uniform(40, h - 40)),
+            float(rng.uniform(slo, shi)),
+            float(rng.uniform(vlo, vhi)),
+            float(rng.uniform(0, 2 * math.pi)),
+            float(rng.uniform(-0.4, 0.4)),
+        )
+        for _ in range(n_p)
+    ]
+
+    tmp_avi = clip_mp4.with_suffix(".ov_tmp.avi")
+    tmp_out = clip_mp4.with_suffix(".ov_enc.mp4")
+    vw = cv2.VideoWriter(str(tmp_avi), cv2.VideoWriter_fourcc(*"MJPG"), fps, (w, h))
+    idx = 0
+    try:
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                break
+            t = idx / fps
+            overlay = np.zeros_like(frame)
+            alpha_u8 = np.zeros((h, w), np.uint8)
+
+            for x0, y0, sz, sp, ph, dr in parts:
+                delta = sp * t
+                if style in ("zzz", "hearts", "steam", "fire", "fireflies", "sparkles"):
+                    xx = int((x0 + dr * delta * 0.4 + 18 * math.sin(t * 1.1 + ph)) % (w + 60) - 30)
+                    yy = int((y0 - delta) % (h + 60) - 30)
+                elif style in ("bees", "birds"):
+                    xx = int((x0 + delta) % (w + 60) - 30)
+                    yy = int((y0 + 26 * math.sin(t * 2.2 + ph)) % (h + 60) - 30)
+                else:  # leaves
+                    xx = int((x0 + dr * delta * 0.6 + 24 * math.sin(t * 1.2 + ph)) % (w + 60) - 30)
+                    yy = int((y0 + delta) % (h + 60) - 30)
+
+                if xx < 12 or xx > w - 12 or yy < 12 or yy > h - 12:
+                    continue
+
+                pulse = 0.58 + 0.42 * math.sin(t * 2.1 + ph)
+                a = int(np.clip(165 * pulse, 55, 200))
+                r = int(sz)
+
+                if style == "zzz":
+                    sc = max(0.55, r / 28.0)
+                    ch = "Z" if r > 28 else "z"
+                    cv2.putText(overlay, ch, (xx + 2, yy + 2), cv2.FONT_HERSHEY_SIMPLEX, sc, (40, 20, 80), 4, cv2.LINE_AA)
+                    cv2.putText(overlay, ch, (xx, yy), cv2.FONT_HERSHEY_SIMPLEX, sc, (255, 235, 190), 2, cv2.LINE_AA)
+                    cv2.putText(alpha_u8, ch, (xx, yy), cv2.FONT_HERSHEY_SIMPLEX, sc, int(min(220, a + 30)), 4, cv2.LINE_AA)
+                elif style == "hearts":
+                    pts = _draw_heart_poly(xx, yy, r)
+                    cv2.fillPoly(overlay, [pts], (145, 95, 255), cv2.LINE_AA)
+                    cv2.fillPoly(alpha_u8, [pts], a, cv2.LINE_AA)
+                elif style == "steam":
+                    for k in range(3):
+                        rr = max(4, int(r * (1.0 - k * 0.24)))
+                        ox = xx + int(8 * math.sin(t * 1.5 + ph + k))
+                        oy = max(4, yy - k * (r // 2))
+                        cv2.circle(overlay, (ox, oy), rr, (245, 245, 250), -1, cv2.LINE_AA)
+                        cv2.circle(alpha_u8, (ox, oy), rr, max(24, int(a * 0.48) // (k + 1)), -1, cv2.LINE_AA)
+                elif style == "fire":
+                    col_f = (60, 145, 255) if (int(ph * 10) % 2 == 0) else (80, 215, 255)
+                    cv2.circle(overlay, (xx, yy), r, col_f, -1, cv2.LINE_AA)
+                    cv2.circle(alpha_u8, (xx, yy), r, int(min(210, a + 20)), -1, cv2.LINE_AA)
+                elif style == "bees":
+                    cv2.ellipse(overlay, (xx, yy), (max(3, r // 2), max(2, r // 3)), 0, 0, 360, (45, 205, 255), -1, cv2.LINE_AA)
+                    cv2.line(overlay, (xx, yy - r // 3), (xx, yy + r // 3), (30, 30, 40), 2, cv2.LINE_AA)
+                    for s in (-1, 1):
+                        cv2.ellipse(overlay, (xx + s * (r // 4), yy - r // 3), (max(2, r // 3), max(2, r // 4)), 20, 0, 360, (250, 250, 255), -1, cv2.LINE_AA)
+                    cv2.circle(alpha_u8, (xx, yy), r, a, -1, cv2.LINE_AA)
+                elif style == "birds":
+                    flap = int(6 * math.sin(t * 7.0 + ph))
+                    pts = np.array([[xx - r, yy - flap], [xx, yy + 3], [xx + r, yy - flap]], np.int32)
+                    cv2.polylines(overlay, [pts], False, (250, 245, 235), 2, cv2.LINE_AA)
+                    cv2.polylines(alpha_u8, [pts], False, min(200, a + 25), 3, cv2.LINE_AA)
+                elif style == "fireflies":
+                    cv2.circle(overlay, (xx, yy), max(2, r // 2), (130, 255, 255), -1, cv2.LINE_AA)
+                    cv2.circle(alpha_u8, (xx, yy), r + 2, int(210 * pulse), -1, cv2.LINE_AA)
+                elif style == "sparkles":
+                    cv2.line(overlay, (xx - r, yy), (xx + r, yy), (165, 240, 255), 2, cv2.LINE_AA)
+                    cv2.line(overlay, (xx, yy - r), (xx, yy + r), (165, 240, 255), 2, cv2.LINE_AA)
+                    cv2.line(alpha_u8, (xx - r, yy), (xx + r, yy), a, 2, cv2.LINE_AA)
+                    cv2.line(alpha_u8, (xx, yy - r), (xx, yy + r), a, 2, cv2.LINE_AA)
+                else:  # leaves
+                    ang = int((t * 50 + ph * 60) % 360)
+                    pts = np.array(cv2.ellipse2Poly((xx, yy), (r, max(3, r // 2)), ang, 0, 360, 12), np.int32)
+                    cv2.fillPoly(overlay, [pts], (95, 195, 110), cv2.LINE_AA)
+                    cv2.fillPoly(alpha_u8, [pts], a, cv2.LINE_AA)
+
+            nz = alpha_u8 > 0
+            if np.any(nz):
+                af = (alpha_u8[nz].astype(np.float32) / 255.0)[:, None]
+                frame[nz] = np.clip(
+                    frame[nz].astype(np.float32) * (1.0 - af) + overlay[nz].astype(np.float32) * af,
+                    0, 255,
+                ).astype(np.uint8)
+            vw.write(frame)
+            idx += 1
+    finally:
+        cap.release()
+        vw.release()
+
+    try:
+        if tmp_avi.exists() and tmp_avi.stat().st_size > 2000:
+            _run_h264_ffmpeg([FFMPEG_EXE, "-y", "-v", "error", "-i", str(tmp_avi), "-an"], [str(tmp_out)], quality="fast")
+            if tmp_out.exists() and tmp_out.stat().st_size > 2000:
+                tmp_out.replace(clip_mp4)
+    finally:
+        tmp_avi.unlink(missing_ok=True)
+        tmp_out.unlink(missing_ok=True)
+    return clip_mp4
 
 
 def render_motion_video_subclip(
@@ -190,6 +377,7 @@ def render_motion_video_subclip(
     duration: float,
     out_mp4: Path,
     pts_factor: float = 1.0,
+    allow_nvenc: bool = True,
 ) -> Path:
     """Extrai trecho continuo de video Veo em 1920x1080@30fps sem audio para intercalacao."""
     out_mp4.parent.mkdir(parents=True, exist_ok=True)
@@ -206,7 +394,7 @@ def render_motion_video_subclip(
     if need_loop:
         cmd += ["-stream_loop", "1"]
     cmd += ["-ss", f"{ss:.3f}", "-i", str(video_path), "-vf", vf, "-t", f"{duration:.3f}", "-an"]
-    _run_h264_ffmpeg(cmd, [str(out_mp4)], quality="fast")
+    _run_h264_ffmpeg(cmd, [str(out_mp4)], quality="fast", allow_nvenc=allow_nvenc)
     return out_mp4
 
 
@@ -258,18 +446,22 @@ def mix_audio_master(
     total_dur: float,
     out_m4a: Path,
     bgm_wav: Path | None = None,
+    bgm_volume: float = 0.22,
+    target_lufs: float = -14.0,
 ) -> Path:
-    """Mixa narracao (-16 LUFS) + SFX + BGM com ducking automatico para -14 LUFS."""
+    """Mixa narracao (-16 LUFS) + SFX + BGM com ducking automatico para LUFS alvo."""
     out_m4a.parent.mkdir(parents=True, exist_ok=True)
+    bv = max(0.0, min(0.50, float(bgm_volume)))
+    lufs = max(-24.0, min(-9.0, float(target_lufs)))
     if bgm_wav and bgm_wav.exists():
         fc = (
             "[0:a]aformat=sample_rates=44100:channel_layouts=stereo,asplit=2[nar][nar_sc];"
             f"[1:a]aloop=loop=-1:size=2e9,atrim=0:{total_dur:.3f},asetpts=PTS-STARTPTS,"
-            "aformat=sample_rates=44100:channel_layouts=stereo,volume=0.22[bgm];"
+            f"aformat=sample_rates=44100:channel_layouts=stereo,volume={bv:.2f}[bgm];"
             "[bgm][nar_sc]sidechaincompress=threshold=0.03:ratio=6:attack=25:release=600[bgm_duck];"
             "[2:a]aformat=sample_rates=44100:channel_layouts=stereo[sfx];"
             "[nar][bgm_duck][sfx]amix=inputs=3:duration=first:normalize=0,"
-            "loudnorm=I=-14:TP=-1.5:LRA=11[out]"
+            f"loudnorm=I={lufs:.1f}:TP=-1.5:LRA=11[out]"
         )
         cmd = [FFMPEG_EXE, "-y", "-v", "error", "-i", str(narration_wav), "-i", str(bgm_wav), "-i", str(sfx_wav)]
     else:
@@ -277,7 +469,7 @@ def mix_audio_master(
             "[0:a]aformat=sample_rates=44100:channel_layouts=stereo[nar];"
             "[1:a]aformat=sample_rates=44100:channel_layouts=stereo[sfx];"
             "[nar][sfx]amix=inputs=2:duration=first:normalize=0,"
-            "loudnorm=I=-14:TP=-1.5:LRA=11[out]"
+            f"loudnorm=I={lufs:.1f}:TP=-1.5:LRA=11[out]"
         )
         cmd = [FFMPEG_EXE, "-y", "-v", "error", "-i", str(narration_wav), "-i", str(sfx_wav)]
 
@@ -368,9 +560,12 @@ def export_short_9_16(
     out_short: Path,
     hook_badge: str = "FRIDA & LUNA",
     engine: str = "auto",
+    target_seconds: float | None = None,
 ) -> Path:
     """Delega para core.motion_shorts (Remotion / FFmpeg Motion HUD)."""
-    return export_motion_short_9_16(master_16_9, visual_clips, out_short, hook_badge=hook_badge, engine=engine)
+    return export_motion_short_9_16(
+        master_16_9, visual_clips, out_short, hook_badge=hook_badge, engine=engine, target_seconds=target_seconds
+    )
 
 
 def assemble_video(
@@ -382,12 +577,20 @@ def assemble_video(
     bgm_wav: Path | None = None,
     with_avatar: bool = True,
     burn_captions: bool = False,
+    sfx_volume: float = 0.35,
+    bgm_volume: float = 0.22,
+    target_lufs: float = -14.0,
+    overlay_style: str = "auto",
+    cpu_workers: int | None = None,
+    disable_nvenc: bool = False,
 ) -> tuple[Path, Path]:
-    """Monta 16:9 final com Ken Burns, Dual-Avatar PiP, SFX, BGM por ato e -14 LUFS."""
+    """Monta 16:9 final com Ken Burns, overlays contextuais, Dual-Avatar PiP, SFX, BGM por ato e LUFS alvo."""
     clips_dir = work_dir / "clips"
     avatar_dir = work_dir / "avatar_pip"
     clips_dir.mkdir(parents=True, exist_ok=True)
     avatar_dir.mkdir(parents=True, exist_ok=True)
+    workers = max(1, int(cpu_workers or CPU_WORKERS))
+    allow_gpu = not bool(disable_nvenc)
 
     scene_totals: dict[str, float] = {}
     scene_starts: dict[str, float] = {}
@@ -416,14 +619,21 @@ def assemble_video(
                      str(img_path)],
                     check=True,
                 )
-            render_motion_video_subclip(vid_path, src_ss, dur, seg_mp4, pts_factor=pts)
+            render_motion_video_subclip(vid_path, src_ss, dur, seg_mp4, pts_factor=pts, allow_nvenc=allow_gpu)
         else:
             if not img_path.exists():
                 raise FileNotFoundError(f"Imagem ausente: {img_path}")
-            render_ken_burns_clip(img_path, clip["ken_burns"], dur, seg_mp4)
+            render_ken_burns_clip(img_path, clip["ken_burns"], dur, seg_mp4, allow_nvenc=allow_gpu)
+            ov_style = infer_scene_overlay_style(clip) if overlay_style == "auto" else overlay_style
+            apply_contextual_particle_overlay(
+                seg_mp4,
+                ov_style,
+                seed=abs(hash(clip["clip_id"])) % (2 ** 31),
+                allow_nvenc=allow_gpu,
+            )
         return seg_mp4
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=CPU_WORKERS) as clip_ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as clip_ex:
         rendered_segments = list(clip_ex.map(_render_subclip, visual_clips))
 
     concat_txt = work_dir / "concat_video.txt"
@@ -433,6 +643,7 @@ def assemble_video(
         [FFMPEG_EXE, "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(concat_txt)],
         [str(base_video)],
         quality="master",
+        allow_nvenc=allow_gpu,
     )
 
     total_dur = probe_duration(base_video)
@@ -442,9 +653,12 @@ def assemble_video(
     mix_m4a = work_dir / "final_mix.m4a"
     build_narration_track(visual_clips, total_dur, nar_wav)
     nar_mastered = master_with_soundcraft(nar_wav, nar_sc_wav)
-    build_sfx_stem(visual_clips, total_dur, sfx_wav, narration_wav=nar_mastered)
+    build_sfx_stem(visual_clips, total_dur, sfx_wav, sfx_volume=sfx_volume, narration_wav=nar_mastered)
     chosen_bgm = resolve_act_bgm(visual_clips, total_dur, work_dir, bgm_wav)
-    mix_audio_master(nar_mastered, sfx_wav, total_dur, mix_m4a, bgm_wav=chosen_bgm)
+    mix_audio_master(
+        nar_mastered, sfx_wav, total_dur, mix_m4a,
+        bgm_wav=chosen_bgm, bgm_volume=bgm_volume, target_lufs=target_lufs,
+    )
 
     write_synced_srt(visual_clips, out_srt)
     ass_16_9 = work_dir / "captions_pop.ass"

@@ -145,7 +145,7 @@ async def needs_login(page) -> bool:
 
 
 # ----------------------------------------------------------------- projeto
-DEFAULT_ROOT = r"C:\videomaker"
+DEFAULT_ROOT = str(Path(__file__).resolve().parent.parent)
 
 
 def latest_project(root: Path) -> Path | None:

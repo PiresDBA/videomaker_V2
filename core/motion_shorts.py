@@ -1,33 +1,83 @@
 # -*- coding: utf-8 -*-
-"""Motion Graphics para Shorts 9:16 (Remotion Engine + FFmpeg Motion HUD integrado)."""
+"""Motion Graphics e Split-Screen 70/30 Infantil/Familia para Shorts 9:16."""
 from __future__ import annotations
 
 import json
-import os
+import math
 import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
 
-from config import FFMPEG_EXE, SHORT_HEIGHT, SHORT_MAX_SECONDS, SHORT_MIN_SECONDS, SHORT_SAFE_BOTTOM_PX, SHORT_TARGET_SECONDS, SHORT_WIDTH, SPEAKER_VOICE_PROFILES
+from config import (
+    FFMPEG_EXE,
+    SHORT_HEIGHT,
+    SHORT_MAX_SECONDS,
+    SHORT_MIN_SECONDS,
+    SHORT_SAFE_BOTTOM_PX,
+    SHORT_TARGET_SECONDS,
+    SHORT_WIDTH,
+    SPEAKER_VOICE_PROFILES,
+    VENDOR_DIR,
+)
 
-REMOTION_DIR = Path(r"D:\Utilitarios\OpenMontage\remotion-composer")
+_LOCAL_REMOTION = VENDOR_DIR / "remotion-composer"
+REMOTION_DIR = _LOCAL_REMOTION if _LOCAL_REMOTION.exists() else Path(r"D:\Utilitarios\OpenMontage\remotion-composer")
+
+# Proporcao oficial do Short Split-Screen: 70% topo (filme) / 30% base (avatares alegres)
+SHORT_SPLIT_TOP_RATIO = 0.70
+SHORT_SPLIT_TOP_H = int(round(SHORT_HEIGHT * SHORT_SPLIT_TOP_RATIO))  # 1344
+SHORT_SPLIT_BOT_H = SHORT_HEIGHT - SHORT_SPLIT_TOP_H  # 576
+
+_FONT_CANDIDATES = (
+    r"C:\Windows\Fonts\ARLRDBD.TTF",   # Arial Rounded MT Bold (infantil/arredondada)
+    r"C:\Windows\Fonts\comicbd.ttf",   # Comic Sans MS Bold
+    r"C:\Windows\Fonts\BAUHS93.TTF",   # Bauhaus 93
+    r"C:\Windows\Fonts\segoeuib.ttf",
+    r"C:\Windows\Fonts\arialbd.ttf",
+)
 
 
-def select_best_short_window(visual_clips: list[dict[str, Any]]) -> tuple[float, float]:
+def _load_playful_font(size: int):
+    from PIL import ImageFont
+    for fp in _FONT_CANDIDATES:
+        if Path(fp).exists():
+            try:
+                return ImageFont.truetype(fp, size)
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+
+def resolve_split_avatar_states(speaker: str, speech_level: int) -> tuple[bool, bool]:
+    """Regra estrita de sincronia labial nos Shorts:
+    - Frida so mexe a boca quando `speaker == 'frida'` e `speech_level > 0`.
+    - Luna so mexe a boca quando `speaker == 'luna'` e `speech_level > 0`.
+    - Quando o narrador ou personagem secundario fala, AMBAS ficam estritamente de boca fechada.
+    """
+    spk = str(speaker or "narrador").strip().lower()
+    lv = int(speech_level or 0)
+    return (spk == "frida" and lv > 0), (spk == "luna" and lv > 0)
+
+
+def select_best_short_window(
+    visual_clips: list[dict[str, Any]],
+    target_seconds: float | None = None,
+) -> tuple[float, float]:
     """Seleciona janela de 30-40s com maior densidade de cortes, SFX e gancho."""
+    tgt = float(target_seconds) if target_seconds is not None else SHORT_TARGET_SECONDS
     if not visual_clips:
-        return 0.0, SHORT_TARGET_SECONDS
+        return 0.0, tgt
     total = float(visual_clips[-1]["end"])
-    if total <= SHORT_MAX_SECONDS:
-        return 0.0, total
+    if total <= max(SHORT_MAX_SECONDS, tgt):
+        return 0.0, min(total, tgt) if target_seconds is not None else total
 
     best_score = -1.0
-    best_win = (0.0, min(total, SHORT_TARGET_SECONDS))
-    starts = sorted({round(float(c["start"]), 3) for c in visual_clips if float(c["start"]) <= max(0.0, total - SHORT_MIN_SECONDS)})
+    best_win = (0.0, min(total, tgt))
+    starts = sorted({round(float(c["start"]), 3) for c in visual_clips if float(c["start"]) <= max(0.0, total - min(SHORT_MIN_SECONDS, tgt))})
     for st in starts:
-        en = min(total, st + SHORT_TARGET_SECONDS)
-        if en - st < SHORT_MIN_SECONDS:
+        en = min(total, st + tgt)
+        if en - st < min(SHORT_MIN_SECONDS, tgt):
             continue
         in_win = [c for c in visual_clips if float(c["end"]) > st and float(c["start"]) < en]
         score = len(in_win) * 1.5 + sum(1 for c in in_win if c.get("sfx")) * 2.0 + (3.0 if st < 2.0 else 0.0)
@@ -81,8 +131,24 @@ def write_short_pop_ass(
     hook_badge: str,
     offset_s: float,
     dur: float,
+    split_mode: bool = False,
+    variant: str = "hook",
 ) -> Path:
-    """Gera legendas pop coloridas + banner superior animado ASS para o Short 9:16."""
+    """Gera legendas pop infantis arredondadas + gancho animado ASS para o Short 9:16."""
+    # No Split 70/30, as legendas ficam na parte inferior do filme de cima (y ~ 1215..1310),
+    # acima da faixa de avatares (y = 1344..1920) e 100% livres da UI do YouTube.
+    margin_v = SHORT_SPLIT_BOT_H + 34 if split_mode else SHORT_SAFE_BOTTOM_PX
+    hook_primary = "&H0012E8FF" if variant == "hook" else ("&H0038DCFF" if variant == "storybook" else "&H0078FF96")
+    hook_outline = "&H00581A36" if variant == "hook" else ("&H00182C5C" if variant == "storybook" else "&H00581A42")
+
+    # Paleta alegre e contrastada por personagem (formato ASS &HBBGGRR)
+    playful_colors = {
+        "narrador": ("&H00FFFFFF", "&H004E1D34"),
+        "frida": ("&H001CE2FF", "&H00182B5E"),
+        "luna": ("&H00FFF066", "&H00541944"),
+        "secundario": ("&H008CFF9E", "&H001D3D18"),
+    }
+
     header = "\n".join([
         "[Script Info]",
         "ScriptType: v4.00+",
@@ -93,8 +159,8 @@ def write_short_pop_ass(
         "",
         "[V4+ Styles]",
         "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
-        f"Style: Pop,Arial Rounded MT Bold,64,&H00FFFFFF,&H0000FFFF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,5,2,2,56,56,{SHORT_SAFE_BOTTOM_PX},1",
-        "Style: HookTop,Impact,68,&H0032E0FF,&H00FFFFFF,&H00000000,&H96000000,-1,0,0,0,100,100,1,0,1,5,3,8,40,40,120,1",
+        f"Style: Pop,Arial Rounded MT Bold,64,&H00FFFFFF,&H0000FFFF,&H004E1D34,&H80000000,-1,0,0,0,100,100,1,0,1,6,3,2,54,54,{margin_v},1",
+        f"Style: HookTop,Arial Rounded MT Bold,70,{hook_primary},&H00FFFFFF,{hook_outline},&H96000000,-1,0,0,0,100,100,1,0,1,7,4,8,44,44,108,1",
         "",
         "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
@@ -103,7 +169,7 @@ def write_short_pop_ass(
     if hook_badge.strip():
         lines.append(
             f"Dialogue: 1,0:00:00.00,{_fmt_ass_time(min(dur, 4.5))},HookTop,,0,0,0,,"
-            r"{\fscx85\fscy85\t(0,180,\fscx106\fscy106)\t(180,320,\fscx100\fscy100)}"
+            r"{\fscx80\fscy80\t(0,180,\fscx109\fscy109)\t(180,320,\fscx100\fscy100)}"
             + hook_badge.upper()
         )
 
@@ -121,13 +187,16 @@ def write_short_pop_ass(
         if not words:
             continue
         spk = str(c.get("speaker") or "narrador").lower()
-        color = SPEAKER_VOICE_PROFILES.get(spk, SPEAKER_VOICE_PROFILES["narrador"])["subtitle_ass_color"]
+        p_col, o_col = playful_colors.get(
+            spk,
+            (SPEAKER_VOICE_PROFILES.get(spk, SPEAKER_VOICE_PROFILES["narrador"])["subtitle_ass_color"], "&H004E1D34"),
+        )
         chunks = [" ".join(words[i:i + 3]) for i in range(0, len(words), 3)]
         cdur = sdur / len(chunks)
         for k, ch in enumerate(chunks):
             cs = max(0.0, st + k * cdur)
             ce = min(dur, max(cs + 0.08, st + (k + 1) * cdur))
-            tag = r"{\c" + color + r"\fscx90\fscy90\t(0,80,\fscx105\fscy105)}"
+            tag = r"{\c" + p_col + r"\3c" + o_col + r"\fscx88\fscy88\t(0,90,\fscx106\fscy106)\t(90,170,\fscx100\fscy100)}"
             lines.append(f"Dialogue: 0,{_fmt_ass_time(cs)},{_fmt_ass_time(ce)},Pop,,0,0,0,,{tag}{ch}")
 
     out_ass.parent.mkdir(parents=True, exist_ok=True)
@@ -143,7 +212,7 @@ def _render_with_remotion(
     dur: float,
     out_short: Path,
 ) -> bool:
-    """Usa D:\\Utilitarios\\OpenMontage\\remotion-composer (TalkingHead 9:16) quando disponivel."""
+    """Usa remotion-composer (TalkingHead 9:16) quando disponivel."""
     if not (REMOTION_DIR / "package.json").exists() or not (REMOTION_DIR / "node_modules").exists():
         return False
     npx = shutil.which("npx")
@@ -197,13 +266,13 @@ def export_motion_short_9_16(
     out_short: Path,
     hook_badge: str = "FRIDA & LUNA",
     engine: str = "auto",
+    target_seconds: float | None = None,
 ) -> Path:
     """Exporta Short 9:16 com Motion Graphics (barra de progresso + Hook + Pop Captions ou Remotion)."""
-    st, en = select_best_short_window(visual_clips)
+    st, en = select_best_short_window(visual_clips, target_seconds=target_seconds)
     dur = max(1.0, round(en - st, 3))
     out_short.parent.mkdir(parents=True, exist_ok=True)
 
-    # 1) Pre-corte 9:16 base limpo com pan dinamico
     base_9_16 = out_short.with_suffix(".base916.mp4")
     crop_w = f"ih*{SHORT_WIDTH}/{SHORT_HEIGHT}"
     x_pan = f"(iw-{crop_w})*(0.5+0.22*sin(2*PI*t/8))"
@@ -220,15 +289,13 @@ def export_motion_short_9_16(
             if _render_with_remotion(base_9_16, visual_clips, hook_badge, st, dur, out_short):
                 return out_short
 
-        # Motion Graphics HUD embutido (barra de progresso animada no topo + Hook animado + Legendas Pop)
         ass_short = out_short.with_suffix(".ass")
         win_clips = [c for c in visual_clips if float(c["end"]) > st and float(c["start"]) < en]
-        write_short_pop_ass(win_clips, ass_short, hook_badge=hook_badge, offset_s=st, dur=dur)
+        write_short_pop_ass(win_clips, ass_short, hook_badge=hook_badge, offset_s=st, dur=dur, split_mode=False)
 
-        # Barra de progresso dinamica animada no topo da tela
         vf = (
-            f"drawbox=x=0:y=0:w={SHORT_WIDTH}:h=14:color=black@0.45:t=fill,"
-            f"drawbox=x=0:y=0:w='iw*t/{dur:.3f}':h=14:color=#FACC15@0.95:t=fill,"
+            f"drawbox=x=0:y=0:w={SHORT_WIDTH}:h=16:color=black@0.40:t=fill,"
+            f"drawbox=x=0:y=0:w='iw*t/{dur:.3f}':h=16:color=#FFD60A@0.98:t=fill,"
             f"ass={ass_short.name}"
         )
         subprocess.run(
@@ -241,3 +308,602 @@ def export_motion_short_9_16(
         return out_short
     finally:
         base_9_16.unlink(missing_ok=True)
+
+
+def _snap_window_to_scenes(
+    scene_bounds: list[tuple[float, float]],
+    target_start: float,
+    tgt_dur: float,
+    total: float,
+) -> tuple[float, float]:
+    """Alinha o inicio do Short ao comeco limpo de uma fala/cena para nao cortar palavras."""
+    if not scene_bounds:
+        st = max(0.0, min(total - tgt_dur, target_start))
+        return round(st, 3), round(min(total, st + tgt_dur), 3)
+
+    best_st = min(
+        (s for s, _ in scene_bounds if s <= max(0.0, total - min(SHORT_MIN_SECONDS, tgt_dur))),
+        key=lambda s: abs(s - target_start),
+        default=max(0.0, min(total - tgt_dur, target_start)),
+    )
+    if abs(best_st - target_start) > 8.5:
+        best_st = max(0.0, min(total - tgt_dur, target_start))
+
+    raw_en = min(total, best_st + tgt_dur)
+    # Tenta fechar no final de uma cena proxima (dentro de SHORT_MIN_SECONDS..SHORT_MAX_SECONDS)
+    best_en = raw_en
+    for _, ce in scene_bounds:
+        span = ce - best_st
+        if SHORT_MIN_SECONDS <= span <= SHORT_MAX_SECONDS and abs(span - tgt_dur) < abs((best_en - best_st) - tgt_dur):
+            best_en = min(total, ce)
+    return round(best_st, 3), round(best_en, 3)
+
+
+def select_3_short_windows(
+    visual_clips: list[dict[str, Any]],
+    target_seconds: float | None = None,
+) -> list[dict[str, Any]]:
+    """Seleciona 3 janelas limpas (Gancho Ato 1, Storybook Ato 2, Climax/Final Ato 3)."""
+    tgt = float(target_seconds) if target_seconds is not None else SHORT_TARGET_SECONDS
+    if not visual_clips:
+        return [{"name": "01_hook", "variant": "hook", "badge": "ELAS FALARAM?!", "start": 0.0, "end": tgt}]
+    total = float(visual_clips[-1]["end"])
+    if total <= tgt + 2.0:
+        return [{"name": "01_hook", "variant": "hook", "badge": "ELAS FALARAM?!", "start": 0.0, "end": total}]
+
+    scene_bounds: list[tuple[float, float]] = []
+    seen: set[str] = set()
+    for c in visual_clips:
+        sid = c["scene_id"]
+        if sid in seen:
+            continue
+        seen.add(sid)
+        cs = float(c["scene_audio_start"])
+        ce = cs + float(c["scene_audio_dur"]) + 0.20
+        scene_bounds.append((cs, min(total, ce)))
+
+    s1_st, s1_en = _snap_window_to_scenes(scene_bounds, 0.0, tgt, total)
+    s2_st, s2_en = _snap_window_to_scenes(scene_bounds, max(s1_en * 0.85, total * 0.40), tgt, total)
+    s3_st, s3_en = _snap_window_to_scenes(scene_bounds, max(s2_en * 0.85, total - tgt), tgt, total)
+
+    return [
+        {"name": "01_hook", "variant": "hook", "badge": "ELAS FALARAM?!", "start": s1_st, "end": s1_en},
+        {"name": "02_storybook", "variant": "storybook", "badge": "CAPÍTULO SECRETO!", "start": s2_st, "end": s2_en},
+        {"name": "03_final", "variant": "final", "badge": "FINAL SURPREENDENTE!", "start": s3_st, "end": s3_en},
+    ]
+
+
+def _draw_star_pil(draw, cx: float, cy: float, r_outer: float, r_inner: float, fill, outline=None, width: int = 2) -> None:
+    pts = []
+    for k in range(10):
+        ang = -math.pi / 2 + k * math.pi / 5
+        r = r_outer if k % 2 == 0 else r_inner
+        pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
+    draw.polygon(pts, fill=fill)
+    if outline:
+        draw.line(pts + [pts[0]], fill=outline, width=width, joint="curve")
+
+
+def _draw_paw_pil(draw, cx: float, cy: float, scale: float, fill) -> None:
+    r_pad = 12 * scale
+    draw.ellipse((cx - r_pad * 1.15, cy - r_pad * 0.7, cx + r_pad * 1.15, cy + r_pad * 1.1), fill=fill)
+    for dx, dy in ((-14, -14), (-5, -20), (5, -20), (14, -14)):
+        rt = 5.2 * scale
+        draw.ellipse((cx + dx * scale - rt, cy + dy * scale - rt, cx + dx * scale + rt, cy + dy * scale + rt), fill=fill)
+
+
+def _draw_cartoon_text(draw, xy: tuple[float, float], text: str, font, fill, outline, stroke_w: int = 4, shadow_offset: int = 3) -> None:
+    x, y = xy
+    if shadow_offset > 0:
+        draw.text((x + shadow_offset, y + shadow_offset), text, font=font, fill=(32, 18, 42, 160), stroke_width=stroke_w, stroke_fill=(32, 18, 42, 160))
+    draw.text((x, y), text, font=font, fill=fill, stroke_width=stroke_w, stroke_fill=outline)
+
+
+def _build_top_frame_overlay(variant: str, out_png: Path) -> Path:
+    """Cria moldura infantil/alegre transparente em PNG para o bloco superior de 70% (1080x1344)."""
+    from PIL import Image, ImageDraw
+
+    w, h = SHORT_WIDTH, SHORT_SPLIT_TOP_H
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    if variant == "storybook":
+        outer_col = (255, 245, 214, 245)
+        inner_col = (245, 158, 11, 235)
+        star_col = (253, 224, 71, 245)
+    elif variant == "final":
+        outer_col = (125, 211, 252, 240)
+        inner_col = (251, 113, 133, 235)
+        star_col = (253, 224, 71, 245)
+    else:
+        outer_col = (254, 240, 138, 240)
+        inner_col = (255, 118, 87, 235)
+        star_col = (255, 255, 255, 245)
+
+    # Moldura arredondada suave nas bordas do filme (sem cobrir o centro)
+    draw.rounded_rectangle((10, 22, w - 10, h - 10), radius=34, outline=outer_col, width=12)
+    draw.rounded_rectangle((22, 34, w - 22, h - 22), radius=26, outline=inner_col, width=5)
+
+    # Estrelinhas e patinhas nos cantos superiores
+    _draw_star_pil(draw, 54, 66, 20, 9, star_col, outline=(120, 53, 15, 220), width=2)
+    _draw_star_pil(draw, w - 54, 66, 20, 9, star_col, outline=(120, 53, 15, 220), width=2)
+    _draw_star_pil(draw, 92, 54, 11, 5, (255, 255, 255, 235))
+    _draw_star_pil(draw, w - 92, 54, 11, 5, (255, 255, 255, 235))
+    if variant == "storybook":
+        _draw_paw_pil(draw, 62, h - 54, 0.95, (255, 245, 214, 215))
+        _draw_paw_pil(draw, w - 62, h - 54, 0.95, (255, 245, 214, 215))
+
+    img.save(out_png)
+    return out_png
+
+
+def _build_bottom_playful_backdrop(w: int, h: int, variant: str):
+    """Constroi o cenario infantil alegre dos 30% inferiores (1080x576) usando PIL com acentos perfeitos."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+
+    if variant == "storybook":
+        c_top = (255, 216, 168)   # pessego quente livro de historias
+        c_bot = (254, 247, 198)   # creme manteiga alegre
+        ribbon_bg = (249, 115, 22)
+        ribbon_border = (255, 255, 255)
+        dot_cols = ((255, 255, 255, 110), (251, 146, 60, 75), (250, 204, 21, 95))
+        trim_cols = ((251, 146, 60), (250, 204, 21), (244, 114, 182), (56, 189, 248))
+    elif variant == "final":
+        c_top = (221, 214, 254)   # lavanda doce festa
+        c_bot = (186, 230, 253)   # azul ceu turquesa
+        ribbon_bg = (236, 72, 153)
+        ribbon_border = (255, 255, 255)
+        dot_cols = ((255, 255, 255, 120), (192, 132, 252, 85), (56, 189, 248, 85))
+        trim_cols = ((236, 72, 153), (250, 204, 21), (56, 189, 248), (74, 222, 128))
+    else:
+        c_top = (147, 220, 255)   # azul ceu ensolarado
+        c_bot = (254, 243, 168)   # amarelo sol pastel
+        ribbon_bg = (255, 77, 109)
+        ribbon_border = (255, 255, 255)
+        dot_cols = ((255, 255, 255, 125), (253, 224, 71, 95), (56, 189, 248, 70))
+        trim_cols = ((255, 77, 109), (250, 204, 21), (56, 189, 248), (168, 85, 247))
+
+    # Gradiente pastel luminoso e feliz
+    grad = np.zeros((h, w, 3), dtype=np.uint8)
+    for yy in range(h):
+        r = yy / max(1, h - 1)
+        grad[yy, :] = [int(c_top[k] * (1.0 - r) + c_bot[k] * r) for k in range(3)]
+
+    img = Image.fromarray(grad, mode="RGB").convert("RGBA")
+    draw = ImageDraw.Draw(img)
+
+    # Bolinhas suaves / nuvens de fundo
+    bubbles = [
+        (70, 145, 58), (195, 510, 44), (540, 170, 62), (540, 395, 52),
+        (985, 155, 56), (1020, 470, 48), (445, 520, 36), (635, 525, 36),
+    ]
+    for idx, (bx, by, br) in enumerate(bubbles):
+        col = dot_cols[idx % len(dot_cols)]
+        draw.ellipse((bx - br, by - br, bx + br, by + br), fill=col)
+
+    # Patinhas decorativas sutis nas laterais e centro
+    _draw_paw_pil(draw, 540, 285, 1.35, (255, 255, 255, 110))
+    _draw_paw_pil(draw, 44, 340, 1.0, (255, 255, 255, 115))
+    _draw_paw_pil(draw, w - 44, 340, 1.0, (255, 255, 255, 115))
+
+    # Faixa colorida festiva dividindo os 70% de cima e os 30% de baixo
+    seg_w = w // 12
+    for s_idx in range(13):
+        x0 = s_idx * seg_w
+        draw.rectangle((x0, 0, x0 + seg_w, 10), fill=trim_cols[s_idx % len(trim_cols)] + (255,))
+    draw.rectangle((0, 10, w, 14), fill=(255, 255, 255, 235))
+
+    # Pilula CTA infantil alegre com acentos perfeitos
+    pill_box = (84, 18, w - 84, 76)
+    draw.rounded_rectangle((pill_box[0] + 4, pill_box[1] + 5, pill_box[2] + 4, pill_box[3] + 5), radius=28, fill=(45, 20, 60, 85))
+    draw.rounded_rectangle(pill_box, radius=28, fill=ribbon_bg + (255,), outline=ribbon_border + (255,), width=4)
+
+    font_cta = _load_playful_font(33)
+    cta_txt = "VÍDEO COMPLETO NO CANAL!"
+    bbox = draw.textbbox((0, 0), cta_txt, font=font_cta, stroke_width=3)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    tx = (w - tw) / 2.0
+    ty = pill_box[1] + (pill_box[3] - pill_box[1] - th) / 2.0 - bbox[1]
+    _draw_cartoon_text(draw, (tx, ty), cta_txt, font_cta, fill=(255, 255, 255, 255), outline=(92, 18, 45, 255), stroke_w=3, shadow_offset=2)
+
+    # Estrelinhas nas pontas da pilula CTA
+    _draw_star_pil(draw, pill_box[0] + 44, (pill_box[1] + pill_box[3]) / 2, 17, 8, (254, 240, 138, 255), outline=(146, 64, 14, 255), width=2)
+    _draw_star_pil(draw, pill_box[2] - 44, (pill_box[1] + pill_box[3]) / 2, 17, 8, (254, 240, 138, 255), outline=(146, 64, 14, 255), width=2)
+
+    # Converte para BGR (OpenCV)
+    rgb = np.array(img.convert("RGB"), dtype=np.uint8)
+    return rgb[:, :, ::-1].copy()
+
+
+def _make_sticker_badge_bgra(label: str, bg_rgb: tuple[int, int, int], outline_rgb: tuple[int, int, int], w: int = 230, h: int = 58):
+    """Cria sticker arredondado infantil com nome (FRIDA / LUNA / FALANDO!) em BGRA."""
+    import numpy as np
+    from PIL import Image, ImageDraw
+
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle((5, 6, w - 3, h - 2), radius=h // 2, fill=(35, 18, 52, 95))
+    draw.rounded_rectangle((3, 2, w - 5, h - 6), radius=h // 2, fill=bg_rgb + (255,), outline=(255, 255, 255, 255), width=4)
+
+    font = _load_playful_font(30 if len(label) <= 7 else 24)
+    bbox = draw.textbbox((0, 0), label, font=font, stroke_width=3)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    tx = (w - tw) / 2.0 - 1
+    ty = (h - 6 - th) / 2.0 - bbox[1] + 1
+    _draw_cartoon_text(draw, (tx, ty), label, font, fill=(255, 255, 255, 255), outline=outline_rgb + (255,), stroke_w=3, shadow_offset=2)
+
+    rgba = np.array(img, dtype=np.uint8)
+    bgra = rgba[:, :, [2, 1, 0, 3]].copy()
+    return bgra
+
+
+def _alpha_paste_bgra(canvas, bgra, cx: int, cy: int) -> None:
+    import numpy as np
+    sh, sw = bgra.shape[:2]
+    ch, cw = canvas.shape[:2]
+    x0 = max(0, min(cw - sw, int(cx - sw // 2)))
+    y0 = max(0, min(ch - sh, int(cy - sh // 2)))
+    roi = canvas[y0:y0 + sh, x0:x0 + sw]
+    a = (bgra[:, :, 3:4].astype(np.float32)) / 255.0
+    canvas[y0:y0 + sh, x0:x0 + sw] = np.clip(
+        roi.astype(np.float32) * (1.0 - a) + bgra[:, :, :3].astype(np.float32) * a, 0, 255
+    ).astype(np.uint8)
+
+
+def _build_per_frame_speaker_and_levels(
+    visual_clips: list[dict[str, Any]],
+    st: float,
+    dur: float,
+    wav_fallback: Path,
+    fps: int,
+    n_frames: int,
+) -> tuple[list[str], list[int]]:
+    """Mapeia cada frame para (speaker, level) usando o WAV isolado da fala de Frida/Luna quando disponivel."""
+    from core.avatar_studio import _compute_speech_levels
+
+    fallback_levels = _compute_speech_levels(wav_fallback, fps, n_frames, threshold=0.018, silence_ms=260) if wav_fallback.exists() else [0] * n_frames
+
+    speakers = ["narrador"] * n_frames
+    levels = [0] * n_frames
+
+    seen_sids: set[str] = set()
+    for c in visual_clips:
+        sid = c["scene_id"]
+        if sid in seen_sids:
+            continue
+        seen_sids.add(sid)
+        cs = float(c["scene_audio_start"]) - st
+        sdur = float(c["scene_audio_dur"])
+        ce = cs + sdur
+        if ce <= 0.0 or cs >= dur:
+            continue
+
+        spk = str(c.get("speaker") or "narrador").strip().lower()
+        i0 = max(0, int(round(cs * fps)))
+        i1 = min(n_frames, int(round(ce * fps)))
+
+        if spk not in ("frida", "luna"):
+            for i in range(i0, i1):
+                speakers[i] = spk
+                levels[i] = 0
+            continue
+
+        # Usa o WAV limpo e isolado da fala do personagem (sem musica/SFX misturados!)
+        scene_wav_str = str(c.get("wav_path") or "")
+        scene_wav = Path(scene_wav_str) if scene_wav_str else None
+        scene_levels: list[int] | None = None
+        if scene_wav and scene_wav.is_file():
+            sc_total_frames = max(1, int(round(sdur * fps)))
+            try:
+                scene_levels = _compute_speech_levels(scene_wav, fps, sc_total_frames, threshold=0.018, silence_ms=240)
+            except Exception:
+                scene_levels = None
+
+        for i in range(i0, i1):
+            speakers[i] = spk
+            if scene_levels is not None:
+                local_t = (i / float(fps)) - cs
+                sc_idx = max(0, min(len(scene_levels) - 1, int(round(local_t * fps))))
+                levels[i] = scene_levels[sc_idx]
+            else:
+                levels[i] = fallback_levels[i]
+
+    return speakers, levels
+
+
+def _render_split_bottom_stage(
+    visual_clips: list[dict[str, Any]],
+    st: float,
+    dur: float,
+    wav_path: Path,
+    out_mp4: Path,
+    variant: str = "hook",
+) -> Path | None:
+    """Renderiza os 30% inferiores (1080x576) com visual infantil alegre e sincronia labial estrita."""
+    import cv2
+    import numpy as np
+    from config import AVATAR_PROFILES, VIDEO_FPS
+    from core.avatar_studio import _index_character_bank, _make_card_mask
+
+    frida_bank = _index_character_bank("frida")
+    luna_bank = _index_character_bank("luna")
+    if not frida_bank or not luna_bank:
+        return None
+
+    w, h = SHORT_WIDTH, SHORT_SPLIT_BOT_H  # 1080 x 576
+    fps = VIDEO_FPS
+    n_frames = max(1, int(round(dur * fps)))
+    frame_speakers, frame_levels = _build_per_frame_speaker_and_levels(
+        visual_clips, st, dur, wav_path, fps, n_frames
+    )
+
+    active_sz, idle_sz = 426, 392
+    mask_cache = {
+        active_sz: _make_card_mask(active_sz),
+        idle_sz: _make_card_mask(idle_sz),
+    }
+
+    bg_base = _build_bottom_playful_backdrop(w, h, variant)
+    badge_frida = _make_sticker_badge_bgra("FRIDA", (245, 158, 11), (120, 53, 15), w=210, h=56)
+    badge_luna = _make_sticker_badge_bgra("LUNA", (6, 182, 212), (22, 78, 99), w=210, h=56)
+    badge_talk_f = _make_sticker_badge_bgra("FALANDO!", (255, 77, 109), (125, 18, 48), w=196, h=48)
+    badge_talk_l = _make_sticker_badge_bgra("FALANDO!", (139, 92, 246), (62, 24, 128), w=196, h=48)
+
+    # Estrelinhas sutis que piscam no fundo pastel
+    sparkle_pts = [
+        (58, 126, 0.0), (540, 122, 1.3), (1022, 128, 2.5),
+        (540, 442, 0.8), (64, 470, 2.1), (1016, 468, 3.1),
+    ]
+
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    tmp_raw = out_mp4.with_suffix(".bot_raw.mp4")
+    vw = cv2.VideoWriter(str(tmp_raw), fourcc, float(fps), (w, h))
+
+    f_rep = frida_bank["reposo"]
+    f_hab_clip = frida_bank["hablando"][0]
+    f_hab = f_hab_clip["frames"]
+    f_peaks = f_hab_clip.get("peak_starts") or [4]
+
+    l_rep = luna_bank["reposo"]
+    l_hab_clip = luna_bank["hablando"][0]
+    l_hab = l_hab_clip["frames"]
+    l_peaks = l_hab_clip.get("peak_starts") or [4]
+
+    prof_f = AVATAR_PROFILES["frida"]
+    prof_l = AVATAR_PROFILES["luna"]
+
+    def _paste_card(
+        canvas: np.ndarray,
+        raw_sq: np.ndarray,
+        size: int,
+        cx: int,
+        cy: int,
+        talking: bool,
+        prof: dict[str, Any],
+        glow_bgr: tuple[int, int, int],
+    ) -> None:
+        m = mask_cache[size]
+        in_sz = size - 2 * m["margin"]
+        sq = cv2.resize(raw_sq, (in_sz, in_sz), interpolation=cv2.INTER_AREA)
+        card = np.zeros((size, size, 3), np.uint8)
+        card[m["margin"]:size - m["margin"], m["margin"]:size - m["margin"]] = sq
+        card[m["outer_border"] > 0] = glow_bgr if talking else (255, 255, 255)
+        card[m["inner_border"] > 0] = prof["border_gold_bgr"] if talking else prof["border_accent_bgr"]
+        card[m["outline"] > 0] = (90, 48, 86)
+
+        x0 = max(0, min(w - size, cx - size // 2))
+        y0 = max(0, min(h - size, cy - size // 2))
+
+        if talking:
+            # Halo brilhante suave atras do avatar que esta falando
+            cv2.circle(canvas, (cx, cy), size // 2 + 12, glow_bgr, 10, cv2.LINE_AA)
+
+        roi = canvas[y0:y0 + size, x0:x0 + size]
+        af = (m["alpha"].astype(np.float32) / 255.0)[:, :, None]
+        canvas[y0:y0 + size, x0:x0 + size] = np.clip(
+            roi.astype(np.float32) * (1.0 - af) + card.astype(np.float32) * af, 0, 255
+        ).astype(np.uint8)
+
+    def _pick_frame(rep_list, hab_list, peaks, talking: bool, lv: int, idx: int):
+        if not talking:
+            # Estritamente boca fechada (reposo suave)
+            return rep_list[(idx // 2) % len(rep_list)]
+        if lv >= 2 and peaks:
+            base = peaks[(idx // 10) % len(peaks)]
+            return hab_list[(base + (idx % 10)) % len(hab_list)]
+        return hab_list[idx % len(hab_list)]
+
+    prev_f_img = f_rep[0]
+    prev_l_img = l_rep[0]
+    prev_f_talk = False
+    prev_l_talk = False
+    xf_f = 0
+    xf_l = 0
+    xf_len = 5
+
+    try:
+        for i in range(n_frames):
+            t = i / float(fps)
+            spk = frame_speakers[i]
+            lv = frame_levels[i]
+            f_talking, l_talking = resolve_split_avatar_states(spk, lv)
+
+            if f_talking != prev_f_talk:
+                xf_f = xf_len
+                prev_f_talk = f_talking
+            if l_talking != prev_l_talk:
+                xf_l = xf_len
+                prev_l_talk = l_talking
+
+            fr_img = _pick_frame(f_rep, f_hab, f_peaks, f_talking, lv, i)
+            lu_img = _pick_frame(l_rep, l_hab, l_peaks, l_talking, lv, i)
+
+            if xf_f > 0:
+                a = 1.0 - (xf_f / float(xf_len + 1))
+                fr_blend = cv2.addWeighted(prev_f_img, 1.0 - a, fr_img, a, 0)
+                xf_f -= 1
+            else:
+                fr_blend = fr_img
+            prev_f_img = fr_blend
+
+            if xf_l > 0:
+                a = 1.0 - (xf_l / float(xf_len + 1))
+                lu_blend = cv2.addWeighted(prev_l_img, 1.0 - a, lu_img, a, 0)
+                xf_l -= 1
+            else:
+                lu_blend = lu_img
+            prev_l_img = lu_blend
+
+            frame = bg_base.copy()
+
+            # Estrelinhas piscando suavemente no fundo pastel
+            for sx, sy, ph in sparkle_pts:
+                pulse = 0.5 + 0.5 * math.sin(t * 4.2 + ph)
+                rad = int(5 + 7 * pulse)
+                cv2.line(frame, (sx - rad, sy), (sx + rad, sy), (255, 255, 255), 3, cv2.LINE_AA)
+                cv2.line(frame, (sx, sy - rad), (sx, sy + rad), (255, 255, 255), 3, cv2.LINE_AA)
+                cv2.circle(frame, (sx, sy), max(2, rad // 3), (120, 235, 255), -1, cv2.LINE_AA)
+
+            # Leve pulo alegre APENAS no avatar que esta falando de verdade
+            f_cy = 296 - (int(round(abs(math.sin(t * 11.0)) * 7)) if f_talking else 0)
+            l_cy = 296 - (int(round(abs(math.sin(t * 11.0)) * 7)) if l_talking else 0)
+
+            _paste_card(frame, fr_blend, active_sz if f_talking else idle_sz, 285, f_cy, f_talking, prof_f, (20, 215, 255))
+            _paste_card(frame, lu_blend, active_sz if l_talking else idle_sz, 795, l_cy, l_talking, prof_l, (240, 225, 45))
+
+            # Etiquetas coloridas de nome bem encaixadas na base de cada card
+            _alpha_paste_bgra(frame, badge_frida, 285, 514)
+            _alpha_paste_bgra(frame, badge_luna, 795, 514)
+
+            # Selo "FALANDO!" aparece APENAS quando a propria cachorrinha esta falando
+            if f_talking:
+                _alpha_paste_bgra(frame, badge_talk_f, 285, 108)
+            elif l_talking:
+                _alpha_paste_bgra(frame, badge_talk_l, 795, 108)
+
+            vw.write(frame)
+    finally:
+        vw.release()
+
+    subprocess.run(
+        [FFMPEG_EXE, "-y", "-v", "error", "-i", str(tmp_raw),
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", str(out_mp4)],
+        check=True,
+    )
+    tmp_raw.unlink(missing_ok=True)
+    return out_mp4
+
+
+def export_split_short_70_30(
+    master_16_9: Path,
+    visual_clips: list[dict[str, Any]],
+    out_short: Path,
+    st: float,
+    en: float,
+    hook_badge: str = "ELAS FALARAM?!",
+    variant: str = "hook",
+) -> Path:
+    """Gera Short 9:16 Split-Screen 70% topo (filme) / 30% base (Frida & Luna alegres com sincronia estrita)."""
+    dur = max(1.0, round(en - st, 3))
+    top_h = SHORT_SPLIT_TOP_H  # 1344 (70%)
+    out_short.parent.mkdir(parents=True, exist_ok=True)
+
+    tmp_audio = out_short.with_suffix(".s_aud.wav")
+    tmp_top = out_short.with_suffix(".s_top.mp4")
+    tmp_bot = out_short.with_suffix(".s_bot.mp4")
+    tmp_frame = out_short.with_suffix(".s_frame.png")
+    ass_short = out_short.with_suffix(".ass")
+
+    try:
+        subprocess.run(
+            [FFMPEG_EXE, "-y", "-v", "error", "-ss", f"{st:.3f}", "-t", f"{dur:.3f}",
+             "-i", str(master_16_9), "-vn", "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", str(tmp_audio)],
+            check=True,
+        )
+        _build_top_frame_overlay(variant, tmp_frame)
+
+        crop_w = f"ih*{SHORT_WIDTH}/{top_h}"
+        x_pan = f"(iw-{crop_w})*(0.5+0.18*sin(2*PI*t/8))"
+        top_fc = (
+            f"[0:v]crop={crop_w}:ih:{x_pan}:0,scale={SHORT_WIDTH}:{top_h}:flags=lanczos,setsar=1[base];"
+            f"[base][1:v]overlay=0:0:shortest=1[topout]"
+        )
+        subprocess.run(
+            [FFMPEG_EXE, "-y", "-v", "error", "-ss", f"{st:.3f}", "-t", f"{dur:.3f}", "-i", str(master_16_9),
+             "-loop", "1", "-i", str(tmp_frame),
+             "-filter_complex", top_fc, "-map", "[topout]", "-t", f"{dur:.3f}",
+             "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", str(tmp_top)],
+            check=True,
+        )
+
+        bot_ok = _render_split_bottom_stage(visual_clips, st, dur, tmp_audio, tmp_bot, variant=variant)
+        if bot_ok is None:
+            return export_motion_short_9_16(master_16_9, visual_clips, out_short, hook_badge=hook_badge, engine="motion_hud")
+
+        win_clips = [c for c in visual_clips if float(c["end"]) > st and float(c["start"]) < en]
+        write_short_pop_ass(win_clips, ass_short, hook_badge=hook_badge, offset_s=st, dur=dur, split_mode=True, variant=variant)
+
+        fc = (
+            f"[0:v][1:v]vstack=inputs=2,"
+            f"drawbox=x=0:y=0:w={SHORT_WIDTH}:h=16:color=#FFFBEB@0.45:t=fill,"
+            f"drawbox=x=0:y=0:w='iw*t/{dur:.3f}':h=16:color=#FFD60A@0.98:t=fill,"
+            f"ass={ass_short.name}[vout]"
+        )
+        subprocess.run(
+            [FFMPEG_EXE, "-y", "-v", "error", "-i", str(tmp_top), "-i", str(tmp_bot), "-i", str(tmp_audio),
+             "-filter_complex", fc, "-map", "[vout]", "-map", "2:a",
+             "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+             "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(out_short)],
+            cwd=str(ass_short.parent),
+            check=True,
+        )
+        return out_short
+    finally:
+        tmp_audio.unlink(missing_ok=True)
+        tmp_top.unlink(missing_ok=True)
+        tmp_bot.unlink(missing_ok=True)
+        tmp_frame.unlink(missing_ok=True)
+
+
+def export_split_short_60_40(
+    master_16_9: Path,
+    visual_clips: list[dict[str, Any]],
+    out_short: Path,
+    st: float,
+    en: float,
+    hook_badge: str = "ELAS FALARAM?!",
+    variant: str = "hook",
+) -> Path:
+    """Alias de compatibilidade que redireciona para o layout oficial Split 70/30 infantil."""
+    return export_split_short_70_30(master_16_9, visual_clips, out_short, st=st, en=en, hook_badge=hook_badge, variant=variant)
+
+
+def export_3_shorts_pack(
+    master_16_9: Path,
+    visual_clips: list[dict[str, Any]],
+    output_dir: Path,
+    slug: str,
+    hook_badge: str = "ELAS FALARAM?!",
+    target_seconds: float | None = None,
+) -> list[Path]:
+    """Gera 3 Shorts 9:16 Split-Screen 70/30 distintos por episodio + copia compatibilidade."""
+    windows = select_3_short_windows(visual_clips, target_seconds=target_seconds)
+    out_paths: list[Path] = []
+    for idx, win in enumerate(windows):
+        out_p = output_dir / f"{slug}_short_{win['name']}.mp4"
+        badge = hook_badge if idx == 0 and hook_badge else win["badge"]
+        export_split_short_70_30(
+            master_16_9,
+            visual_clips,
+            out_p,
+            st=win["start"],
+            en=win["end"],
+            hook_badge=badge,
+            variant=win["variant"],
+        )
+        out_paths.append(out_p)
+    compat = output_dir / f"{slug}_short_9x16.mp4"
+    if out_paths and out_paths[0].exists():
+        shutil.copy2(out_paths[0], compat)
+    return out_paths

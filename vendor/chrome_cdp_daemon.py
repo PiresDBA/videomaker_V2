@@ -1,8 +1,12 @@
 import subprocess, sys, time, urllib.request
 from pathlib import Path
 
+_base_dir = Path(__file__).resolve().parent.parent
+_default_prof = _base_dir / ".chrome-flow-accounts" / "acc_1"
 chrome = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-prof = sys.argv[1] if len(sys.argv) > 1 else r"C:\videomaker\.chrome-gemini-profile"
+prof = sys.argv[1] if len(sys.argv) > 1 else (
+    str(_default_prof) if _default_prof.exists() else r"C:\videomaker\.chrome-gemini-profile"
+)
 port = sys.argv[2] if len(sys.argv) > 2 else "18800"
 Path(prof).mkdir(parents=True, exist_ok=True)
 

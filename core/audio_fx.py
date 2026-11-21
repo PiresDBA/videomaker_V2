@@ -13,7 +13,7 @@ from typing import Any
 
 import numpy as np
 
-from config import FFMPEG_EXE, MUSIC_DIR, VENDOR_DIR
+from config import BASE_DIR, FFMPEG_EXE, MUSIC_DIR, SFX_CACHE_DIR, VENDOR_DIR
 
 sys.path.insert(0, str(VENDOR_DIR))
 from gerenciador_efeitos_sonoros import obter_efeito_sonoro  # noqa: E402
@@ -38,19 +38,60 @@ EARSHOT_DEFAULTS = {
 
 # Regras semanticas de foley automatico para animacoes infantis (funciona nos 30+ videos!)
 SEMANTIC_FOLEY_RULES: tuple[tuple[str, str, str, float], ...] = (
-    (r"espirr|sneeze|nuvem|poeira\s+m[aá]gica|brilhou|sparkles|estrel", "logo_sting/spark", "earshot", 0.28),
-    (r"gato|pingo|cat|miado|garras", "cat meow", "freesound", 0.28),
-    (r"pombo|pigeon|voou|flight|asa", "pigeon wings", "freesound", 0.26),
-    (r"passarinh|bird|pia|canta", "bird chirp", "freesound", 0.24),
-    (r"patinho|rubber\s+duck", "rubber duck squeak", "freesound", 0.30),
-    (r"z[ií]per|zipper|mochila|backpack", "zipper", "freesound", 0.28),
-    (r"biscoit|ossinh|crocant|biscuit", "crunchy bite", "freesound", 0.28),
-    (r"carros?\s+vermelh|cars?\s+pass|rua|street", "car pass by", "freesound", 0.22),
-    (r"latid|latiu|bark|cachorr", "small dog bark", "freesound", 0.28),
-    (r"disparou|correu|pulo|saltou|trott|jump", "whoosh_fast/whip", "earshot", 0.24),
-    (r"sol|p[oô]r\s+do\s+sol|sunset|aprendeu|abrac|carinho", "logo_sting/soft_bloom", "earshot", 0.22),
-    (r"piada|bobo|surpres|choque|boca\s+aberta", "drip/bloop", "earshot", 0.20),
+    (r"gato|pingo|cat|miado|garras|cochilo|dorminhoco", "cat meow", "freesound", 0.34),
+    (r"patinho|rubber\s+duck", "rubber duck squeak", "freesound", 0.34),
+    (r"pombo|pigeon|voou|flight|asa", "pigeon wings", "freesound", 0.32),
+    (r"passarinh|bird|bico|canta", "bird chirp", "freesound", 0.30),
+    (r"z[ií]per|zipper|mochila|backpack|trava", "zipper", "freesound", 0.33),
+    (r"biscoit|ossinh|crocant|biscuit|lanche", "crunchy bite", "freesound", 0.33),
+    (r"carros?\s+vermelh|cars?\s+pass|rua|street|bombeir", "car pass by", "freesound", 0.28),
+    (r"latid|latiu|bark", "small dog bark", "freesound", 0.33),
+    (r"espirr|sneeze|nuvem|poeira\s+m[aá]gica|brilhou|sparkles|estrel", "logo_sting/spark", "earshot", 0.32),
+    (r"disparou|correu|pulo|saltou|trott|jump", "whoosh_fast/whip", "earshot", 0.28),
+    (r"sol|p[oô]r\s+do\s+sol|sunset|aprendeu|abra[cç]|carinho|amig", "logo_sting/soft_bloom", "earshot", 0.25),
+    (r"piada|bobo|surpres|choque|boca\s+aberta", "drip/bloop", "earshot", 0.24),
 )
+
+
+def _normalize_sfx_to_wav(src_path: Path, max_dur_s: float = 3.5, target_peak_db: float = -6.0) -> Path:
+    """Normaliza cada efeito sonoro para pico consistente (-6 dBFS) evitando SFX baixos na mixagem."""
+    norm_dir = SFX_CACHE_DIR / "norm_wav"
+    norm_dir.mkdir(parents=True, exist_ok=True)
+    dst = norm_dir / f"{src_path.stem}_n6.wav"
+    if dst.exists() and dst.stat().st_size > 1000:
+        return dst
+    tmp = norm_dir / f"{src_path.stem}_tmp.wav"
+    subprocess.run(
+        [FFMPEG_EXE, "-y", "-v", "error", "-i", str(src_path), "-t", f"{max_dur_s:.2f}",
+         "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", str(tmp)],
+        check=True,
+    )
+    with wave.open(str(tmp), "rb") as wf:
+        sr = wf.getframerate()
+        nch = wf.getnchannels()
+        raw = wf.readframes(wf.getnframes())
+    arr = np.frombuffer(raw, dtype=np.int16).astype(np.float32)
+    peak = float(np.max(np.abs(arr))) if arr.size else 0.0
+    target_lin = 32767.0 * (10.0 ** (target_peak_db / 20.0))
+    if peak > 20.0:
+        gain = min(14.0, target_lin / peak)
+        arr = arr * gain
+    # Fade suave nas pontas (12ms) evitando estalos
+    if nch >= 1 and len(arr) >= nch * int(sr * 0.025):
+        st_arr = arr.reshape(-1, nch)
+        fn = max(1, int(sr * 0.012))
+        ramp = np.linspace(0.0, 1.0, fn, dtype=np.float32)[:, None]
+        st_arr[:fn] *= ramp
+        st_arr[-fn:] *= ramp[::-1]
+        arr = st_arr.reshape(-1)
+    pcm = np.clip(arr, -32767, 32767).astype(np.int16)
+    with wave.open(str(dst), "wb") as wf:
+        wf.setnchannels(nch)
+        wf.setsampwidth(2)
+        wf.setframerate(sr)
+        wf.writeframes(pcm.tobytes())
+    tmp.unlink(missing_ok=True)
+    return dst
 
 
 def resolve_sfx_file(sfx_hint: str | None) -> tuple[Path | None, str]:
@@ -167,10 +208,21 @@ def build_sfx_stem(
         seen_scenes.add(sid)
 
         if not is_first_sub:
-            # Sub-corte visual (> 5s dividido): swish bem suave na troca de angulo (0.14)
+            # Sub-corte visual (> 5s dividido): swish suave + foley semantico na segunda metade da cena
             path_sw, _ = resolve_sfx_file("swish/soft")
             if path_sw:
-                events.append((max(0.0, float(clip["start"]) - 0.05), path_sw, 0.14))
+                events.append((max(0.0, float(clip["start"]) - 0.05), path_sw, 0.16))
+            sub_hits = _infer_semantic_foleys(clip)
+            if sub_hits:
+                h_sub, v_sub = sub_hits[0]
+                p_sub, _ = resolve_sfx_file(h_sub)
+                if p_sub:
+                    ts_sub = _snap_to_nearest_pause(
+                        float(clip["start"]) + min(float(clip["duration"]) * 0.35, 1.4),
+                        pauses,
+                        max_shift_s=0.35,
+                    )
+                    events.append((ts_sub, p_sub, min(sfx_volume, max(0.24, v_sub))))
             continue
 
         act = clip.get("act", 1)
@@ -178,7 +230,7 @@ def build_sfx_stem(
             path_trans, _ = resolve_sfx_file("whoosh_fast/crisp")
             if path_trans:
                 ts_t = _snap_to_nearest_pause(max(0.0, float(clip["start"]) - 0.10), pauses)
-                events.append((ts_t, path_trans, 0.28))
+                events.append((ts_t, path_trans, 0.30))
         last_act = act
 
         # Micro-pop quando alterna Frida <-> Luna para marcar o bate-bola com leveza
@@ -187,7 +239,7 @@ def build_sfx_stem(
             pop_id = "ui_pop/boop" if spk == "luna" else "ui_pop/soft"
             path_spk, _ = resolve_sfx_file(pop_id)
             if path_spk:
-                events.append((max(0.0, float(clip["start"])), path_spk, 0.18))
+                events.append((max(0.0, float(clip["start"])), path_spk, 0.22))
         last_spk = spk
 
         for idx_hit, (hint, base_vol) in enumerate(_infer_semantic_foleys(clip)):
@@ -196,6 +248,17 @@ def build_sfx_stem(
                 raw_ts = float(clip["start"]) + (0.06 if idx_hit == 0 else min(1.8, float(clip["duration"]) * 0.48))
                 ts_s = _snap_to_nearest_pause(raw_ts, pauses, max_shift_s=0.30)
                 events.append((ts_s, path_sfx, min(sfx_volume, base_vol)))
+
+        hay_step = f"{clip.get('text', '')} {clip.get('visual_action', '')}".lower()
+        if re.search(r"disparou|correu|foi\s+at[eé]|caminhou|march|trott|walking", hay_step, re.I):
+            p_w, _ = resolve_sfx_file("knock/wood")
+            p_p, _ = resolve_sfx_file("ui_pop/soft")
+            for k in range(4):
+                step_p = p_w if k % 2 == 0 else p_p
+                if step_p:
+                    t_st = float(clip["start"]) + 0.18 + k * 0.15
+                    if t_st < float(clip["end"]) - 0.1:
+                        events.append((t_st, step_p, 0.20))
 
     # Camada suave de ambiencia (passarinhos/brisa CC0) se a maioria for parque/natureza
     all_loc = " ".join(str(c.get("location") or "") for c in visual_clips).lower()
@@ -215,6 +278,7 @@ def build_sfx_stem(
         )
         return out_wav
 
+    norm_cache: dict[Path, Path] = {}
     cmd = [FFMPEG_EXE, "-y", "-v", "error", "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=stereo:d={total_duration:.3f}"]
     filters = []
     labels = ["[0:a]"]
@@ -227,9 +291,15 @@ def build_sfx_stem(
         in_idx += 1
 
     for ts, p, vol in events:
-        cmd += ["-i", str(p)]
+        if p not in norm_cache:
+            try:
+                norm_cache[p] = _normalize_sfx_to_wav(p)
+            except Exception:
+                norm_cache[p] = p
+        p_use = norm_cache[p]
+        cmd += ["-i", str(p_use)]
         delay_ms = max(0, int(round(ts * 1000)))
-        safe_v = min(0.35, max(0.05, float(vol)))
+        safe_v = min(0.35, max(0.06, float(vol)))
         filters.append(
             f"[{in_idx}:a]aformat=sample_rates=44100:channel_layouts=stereo,"
             f"volume={safe_v:.2f},adelay={delay_ms}|{delay_ms}[s{in_idx}]"
@@ -280,7 +350,8 @@ def resolve_act_bgm(visual_clips: list[dict[str, Any]], total_dur: float, work_d
     return out_bgm
 
 
-SOUNDCRAFT_CLI = Path(r"D:\Utilitarios\SoundCraft\soundcraft-cli.exe")
+_LOCAL_SOUNDCRAFT = VENDOR_DIR / "soundcraft" / "soundcraft-cli.exe"
+SOUNDCRAFT_CLI = _LOCAL_SOUNDCRAFT if _LOCAL_SOUNDCRAFT.exists() else Path(r"D:\Utilitarios\SoundCraft\soundcraft-cli.exe")
 
 
 def master_with_soundcraft(audio_path: Path, out_wav: Path) -> Path:
@@ -315,7 +386,9 @@ def run_earshot_critique(media_path: Path, video_path: Path | None = None, fast:
     if ff_dir not in env.get("PATH", ""):
         env["PATH"] = ff_dir + os.pathsep + env.get("PATH", "")
 
-    cmd = ["earshot", "critique", str(media_path), "--json"]
+    local_ear = BASE_DIR / "bin" / "earshot.exe"
+    exe = str(local_ear) if local_ear.is_file() else "earshot"
+    cmd = [exe, "critique", str(media_path), "--json"]
     if video_path and video_path.exists():
         cmd.extend(["--video", str(video_path)])
     if fast:
