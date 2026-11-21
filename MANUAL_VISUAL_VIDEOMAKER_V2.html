@@ -639,9 +639,9 @@ C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --save
       <div class="story-card">
         <h3>⚡ Velocidade, Veo &amp; QA</h3>
         <div class="flag-grid">
-          <div class="flag-chip"><code>--veo-videos 10</code> Clipes 8s Veo 3.1 Lite</div>
-          <div class="flag-chip"><code>--skip-veo</code> Pula geração Veo</div>
-          <div class="flag-chip"><code>--skip-scene-audit</code> Desliga auditor cena-a-cena</div>
+          <div class="flag-chip"><code>--veo-videos 10</code> Clipes 8s Veo 3.1 Lite (obrigatório)</div>
+          <div class="flag-chip"><code>--skip-veo</code> ⚠️ Apenas debug (proibido na entrega)</div>
+          <div class="flag-chip"><code>--skip-scene-audit</code> ⚠️ Apenas debug (proibido na entrega)</div>
           <div class="flag-chip"><code>--cpu-workers</code> Núcleos CPU</div>
           <div class="flag-chip"><code>--disable-nvenc</code> Força CPU x264</div>
           <div class="flag-chip"><code>--vision-audit</code> Checa imagens c/ IA</div>
@@ -675,7 +675,7 @@ C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --save
         <h3><span>🛡️ Escudo Verde — SEMPRE FAZER!</span> <span class="sticker st-green">Super Poder</span></h3>
         <ul class="rule-list">
           <li>🎤 <b>Vozes 100% Travadas:</b> Kore (Narradora), Sulafat (Frida), Leda (Luna) — Gemini TTS ou Chirp 3 HD (trava 950k/mês) + Whisper QA.</li>
-          <li>🎬 <b>Sincronia + 10x Veo + Auditoria Cena-a-Cena:</b> Vision QA <i>fail-closed</i>, regeneração automática, <code>@Personagens</code> por episódio e <code>story_props</code>.</li>
+          <li>🎬 <b>Sincronia + 10x Veo + Auditoria Cena-a-Cena:</b> Vision QA <i>fail-closed</i> (comparando áudio Whisper × imagem/vídeo), regeneração automática, <code>@Personagens</code> e <b>objetos-chave (<code>story_props</code>) cadastrados como personagens no Flow</b>.</li>
           <li>🐶 <b>Raças &amp; Idade Canônicas:</b> Frida Buldogue caramelo, Luna Salsicha chocolate, até 1 aninho (<code>1 year old max</code>).</li>
           <li>👨‍👩‍👧‍👦 <b>YouTube Todo Público:</b> <code>"selfDeclaredMadeForKids": False</code>.</li>
           <li>🧠 <b>Cérebro Graphify + Python Oficial:</b> Ler <code>GRAPH_REPORT.md</code>, rodar <code>graphify update</code> pós-commit e usar <code>C:\Docling\venv\Scripts\python.exe</code>.</li>

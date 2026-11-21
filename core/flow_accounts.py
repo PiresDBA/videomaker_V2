@@ -744,6 +744,37 @@ async def ensure_story_characters_created(
         if portrait.exists():
             ok = await create_character_in_flow(page, cname, portrait, cdesc or cname, project_url)
         present[cname] = ok
+
+    # Regra de Objeto-como-Personagem: todo story_prop recorrente deste episodio vira personagem no Flow
+    for pr in script_data.get("story_props") or []:
+        pname = str(pr.get("name") or "").strip()
+        pdesc = str(pr.get("description") or "").strip()
+        if not pname:
+            continue
+        cur = await check_characters_present(page, required=(pname,))
+        if cur.get(pname):
+            present[pname] = True
+            continue
+        safe_slug = re.sub(r"[^a-z0-9]+", "_", pname.lower()).strip("_") or "objeto"
+        portrait = sec_portrait_dir / f"{safe_slug}_portrait.jpg"
+        if not portrait.exists() and pdesc:
+            try:
+                await generate_flow_image(
+                    page,
+                    prompt=(
+                        f"Isolated single stylized 3D animated prop/object centered on soft neutral studio background, "
+                        f"full object clearly visible, NO dogs, NO animals, NO humans, NO text, NO collage: {pdesc}"
+                    ),
+                    out_jpg=portrait,
+                    characters=(),
+                    wait_s=130,
+                )
+            except Exception as exc:
+                print(f"  [FlowChars] Aviso ao gerar retrato de objeto '{pname}': {exc}", flush=True)
+        ok = False
+        if portrait.exists():
+            ok = await create_character_in_flow(page, pname, portrait, pdesc or pname, project_url)
+        present[pname] = ok
     return present
 
 

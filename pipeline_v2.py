@@ -259,10 +259,24 @@ def run_pipeline(args: argparse.Namespace) -> int:
     flow_accounts = load_accounts_config().get("accounts", [])
     flow_cdp_alive = any(cdp_is_alive(int(a["cdp_port"])) for a in flow_accounts)
     veo_scene_ids: set[str] = set()
-    if not getattr(args, "skip_veo", False) and target_veo > 0 and flow_cdp_alive:
-        veo_scene_ids = {
-            s["scene_id"] for s in select_veo_scenes(script_data, visual_clips, target_count=target_veo)
-        }
+    if not getattr(args, "skip_veo", False) and target_veo > 0:
+        existing_veo = sorted(
+            [p for p in videos_dir.glob("*.mp4") if p.stat().st_size > 50_000],
+            key=lambda p: p.name,
+        ) if videos_dir.exists() else []
+        if flow_cdp_alive:
+            for ep in existing_veo:
+                if len(veo_scene_ids) < target_veo:
+                    veo_scene_ids.add(ep.stem)
+            for s in select_veo_scenes(script_data, visual_clips, target_count=max(target_veo, len(script_data.get("scenes", [])))):
+                if len(veo_scene_ids) >= target_veo:
+                    break
+                veo_scene_ids.add(s["scene_id"])
+        elif not args.skip_images and len(existing_veo) < target_veo:
+            raise RuntimeError(
+                f"Nenhuma conta Google Flow CDP ativa para gerar os {target_veo} videos Veo 3.1 Lite obrigatorios "
+                f"(use --skip-veo apenas se quiser modo somente imagem)."
+            )
 
     if not args.skip_images:
         if not getattr(args, "skip_scene_audit", False):
@@ -373,7 +387,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
         out_short=out_9_16,
         thumbs_dir=thumbs_dir,
         vision_check=args.vision_audit,
-        min_veo_videos=(len(veo_scene_ids) if (not args.skip_images and veo_scene_ids) else 0),
+        min_veo_videos=(target_veo if (not args.skip_images and not getattr(args, "skip_veo", False) and target_veo > 0 and args.stage not in ("shorts", "publish")) else 0),
     )
     print(f"Auto-Auditoria Final: APPROVED={audit['approved']} | Issues={audit['issues_count']}", flush=True)
     if not audit["approved"]:

@@ -61,7 +61,7 @@ videomaker_v2/
 7. **Sonoplastia Audível, Normalizada (`-6 dBFS`) e Atenuada (`<= 0.35`):** Todos os efeitos passam por `obter_efeito_sonoro`, são normalizados para pico consistente (`_normalize_sfx_to_wav`), limitados a `volume <= 0.35` na mixagem e masterizados junto à BGM com sidechain ducking em `-14 LUFS`.
 8. **REGRA DE OURO — Vozes Travadas (`Kore` / `Sulafat` / `Leda`) no Gemini TTS ou Chirp 3 HD (PROIBIDO Edge TTS e Troca de Voz) + QA Whisper + Fonética PT:** É estritamente proibido usar Edge TTS ou alternar a voz de um personagem durante retries de prosódia (`VOICE_LOCK_STRICT = True`). São permitidos apenas **Gemini TTS emocional** (`gemini_emotion`, priorizando `GOOGLE_TTS_API_KEY`) e **Google Cloud Chirp 3 HD** (`chirp3_hd`, vozes `pt-BR-Chirp3-HD-Kore`, `Sulafat` e `Leda` via OAuth 2.0 `--auth-chirp3` ou Conta de Serviço), com trava local gratuita de **`CHIRP3_MONTHLY_CHAR_LIMIT = 950_000`** (< 1 milhão grátis/mês) e proibição de chamar modelos Gemini pagos via Cloud TTS.
 9. **REGRA DE OURO — Sincronia Narração × Imagem/Vídeo + Auditoria Cena-a-Cena Fail-Closed (`core/scene_auditor.py`) + 10 Vídeos Veo 3.1 Lite (8s):** Toda cena deve exibir visual estritamente sintonizado com o que está sendo falado na narração. `core/scene_auditor.py` opera em modo *fail-closed* (`strict_vision=True`) dentro do `pipeline_v2.py` (e em modo standalone), gera e audita inline até **10 vídeos de 8s no Veo 3.1 Lite** (`--veo-videos 10`, ~80s animados) regenerando automaticamente qualquer imagem/vídeo reprovado, extrai stills `_p2`/`_p3` dos vídeos aprovados e bloqueia a montagem se qualquer cena falhar (`min_veo_videos` exigido em `self_audit.py`).
-10. **REGRA DE OURO — Continuidade de Personagens (`@nome`) e Objetos-Chave (`story_props`):** Apenas Frida e Luna são personagens fixos globais. Todo personagem secundário recorrente (`secondary_characters`) é criado na aba `Personagens` do Google Flow (inclusive durante failover Veo) e citado via `@Nome`; todo objeto-chave da história (`story_props`, ex.: caminha) mantém descrição travada e ancoragem visual seletiva apenas nas cenas em que aparece (`_scene_matching_props`), zerando ao iniciar um vídeo novo.
+10. **REGRA DE OURO — Continuidade de Personagens (`@nome`) e Objetos-Chave como Personagens (`story_props`):** Apenas Frida e Luna são personagens fixos globais. Todo personagem secundário recorrente (`secondary_characters`) e todo **objeto-chave recorrente da história (`story_props`, ex.: `@Caminha_Real`)** é cadastrado na aba `Personagens` do Google Flow via `ensure_story_characters_created` (com retrato isolado por episódio em `projects/<slug>/assets/characters/`), citado via `@Nome` nos prompts das cenas em que aparece (`_scene_matching_props`) e auditado contra o retrato-âncora no `scene_auditor.py`, zerando automaticamente ao iniciar um vídeo novo.
 11. **Pack de 3 Shorts 9:16 Split-Screen 70% / 30% Infantil + Sincronia Labial Estrita + Cortes Limpos (`core/motion_shorts.py`):**
     - Todo episódio gera 3 Shorts verticais (`01_hook`, `02_storybook`, `03_final`) com **70% topo (`1080×1344`) para o filme** e **30% base (`1080×576`) para palco infantil colorido** (fontes arredondadas PIL, CTA para o vídeo completo e avatares grandes).
     - **Reprodutor Contínuo 30fps (`_SmoothAvatarPlayer`):** Avatares no Short rodam sequencialmente a 30fps com crossfade de 9 frames e posição/tamanho fixos (proibido teleporte de frames ou quique/trepidação).
@@ -93,18 +93,18 @@ C:\Docling\venv\Scripts\python.exe pipeline_v2.py --batch-scan "E:\videos"
 
 ### Gerar Short personalizado, controlar avatares ou velocidade de hardware
 ```powershell
-python pipeline_v2.py --slug meu-episodio --avatar-mode duo --short-seconds 35 --cpu-workers 8 --disable-nvenc
+C:\Docling\venv\Scripts\python.exe pipeline_v2.py --slug meu-episodio --avatar-mode duo --short-seconds 35 --cpu-workers 8 --disable-nvenc
 ```
 
 ### Publicar no canal YouTube Português (Todo Público + Thumb Viral + Legenda)
 ```powershell
-python pipeline_v2.py --slug meu-episodio --stage publish --publish-pt --publish-privacy public --thumb-hook "ELAS FALARAM?!" --thumb-badge "VOCÊ NÃO VAI ACREDITAR!"
+C:\Docling\venv\Scripts\python.exe pipeline_v2.py --slug meu-episodio --stage publish --publish-pt --publish-privacy public --thumb-hook "ELAS FALARAM?!" --thumb-badge "VOCÊ NÃO VAI ACREDITAR!"
 ```
 
 ### Conectar contas Google Flow no Modo de Aprendizado
 ```powershell
-python pipeline_v2.py --learn-flow-accounts
-python pipeline_v2.py --flow-accounts-status
+C:\Docling\venv\Scripts\python.exe pipeline_v2.py --learn-flow-accounts
+C:\Docling\venv\Scripts\python.exe pipeline_v2.py --flow-accounts-status
 ```
 
 ### Verificar integridade e proteções do motor (Hooks & Guard)
@@ -115,7 +115,7 @@ C:\Docling\venv\Scripts\python.exe tests/test_pipeline_v2.py
 
 ---
 
-## 5. Grafo de Conhecimento & Cérebro (`graphify`) — Economia de Contexto
+## 4. Grafo de Conhecimento & Cérebro (`graphify`) — Economia de Contexto
 
 Para evitar varreduras manuais extensas e reduzir drasticamente o consumo de contexto dos agentes:
 

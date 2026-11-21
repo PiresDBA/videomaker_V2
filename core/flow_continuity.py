@@ -277,6 +277,82 @@ def _inject_at_character_mentions(prompt: str, attached_chars: list[str]) -> str
     return f"{' '.join(clean_names)}: {prompt}"
 
 
+async def _retry_failed_flow_tile(page, retries_done: int, max_retries: int = 3) -> bool:
+    """Detecta tile cinza/falhado no Flow e clica no botao circular de refresh/retry (canto inferior direito)."""
+    if retries_done >= max_retries:
+        return False
+    tile0 = page.locator("flow-grid-tile-container").first
+    if not await tile0.count():
+        return False
+    try:
+        info = await tile0.evaluate(
+            """(el) => {
+                const txt = (el.innerText || '').toLowerCase();
+                const hasImg = Array.from(el.querySelectorAll('img')).some(i => (i.naturalWidth || 0) >= 800);
+                const hasVidReady = txt.includes('play_circle') && !!el.querySelector('button[aria-label="Mais opções"]');
+                const inProgress = /\\b\\d+%/.test(txt);
+                const btns = Array.from(el.querySelectorAll('button')).map(b => ({
+                    aria: (b.getAttribute('aria-label') || '').toLowerCase(),
+                    txt: (b.innerText || '').trim().toLowerCase(),
+                    cls: (b.className || '').toLowerCase(),
+                }));
+                const hasRetryBtn = btns.some(b =>
+                    b.aria.includes('tentar') || b.aria.includes('refaz') || b.aria.includes('retry') ||
+                    b.aria.includes('refresh') || b.aria.includes('novamente') ||
+                    b.txt === 'refresh' || b.txt === 'replay' || b.txt.includes('tentar') || b.txt.includes('refaz')
+                );
+                const hasErrTxt = txt.includes('algo deu errado') || txt.includes('falha') || txt.includes('não foi possível') || txt.includes('erro');
+                return { hasImg, hasVidReady, inProgress, hasRetryBtn, hasErrTxt };
+            }"""
+        )
+    except Exception:
+        return False
+    if info.get("inProgress") or info.get("hasImg") or info.get("hasVidReady"):
+        return False
+    if not (info.get("hasRetryBtn") or info.get("hasErrTxt")):
+        return False
+
+    # Tenta clicar no botao circular de refresh/retry dentro do tile (parte direita embaixo)
+    for sel in (
+        'button[aria-label*="Tentar" i]',
+        'button[aria-label*="Refaz" i]',
+        'button[aria-label*="Retry" i]',
+        'button[aria-label*="Refresh" i]',
+        'button:has-text("refresh")',
+        'button:has-text("replay")',
+        'button:has-text("Tentar novamente")',
+    ):
+        btn = tile0.locator(sel).first
+        if await btn.count():
+            try:
+                await tile0.hover()
+                await page.wait_for_timeout(300)
+                await btn.click(timeout=3000, force=True)
+                print(
+                    f"  [Flow] Tile falhou (cinza/erro); clicando no refresh circular ({retries_done + 1}/{max_retries})...",
+                    flush=True,
+                )
+                await page.wait_for_timeout(1500)
+                return True
+            except Exception:
+                pass
+    # Fallback: ultimo botao dentro do tile quando erro detectado
+    if info.get("hasErrTxt"):
+        last_btn = tile0.locator("button").last
+        if await last_btn.count():
+            try:
+                await last_btn.click(timeout=3000, force=True)
+                print(
+                    f"  [Flow] Tile com erro; acionando botao inferior direito ({retries_done + 1}/{max_retries})...",
+                    flush=True,
+                )
+                await page.wait_for_timeout(1500)
+                return True
+            except Exception:
+                pass
+    return False
+
+
 async def generate_flow_image(
     page,
     prompt: str,
@@ -314,6 +390,7 @@ async def generate_flow_image(
     await page.locator('button[aria-label="Iniciar geração"]').first.click()
     t0 = time.time()
     winner = None
+    tile_retries = 0
     while time.time() - t0 < wait_s:
         await page.wait_for_timeout(3000)
         cur = await _snapshot_top_tiles(page, limit=4)
@@ -328,6 +405,9 @@ async def generate_flow_image(
                 break
         if winner:
             break
+        if (time.time() - t0) >= 9.0 and await _retry_failed_flow_tile(page, tile_retries, max_retries=3):
+            tile_retries += 1
+            t0 = time.time()
 
     if not winner:
         raise TimeoutError(f"Timeout ({wait_s}s) aguardando imagem Flow para {out_jpg.name}")
@@ -407,6 +487,7 @@ async def generate_flow_video(
         t0 = time.time()
         ready_tile = None
         saw_progress = False
+        tile_retries = 0
         while time.time() - t0 < wait_s:
             await page.wait_for_timeout(4000)
             body_low = (await page.evaluate("() => (document.body && document.body.innerText || '').slice(0, 2200)")).lower()
@@ -425,6 +506,10 @@ async def generate_flow_video(
             if "play_circle" in top["txt"] and tile_ready and (aria_changed or (saw_progress and (new_img or top["vids"]))):
                 ready_tile = top
                 break
+            if (time.time() - t0) >= 12.0 and await _retry_failed_flow_tile(page, tile_retries, max_retries=3):
+                tile_retries += 1
+                saw_progress = False
+                t0 = time.time()
 
         if not ready_tile:
             raise TimeoutError(f"Timeout ({wait_s}s) aguardando video Veo 3.1 Lite para {out_mp4.name}")
@@ -480,6 +565,10 @@ async def generate_flow_video(
             if not resp.ok:
                 raise RuntimeError(f"Falha ao baixar MP4 Flow HTTP {resp.status}")
             out_mp4.write_bytes(await resp.body())
+
+        if not out_mp4.exists() or out_mp4.stat().st_size < 50_000:
+            out_mp4.unlink(missing_ok=True)
+            raise RuntimeError(f"Arquivo MP4 baixado do Flow veio vazio/corrompido para {out_mp4.name}")
 
         return {
             "ok": True,

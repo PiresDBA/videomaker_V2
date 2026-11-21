@@ -189,6 +189,9 @@ def fit_aspect_jpeg(src: Path, dst: Path, tw: int = VIDEO_WIDTH, th: int = VIDEO
     im.save(dst, format="JPEG", quality=93)
 
 
+_UNAVAILABLE_CDP_URLS: set[str] = set()
+
+
 def generate_single_image(
     prompt: str,
     out_path: Path,
@@ -214,6 +217,7 @@ def generate_single_image(
         from core.flow_continuity import DEFAULT_CDP_URL, DEFAULT_FLOW_PROJECT_URL, generate_flow_image
         from core.flow_accounts import (
             cdp_is_alive,
+            check_needs_google_login,
             ensure_story_characters_created,
             get_next_available_accounts,
             load_accounts_config,
@@ -227,18 +231,18 @@ def generate_single_image(
         port_to_proj = {f"http://127.0.0.1:{int(a['cdp_port'])}": a.get("project_url") or DEFAULT_FLOW_PROJECT_URL for a in accounts_cfg}
 
         env_cdp = os.environ.get("GEMINI_CDP_URL", "").strip().rstrip("/")
-        if env_cdp:
+        if env_cdp and env_cdp not in _UNAVAILABLE_CDP_URLS:
             candidates.append((env_cdp, port_to_proj.get(env_cdp, DEFAULT_FLOW_PROJECT_URL)))
             seen_urls.add(env_cdp)
 
         for acc in get_next_available_accounts(ignore_soft_daily_cap=True):
             port = int(acc["cdp_port"])
             cdp_url = f"http://127.0.0.1:{port}"
-            if cdp_url not in seen_urls and cdp_is_alive(port):
+            if cdp_url not in seen_urls and cdp_url not in _UNAVAILABLE_CDP_URLS and cdp_is_alive(port):
                 candidates.append((cdp_url, acc.get("project_url") or DEFAULT_FLOW_PROJECT_URL))
                 seen_urls.add(cdp_url)
 
-        if DEFAULT_CDP_URL not in seen_urls:
+        if DEFAULT_CDP_URL not in seen_urls and DEFAULT_CDP_URL not in _UNAVAILABLE_CDP_URLS:
             try:
                 with urllib.request.urlopen(f"{DEFAULT_CDP_URL}/json/version", timeout=2):
                     candidates.append((DEFAULT_CDP_URL, port_to_proj.get(DEFAULT_CDP_URL, DEFAULT_FLOW_PROJECT_URL)))
@@ -260,6 +264,10 @@ def generate_single_image(
                 if "flow.google.com" not in pg.url or "/project/" not in pg.url:
                     await pg.goto(proj_url, wait_until="domcontentloaded", timeout=30000)
                     await pg.wait_for_timeout(2000)
+                if await check_needs_google_login(pg):
+                    _UNAVAILABLE_CDP_URLS.add(cdp_url)
+                    await b.close()
+                    raise RuntimeError(f"Conta Flow {cdp_url} deslogada; pulando.")
                 if script_data and ensured_accounts is not None and cdp_url not in ensured_accounts:
                     try:
                         present = await ensure_story_characters_created(
@@ -468,17 +476,38 @@ def generate_single_veo_video(
     if fix_hint:
         veo_prompt += f" STRICT CORRECTION: {fix_hint}"
     keyframe = images_dir / f"{sid}_p1.jpg"
-    chars = tuple(scene.get("characters") or ("Frida", "Luna"))
-    return asyncio.run(
-        generate_video_with_failover(
-            prompt=veo_prompt,
-            out_mp4=out_mp4,
-            characters=chars,
-            keyframe_path=keyframe if keyframe.exists() else None,
-            script_data=script_data,
-            proj_dir=proj_dir,
+    prop_names = [
+        str(pr.get("name") or "").strip()
+        for pr in props
+        if isinstance(pr, dict) and pr.get("name")
+        and (
+            str(pr["name"]).lower() in f"{scene.get('text','')} {scene.get('visual_action','')}".lower()
+            or any(
+                tok in f"{scene.get('text','')} {scene.get('visual_action','')} {scene.get('location','')}".lower()
+                for tok in re.findall(r"[a-z0-9áéíóúâêôãõç]{4,}", str(pr["name"]).lower())
+            )
         )
-    )
+    ]
+    chars_list = list(scene.get("characters") or ["Frida", "Luna"])
+    for pn in prop_names:
+        if pn not in chars_list:
+            chars_list.append(pn)
+    chars = tuple(chars_list)
+    try:
+        return asyncio.run(
+            generate_video_with_failover(
+                prompt=veo_prompt,
+                out_mp4=out_mp4,
+                characters=chars,
+                keyframe_path=keyframe if keyframe.exists() else None,
+                script_data=script_data,
+                proj_dir=proj_dir,
+            )
+        )
+    except Exception:
+        if out_mp4.exists() and out_mp4.stat().st_size < 100_000:
+            out_mp4.unlink(missing_ok=True)
+        raise
 
 
 def generate_veo_videos_for_episode(

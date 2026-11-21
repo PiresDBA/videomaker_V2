@@ -686,6 +686,90 @@ class TestVideomakerV2Unified(unittest.TestCase):
             with self.assertRaises(ValueError):
                 synthesize_all_scenes({"scenes": []}, Path(td), provider="edge")
 
+    def test_story_props_as_flow_characters_and_whisper_audio_vision_audit(self):
+        import asyncio
+        from unittest import mock
+        import core.flow_accounts as fa
+        import core.scene_auditor as sa
+
+        with tempfile.TemporaryDirectory() as td:
+            td_p = Path(td)
+            img = td_p / "big.jpg"
+            Image.new("RGB", (1920, 1080), (180, 40, 40)).save(img)
+            b64 = sa._encode_vision_jpeg_b64(img, max_w=960)
+            self.assertTrue(len(b64) > 100)
+
+            created_calls: list[str] = []
+
+            async def _fake_ensure_all(_pg, _url):
+                return {"Frida": True, "Luna": True}
+
+            async def _fake_check(_pg, required=()):
+                return {r: False for r in required}
+
+            async def _fake_gen_img(_pg, prompt, out_jpg, **_kw):
+                Image.new("RGB", (640, 640), (200, 30, 30)).save(out_jpg)
+                return {"ok": True}
+
+            async def _fake_create_char(_pg, name, _portrait, _desc, _url):
+                created_calls.append(name)
+                return True
+
+            with mock.patch.object(fa, "ensure_all_characters_created", side_effect=_fake_ensure_all), \
+                 mock.patch.object(fa, "check_characters_present", side_effect=_fake_check), \
+                 mock.patch.object(fa, "generate_flow_image", side_effect=_fake_gen_img), \
+                 mock.patch.object(fa, "create_character_in_flow", side_effect=_fake_create_char):
+                res = asyncio.run(
+                    fa.ensure_story_characters_created(
+                        None,
+                        {
+                            "secondary_characters": [{"name": "Pipoca", "description": "Cute Chihuahua"}],
+                            "story_props": [{"name": "Caminha_Real", "description": "Red velvet bed with gold hearts"}],
+                        },
+                        "https://flow.google.com/project/demo",
+                        portrait_dir=td_p / "chars",
+                    )
+                )
+            self.assertTrue(res.get("Pipoca"))
+            self.assertTrue(res.get("Caminha_Real"))
+            self.assertEqual(created_calls, ["Pipoca", "Caminha_Real"])
+
+            # Verifica que audio_heard_pt (Whisper) entra no prompt do auditor
+            captured_prompts: list[str] = []
+
+            class _Resp:
+                def __enter__(self):
+                    return self
+                def __exit__(self, *a):
+                    return False
+                def read(self):
+                    import json as _json
+                    return _json.dumps({
+                        "candidates": [{"content": {"parts": [{"text": _json.dumps({
+                            "matches_narration": True, "matches_location": True,
+                            "matches_characters": True, "matches_story_props": True,
+                            "has_collage_or_split": False, "has_visible_text": False,
+                            "reason": "ok", "fix_prompt_hint": ""
+                        })}]}}]
+                    }).encode("utf-8")
+
+            def _fake_urlopen(req, timeout=28):
+                import json as _json
+                body = _json.loads(req.data.decode("utf-8"))
+                captured_prompts.append(body["contents"][0]["parts"][0]["text"])
+                return _Resp()
+
+            with mock.patch.object(sa, "_get_google_keys", return_value=["DUMMY_TEST_KEY_FOR_MOCK"]), \
+                 mock.patch("urllib.request.urlopen", side_effect=_fake_urlopen):
+                vis = sa.audit_scene_visual_with_vision(
+                    [img],
+                    {"scene_id": "sc_01", "text": "Olha a caminha!", "location": "sala", "visual_action": "Luna olha a caminha"},
+                    audio_heard_pt="Olha a caminha vermelha!",
+                )
+            self.assertTrue(vis["ok"])
+            self.assertIn("Actual Audio Heard in WAV", captured_prompts[0])
+            self.assertIn("Olha a caminha vermelha!", captured_prompts[0])
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():

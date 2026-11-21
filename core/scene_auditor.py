@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import io
 import json
 import re
 import subprocess
@@ -14,6 +15,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+from PIL import Image
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
@@ -126,6 +129,21 @@ def _extract_stills_for_veo_subclips(
         )
 
 
+def _encode_vision_jpeg_b64(img_path: Path, max_w: int = 960) -> str:
+    """Redimensiona frame para <=960px antes de enviar ao Vision QA (payload leve e rapido)."""
+    try:
+        with Image.open(img_path) as im:
+            im = im.convert("RGB")
+            if im.width > max_w:
+                nh = max(1, int(round(im.height * (max_w / float(im.width)))))
+                im = im.resize((max_w, nh), Image.Resampling.LANCZOS)
+            buf = io.BytesIO()
+            im.save(buf, format="JPEG", quality=82)
+            return base64.b64encode(buf.getvalue()).decode("ascii")
+    except Exception:
+        return base64.b64encode(img_path.read_bytes()).decode("ascii")
+
+
 def audit_scene_visual_with_vision(
     frame_paths: list[Path],
     scene: dict[str, Any],
@@ -134,6 +152,7 @@ def audit_scene_visual_with_vision(
     anchor_prop_image: Path | None = None,
     strict_vision: bool = True,
     clip_variant: str = "",
+    audio_heard_pt: str = "",
 ) -> dict[str, Any]:
     """Audita cena (imagem ou frames de video) contra narracao PT, personagens e consistencia de objeto."""
     valid_frames = [p for p in frame_paths if p.exists() and p.stat().st_size > 2000]
@@ -180,20 +199,22 @@ def audit_scene_visual_with_vision(
 
     prompt = (
         "You are a strict animation continuity director auditing a scene frame before moving to the next scene.\n"
-        f"Spoken Narration (Portuguese): \"{scene.get('text', '')}\"\n"
-        f"Expected Location: {scene.get('location', '')}\n"
+        f"Spoken Narration (Portuguese Script): \"{scene.get('text', '')}\"\n"
+        + (f"Actual Audio Heard in WAV (Whisper Transcription): \"{audio_heard_pt}\"\n" if audio_heard_pt else "")
+        + f"Expected Location: {scene.get('location', '')}\n"
         f"Expected Visual Action: {scene.get('visual_action', '')}\n"
         f"Expected Characters in Scene: {chars_txt}\n"
         + (f"Sub-clip Shot Variant: {clip_variant} (may be a tighter reaction or reverse angle of the same scene)\n" if clip_variant else "")
-        + "Character Design Rules:\n"
-        "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace with small gold paw pendant; NEVER Golden Retriever, NEVER black-and-white spotted).\n"
-        "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel).\n"
+        + "Character & Breed Design Rules (STRICT):\n"
+        "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace with small gold paw pendant; NEVER Golden Retriever, NEVER black-and-white spotted, NEVER adult/old dog).\n"
+        "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel, NEVER random brown/black dog).\n"
+        "- ZERO unrequested dog breeds or random extra animals! Any extra creature (such as a literal red furry monster) MUST NOT appear unless explicitly listed in Expected Characters.\n"
         + (f"- Secondary Characters: {sec_desc}\n" if sec_desc else "")
-        + (f"Story Key Objects (MUST stay identical across the whole video): {props_desc}\n" if props_desc else "")
-        + ("The LAST image attached is the reference anchor image for the story's key object/style. Verify that the key object (if visible) keeps the same color, shape and style.\n"
+        + (f"Story Key Objects (treated as FIXED characters, MUST keep exact same color, material and shape across ALL scenes): {props_desc}\n" if props_desc else "")
+        + ("The LAST image attached is the reference anchor portrait for the story's key object/prop. REJECT (matches_story_props=false) if the key object in the scene changed color (e.g. white or pink instead of red velvet with golden hearts), changed design, or vanished when expected.\n"
            if anchor_prop_image and anchor_prop_image.exists() else "")
         + "Reject (false) if: the visual contradicts or ignores what the narration is saying, shows wrong dog breeds/colors, "
-          "changes the key story object's appearance drastically, has comic-strip/split-screen panels, or has visible watermark/text.\n"
+          "changes the key story object's appearance/color, has comic-strip/split-screen panels, or has visible watermark/text.\n"
         "Respond ONLY in JSON with keys: "
         '{"matches_narration": bool, "matches_location": bool, "matches_characters": bool, '
         '"matches_story_props": bool, "has_collage_or_split": bool, "has_visible_text": bool, '
@@ -202,48 +223,51 @@ def audit_scene_visual_with_vision(
 
     parts: list[dict[str, Any]] = [{"text": prompt}]
     for fp in valid_frames[:3]:
-        b64 = base64.b64encode(fp.read_bytes()).decode("ascii")
-        parts.append({"inlineData": {"mimeType": "image/jpeg", "data": b64}})
+        parts.append({"inlineData": {"mimeType": "image/jpeg", "data": _encode_vision_jpeg_b64(fp)}})
     if anchor_prop_image and anchor_prop_image.exists() and anchor_prop_image not in valid_frames:
-        b64_ref = base64.b64encode(anchor_prop_image.read_bytes()).decode("ascii")
-        parts.append({"inlineData": {"mimeType": "image/jpeg", "data": b64_ref}})
+        parts.append({"inlineData": {"mimeType": "image/jpeg", "data": _encode_vision_jpeg_b64(anchor_prop_image)}})
 
     payload = json.dumps({
         "contents": [{"parts": parts}],
         "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
     }).encode("utf-8")
 
-    for model in ("gemini-3-flash-preview", "gemini-2.5-flash"):
-        for key in keys[:6]:
-            url = (
-                f"https://generativelanguage.googleapis.com/v1beta/models/"
-                f"{urllib.parse.quote(model)}:generateContent?key={urllib.parse.quote(key)}"
-            )
-            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
-            try:
-                with urllib.request.urlopen(req, timeout=35) as resp:
-                    data = json.loads(resp.read().decode("utf-8"))
-                txt = data["candidates"][0]["content"]["parts"][0]["text"]
-                res = json.loads(txt)
-                ok = (
-                    bool(res.get("matches_narration", True))
-                    and bool(res.get("matches_location", True))
-                    and bool(res.get("matches_characters", True))
-                    and bool(res.get("matches_story_props", True))
-                    and not bool(res.get("has_collage_or_split", False))
-                    and not bool(res.get("has_visible_text", False))
+    last_err = "timeout/erro"
+    for round_idx in range(2):
+        for model in ("gemini-3-flash-preview", "gemini-3.1-flash-lite-preview"):
+            for key in keys:
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{urllib.parse.quote(model)}:generateContent?key={urllib.parse.quote(key)}"
                 )
-                res["checked"] = True
-                res["ok"] = ok
-                return res
-            except Exception:
-                time.sleep(0.4)
-                continue
+                req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
+                try:
+                    with urllib.request.urlopen(req, timeout=28) as resp:
+                        data = json.loads(resp.read().decode("utf-8"))
+                    txt = data["candidates"][0]["content"]["parts"][0]["text"]
+                    res = json.loads(txt)
+                    ok = (
+                        bool(res.get("matches_narration", True))
+                        and bool(res.get("matches_location", True))
+                        and bool(res.get("matches_characters", True))
+                        and bool(res.get("matches_story_props", True))
+                        and not bool(res.get("has_collage_or_split", False))
+                        and not bool(res.get("has_visible_text", False))
+                    )
+                    res["checked"] = True
+                    res["ok"] = ok
+                    return res
+                except Exception as exc:
+                    last_err = str(exc)[:80]
+                    time.sleep(0.5)
+                    continue
+        if round_idx == 0:
+            time.sleep(3.0)
     return {
         "checked": False,
         "ok": not strict_vision,
         "vision_unavailable": True,
-        "reason": "Vision QA indisponivel/timeout",
+        "reason": f"Vision QA indisponivel ({last_err})",
         "fix_prompt_hint": "",
     }
 
@@ -263,6 +287,7 @@ def generate_and_audit_scenes(
     generate_veo_inline: bool = False,
     veo_max_retries: int = 2,
     strict_vision: bool = True,
+    stop_on_scene_failure: bool = True,
 ) -> dict[str, Any]:
     """Gera e audita CENA POR CENA (imagem + Veo) antes de passar para a proxima cena; regenera se nao fizer sentido."""
     images_dir.mkdir(parents=True, exist_ok=True)
@@ -272,6 +297,17 @@ def generate_and_audit_scenes(
 
     sec_chars = script_data.get("secondary_characters") or []
     story_props = script_data.get("story_props") or []
+    heard_by_scene: dict[str, str] = {}
+    timings_p_early = artifacts_dir / "tts_timings_v2.json"
+    if timings_p_early.exists():
+        try:
+            for item in json.loads(timings_p_early.read_text(encoding="utf-8")):
+                if isinstance(item, dict) and item.get("scene_id"):
+                    qa_d = item.get("qa") or {}
+                    if qa_d.get("heard"):
+                        heard_by_scene[str(item["scene_id"])] = str(qa_d["heard"])
+        except Exception:
+            pass
 
     clips_by_scene: dict[str, list[dict[str, Any]]] = {}
     for c in visual_clips:
@@ -279,6 +315,20 @@ def generate_and_audit_scenes(
 
     ensured_accounts: set[str] = set()
     prop_anchors: dict[str, Path] = {}
+    chars_dir = proj_dir / "assets" / "characters"
+    for pr in story_props:
+        if isinstance(pr, dict) and pr.get("name"):
+            pname = str(pr["name"]).strip()
+            safe_slug = re.sub(r"[^a-z0-9]+", "_", pname.lower()).strip("_") or "objeto"
+            p_port = chars_dir / f"{safe_slug}_portrait.jpg"
+            if p_port.exists() and p_port.stat().st_size > 10000:
+                prop_anchors[pname.lower()] = p_port
+
+    if videos_dir and videos_dir.exists():
+        for bad_mp4 in videos_dir.glob("*.mp4"):
+            if bad_mp4.stat().st_size < 50000:
+                bad_mp4.unlink(missing_ok=True)
+
     scene_reports: list[dict[str, Any]] = []
     regenerated_ids: list[str] = []
     failed_ids: list[str] = []
@@ -294,7 +344,22 @@ def generate_and_audit_scenes(
         cid = clip["clip_id"]
         pdata = prompts_manifest.get(cid) or prompts_manifest.get(f"{sid}_p1") or {}
         dst = images_dir / f"{cid}.jpg"
-        chars = tuple(sc.get("characters") or pdata.get("characters") or ("Frida", "Luna"))
+        chars_list = list(sc.get("characters") or pdata.get("characters") or ["Frida", "Luna"])
+        for mp in matched_props:
+            pn = str(mp.get("name") or "").strip()
+            if pn and pn not in chars_list:
+                chars_list.append(pn)
+        chars = tuple(chars_list)
+
+        # Atualiza ancora isolada caso tenha acabado de ser gerada em assets/characters
+        for mp in matched_props:
+            pn = str(mp.get("name") or "").strip()
+            safe_slug = re.sub(r"[^a-z0-9]+", "_", pn.lower()).strip("_") or "objeto"
+            p_port = chars_dir / f"{safe_slug}_portrait.jpg"
+            if p_port.exists() and p_port.stat().st_size > 10000:
+                prop_anchors[pn.lower()] = p_port
+                if p_port not in prop_refs:
+                    prop_refs.insert(0, p_port)
 
         base_p1 = images_dir / f"{sid}_p1.jpg"
         refs: list[Path] = []
@@ -311,13 +376,14 @@ def generate_and_audit_scenes(
         anchor_for_vision = prop_refs[0] if (prop_refs and prop_refs[0] != dst) else None
 
         attempts = max(1, max_retries) if auto_fix else 1
+        last_vision_unavail = False
         for attempt in range(1, attempts + 1):
             need_gen = (
                 (force and attempt == 1)
                 or not dst.exists()
                 or dst.stat().st_size < 15000
                 or detect_split_collage(dst) > 1
-                or (attempt > 1)
+                or (attempt > 1 and not last_vision_unavail)
             )
             if need_gen:
                 if not auto_fix and not dst.exists():
@@ -354,6 +420,7 @@ def generate_and_audit_scenes(
                 anchor_prop_image=anchor_for_vision,
                 strict_vision=strict_vision,
                 clip_variant=str(clip.get("prompt_variant") or ""),
+                audio_heard_pt=heard_by_scene.get(sid, ""),
             )
             final_vis = vis
             if vis.get("ok", False):
@@ -362,10 +429,14 @@ def generate_and_audit_scenes(
                 print(f"  [AUDIT-CENA] {cid}: APROVADA ({vis.get('reason', 'OK')})", flush=True)
                 break
 
+            last_vision_unavail = bool(vis.get("vision_unavailable"))
             print(
                 f"  [AUDIT-CENA] {cid} tentativa {attempt}/{attempts} REPROVADA: {vis.get('reason')}",
                 flush=True,
             )
+            if last_vision_unavail:
+                time.sleep(4.0)
+                continue
             fix_hint = str(vis.get("fix_prompt_hint") or vis.get("reason") or "")
             if auto_fix and attempt < attempts:
                 dst.unlink(missing_ok=True)
@@ -456,6 +527,7 @@ def generate_and_audit_scenes(
                             story_props=matched_props,
                             anchor_prop_image=prop_refs[0] if prop_refs else None,
                             strict_vision=strict_vision,
+                            audio_heard_pt=heard_by_scene.get(sid, ""),
                         )
                     if v_vis.get("ok", False):
                         v_approved = True
@@ -474,10 +546,10 @@ def generate_and_audit_scenes(
                         v_mp4.unlink(missing_ok=True)
 
                 vid_entry = {"scene_id": sid, "video_path": str(v_mp4), **v_vis}
-                if not v_approved and not veo_quota_exhausted:
+                if not v_approved:
                     failed_ids.append(f"{sid}.mp4")
 
-                if should_run_veo_inline and not v_approved and len(sc_entries) < len(sc_clips):
+                if should_run_veo_inline and not v_approved and len(sc_entries) < len(sc_clips) and not stop_on_scene_failure:
                     for extra_clip in sc_clips[1:]:
                         sc_entries.append(_run_clip(sc, extra_clip, matched_props, prop_refs))
 
@@ -488,6 +560,35 @@ def generate_and_audit_scenes(
             "clips": sc_entries,
             "video": vid_entry,
         })
+        scene_failed = any(
+            fid == f"{sid}.mp4" or fid.startswith(f"{sid}_")
+            for fid in failed_ids
+        )
+        if stop_on_scene_failure and scene_failed:
+            stop_msg = (
+                f"[TRAVA-CRITICA] Parei na cena {sid}: tentei varias vezes e nao consegui gerar/validar "
+                f"({[f for f in failed_ids if f == f'{sid}.mp4' or f.startswith(f'{sid}_')]}). "
+                "Nao avancei para a proxima cena para nao gerar video inconsistente."
+            )
+            print(stop_msg, flush=True)
+            report_path.write_text(
+                json.dumps(
+                    {
+                        "approved": False,
+                        "stopped_at_scene": sid,
+                        "stop_reason": stop_msg,
+                        "scenes_audited": len(scene_reports),
+                        "regenerated_clips": regenerated_ids,
+                        "failed_clips": failed_ids,
+                        "scenes": scene_reports,
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            break
+
         report_path.write_text(
             json.dumps(
                 {
