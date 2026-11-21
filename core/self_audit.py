@@ -56,6 +56,7 @@ def run_final_audit(
     out_short: Path | None,
     thumbs_dir: Path,
     vision_check: bool = False,
+    min_veo_videos: int = 0,
 ) -> dict[str, Any]:
     """Executa auditoria completa apos a montagem e salva final_audit_report.json."""
     issues: list[str] = []
@@ -134,6 +135,8 @@ def run_final_audit(
 
     videos_dir = images_dir.parent / "videos"
     veo_count = len(list(videos_dir.glob("*.mp4"))) if videos_dir.exists() else 0
+    if min_veo_videos > 0 and veo_count < int(min_veo_videos):
+        issues.append(f"veo: apenas {veo_count}/{int(min_veo_videos)} videos Veo 3.1 Lite presentes em assets/videos")
 
     report = {
         "approved": len(issues) == 0,

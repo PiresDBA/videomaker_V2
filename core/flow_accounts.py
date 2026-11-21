@@ -446,6 +446,8 @@ async def generate_video_with_failover(
     keyframe_path: Path | None = None,
     keyframe_aria_on_acc1: str = "",
     preferred_account_id: str = "",
+    script_data: dict[str, Any] | None = None,
+    proj_dir: Path | None = None,
 ) -> dict[str, Any]:
     """Gera video Veo 3.1 Lite (8s, 10 creditos) fazendo failover automatico entre as contas cadastradas."""
     from playwright.async_api import async_playwright
@@ -458,6 +460,7 @@ async def generate_video_with_failover(
     if not candidates:
         raise RuntimeError("Nenhuma conta Google Flow configurada com creditos disponiveis hoje.")
 
+    sec_portrait_dir = (proj_dir / "assets" / "characters") if proj_dir else (CHARACTERS_REF_DIR / "episode_portraits")
     last_err: Exception | None = None
     for acc in candidates:
         port = int(acc["cdp_port"])
@@ -478,11 +481,23 @@ async def generate_video_with_failover(
                     continue
 
                 email = await detect_logged_email(page)
-                # Verifica personagens presentes nesta conta
+                # Verifica e garante Frida, Luna e personagens secundarios nesta conta antes do Veo
                 present = await check_characters_present(page, required=characters)
                 missing_chars = [c for c, ok in present.items() if not ok]
+                if missing_chars:
+                    try:
+                        await ensure_story_characters_created(
+                            page,
+                            script_data or {},
+                            acc.get("project_url") or page.url,
+                            portrait_dir=sec_portrait_dir,
+                        )
+                        present = await check_characters_present(page, required=characters)
+                        missing_chars = [c for c, ok in present.items() if not ok]
+                    except Exception as char_exc:
+                        print(f"[FlowFailover] Aviso ao criar personagens em {acc['id']}: {char_exc}", flush=True)
 
-                # Se a conta ainda nao tem Frida/Luna na aba Personagens, anexa folha de referencia mestre
+                # Anexa keyframe e eventuais retratos de fallback para personagens ausentes
                 ref_imgs: list[str] = []
                 if acc["id"] == "acc_1" and keyframe_aria_on_acc1:
                     ref_imgs.append(keyframe_aria_on_acc1)
@@ -490,13 +505,21 @@ async def generate_video_with_failover(
                     if await upload_media_to_flow(page, keyframe_path):
                         ref_imgs.append(keyframe_path.name)
 
-                if missing_chars:
+                if any(mc.lower() in ("frida", "luna") for mc in missing_chars):
                     sheet = BASE_DIR / "assets" / "reference" / "frida_luna_reference.jpg"
                     if sheet.exists() and await upload_media_to_flow(page, sheet):
                         ref_imgs.append(sheet.name)
+                for mc in missing_chars:
+                    if mc.lower() in ("frida", "luna"):
+                        continue
+                    safe_slug = re.sub(r"[^a-z0-9]+", "_", mc.lower()).strip("_") or "personagem"
+                    sec_port = sec_portrait_dir / f"{safe_slug}_portrait.jpg"
+                    if sec_port.exists() and await upload_media_to_flow(page, sec_port):
+                        ref_imgs.append(sec_port.name)
+                if missing_chars:
                     print(
-                        f"[FlowFailover] {acc['id']} sem personagens salvos ({missing_chars}); "
-                        f"folha de referencia + keyframe enviados para manter continuidade.",
+                        f"[FlowFailover] {acc['id']} sem personagens na aba ({missing_chars}); "
+                        f"retratos/folha + keyframe enviados para manter continuidade.",
                         flush=True,
                     )
 
@@ -507,7 +530,7 @@ async def generate_video_with_failover(
                         prompt=prompt,
                         out_mp4=out_mp4,
                         characters=tuple(c for c in characters if present.get(c, False)),
-                        ref_images=tuple(ref_imgs[:2]),
+                        ref_images=tuple(ref_imgs[:3]),
                         video_submode="Elementos",
                         wait_s=360,
                     )
@@ -686,9 +709,12 @@ async def ensure_story_characters_created(
     page,
     script_data: dict[str, Any],
     project_url: str,
+    portrait_dir: Path | None = None,
 ) -> dict[str, bool]:
-    """Cria Frida, Luna e todo personagem secundario recorrente do roteiro na aba Personagens."""
+    """Cria Frida, Luna e todo personagem secundario recorrente do roteiro na aba Personagens (retrato isolado por episodio)."""
     present = await ensure_all_characters_created(page, project_url)
+    sec_portrait_dir = Path(portrait_dir) if portrait_dir else (CHARACTERS_REF_DIR / "episode_portraits")
+    sec_portrait_dir.mkdir(parents=True, exist_ok=True)
     for sec in script_data.get("secondary_characters") or []:
         cname = str(sec.get("name") or "").strip()
         cdesc = str(sec.get("description") or "").strip()
@@ -699,7 +725,7 @@ async def ensure_story_characters_created(
             present[cname] = True
             continue
         safe_slug = re.sub(r"[^a-z0-9]+", "_", cname.lower()).strip("_") or "personagem"
-        portrait = CHARACTERS_REF_DIR / f"{safe_slug}_portrait.jpg"
+        portrait = sec_portrait_dir / f"{safe_slug}_portrait.jpg"
         if not portrait.exists() and cdesc:
             try:
                 await generate_flow_image(

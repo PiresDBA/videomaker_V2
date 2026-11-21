@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -18,7 +20,13 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from config import FFMPEG_EXE, FFPROBE_EXE, SPEAKER_VOICE_PROFILES, TARGET_VEO_VIDEOS  # noqa: E402
-from core.media_studio import detect_split_collage, generate_single_image, sanitize_image_prompt  # noqa: E402
+from core.flow_accounts import is_quota_error_text  # noqa: E402
+from core.media_studio import (  # noqa: E402
+    detect_split_collage,
+    generate_single_image,
+    generate_single_veo_video,
+    sanitize_image_prompt,
+)
 from core.script_engine import _get_google_keys, normalize_script_records  # noqa: E402
 
 
@@ -74,12 +82,57 @@ def audit_voice_consistency(tts_timings: list[dict[str, Any]]) -> list[str]:
     return errors
 
 
+def _scene_matching_props(scene: dict[str, Any], story_props: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Retorna apenas os story_props realmente citados/visiveis nesta cena."""
+    if not story_props:
+        return []
+    explicit = {str(x).strip().lower() for x in (scene.get("props") or []) if str(x).strip()}
+    hay = f"{scene.get('text', '')} {scene.get('visual_action', '')} {scene.get('location', '')}".lower()
+    matched: list[dict[str, str]] = []
+    for pr in story_props:
+        if not isinstance(pr, dict) or not pr.get("name"):
+            continue
+        pname = str(pr["name"]).strip().lower()
+        tokens = [t for t in re.findall(r"[a-z0-9áéíóúâêôãõç]{4,}", pname)]
+        if pname in explicit or pname in hay or any(t in hay for t in tokens):
+            matched.append(pr)
+    return matched
+
+
+def _extract_stills_for_veo_subclips(
+    video_path: Path,
+    sc_clips: list[dict[str, Any]],
+    images_dir: Path,
+) -> None:
+    """Extrai frames 1920x1080 do video Veo aprovado para sub-clips _p2/_p3 sem gerar imagens extras."""
+    if not video_path.exists() or len(sc_clips) <= 1:
+        return
+    dur = max(1.0, _probe_dur(video_path))
+    extra_clips = sc_clips[1:]
+    for idx, clip in enumerate(extra_clips, 1):
+        dst = images_dir / f"{clip['clip_id']}.jpg"
+        if dst.exists() and dst.stat().st_size > 15000:
+            continue
+        frac = min(0.88, 0.25 + 0.55 * (idx / max(1, len(extra_clips))))
+        t = min(max(0.2, dur * frac), max(0.2, dur - 0.2))
+        subprocess.run(
+            [
+                FFMPEG_EXE, "-y", "-v", "error", "-ss", f"{t:.2f}", "-i", str(video_path),
+                "-vframes", "1", "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080",
+                "-q:v", "3", str(dst),
+            ],
+            capture_output=True,
+        )
+
+
 def audit_scene_visual_with_vision(
     frame_paths: list[Path],
     scene: dict[str, Any],
     secondary_characters: list[dict[str, str]] | None = None,
     story_props: list[dict[str, str]] | None = None,
     anchor_prop_image: Path | None = None,
+    strict_vision: bool = True,
+    clip_variant: str = "",
 ) -> dict[str, Any]:
     """Audita cena (imagem ou frames de video) contra narracao PT, personagens e consistencia de objeto."""
     valid_frames = [p for p in frame_paths if p.exists() and p.stat().st_size > 2000]
@@ -104,7 +157,13 @@ def audit_scene_visual_with_vision(
 
     keys = _get_google_keys()
     if not keys:
-        return {"checked": False, "ok": True, "reason": "sem chave Google para Vision QA"}
+        return {
+            "checked": False,
+            "ok": not strict_vision,
+            "vision_unavailable": True,
+            "reason": "sem chave Google para Vision QA",
+            "fix_prompt_hint": "",
+        }
 
     sec_desc = "; ".join(
         f"{s.get('name')}: {s.get('description')}"
@@ -124,9 +183,10 @@ def audit_scene_visual_with_vision(
         f"Expected Location: {scene.get('location', '')}\n"
         f"Expected Visual Action: {scene.get('visual_action', '')}\n"
         f"Expected Characters in Scene: {chars_txt}\n"
-        "Character Design Rules:\n"
-        "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace with small gold paw pendant; NEVER black-and-white spotted).\n"
-        "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain.\n"
+        + (f"Sub-clip Shot Variant: {clip_variant} (may be a tighter reaction or reverse angle of the same scene)\n" if clip_variant else "")
+        + "Character Design Rules:\n"
+        "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace with small gold paw pendant; NEVER Golden Retriever, NEVER black-and-white spotted).\n"
+        "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel).\n"
         + (f"- Secondary Characters: {sec_desc}\n" if sec_desc else "")
         + (f"Story Key Objects (MUST stay identical across the whole video): {props_desc}\n" if props_desc else "")
         + ("The LAST image attached is the reference anchor image for the story's key object/style. Verify that the key object (if visible) keeps the same color, shape and style.\n"
@@ -153,7 +213,7 @@ def audit_scene_visual_with_vision(
     }).encode("utf-8")
 
     for model in ("gemini-3-flash-preview", "gemini-2.5-flash"):
-        for key in keys[:3]:
+        for key in keys[:6]:
             url = (
                 f"https://generativelanguage.googleapis.com/v1beta/models/"
                 f"{urllib.parse.quote(model)}:generateContent?key={urllib.parse.quote(key)}"
@@ -176,8 +236,15 @@ def audit_scene_visual_with_vision(
                 res["ok"] = ok
                 return res
             except Exception:
+                time.sleep(0.4)
                 continue
-    return {"checked": False, "ok": True, "reason": "vision timeout/erro", "fix_prompt_hint": ""}
+    return {
+        "checked": False,
+        "ok": not strict_vision,
+        "vision_unavailable": True,
+        "reason": "Vision QA indisponivel/timeout",
+        "fix_prompt_hint": "",
+    }
 
 
 def generate_and_audit_scenes(
@@ -190,8 +257,13 @@ def generate_and_audit_scenes(
     auto_fix: bool = True,
     max_retries: int = 3,
     force_audit_cached: bool = True,
+    force: bool = False,
+    veo_scene_ids: set[str] | None = None,
+    generate_veo_inline: bool = False,
+    veo_max_retries: int = 2,
+    strict_vision: bool = True,
 ) -> dict[str, Any]:
-    """Gera e audita CENA POR CENA antes de passar para a proxima cena; regenera se nao fizer sentido."""
+    """Gera e audita CENA POR CENA (imagem + Veo) antes de passar para a proxima cena; regenera se nao fizer sentido."""
     images_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir = proj_dir / "artifacts"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
@@ -199,120 +271,214 @@ def generate_and_audit_scenes(
 
     sec_chars = script_data.get("secondary_characters") or []
     story_props = script_data.get("story_props") or []
-    scene_map = {sc["scene_id"]: sc for sc in script_data.get("scenes", [])}
 
     clips_by_scene: dict[str, list[dict[str, Any]]] = {}
     for c in visual_clips:
         clips_by_scene.setdefault(c["scene_id"], []).append(c)
 
     ensured_accounts: set[str] = set()
-    anchor_prop_img: Path | None = None
+    prop_anchors: dict[str, Path] = {}
     scene_reports: list[dict[str, Any]] = []
     regenerated_ids: list[str] = []
     failed_ids: list[str] = []
+    veo_quota_exhausted = False
+
+    def _run_clip(
+        sc: dict[str, Any],
+        clip: dict[str, Any],
+        matched_props: list[dict[str, str]],
+        prop_refs: list[Path],
+    ) -> dict[str, Any]:
+        sid = sc["scene_id"]
+        cid = clip["clip_id"]
+        pdata = prompts_manifest.get(cid) or prompts_manifest.get(f"{sid}_p1") or {}
+        dst = images_dir / f"{cid}.jpg"
+        chars = tuple(sc.get("characters") or pdata.get("characters") or ("Frida", "Luna"))
+
+        base_p1 = images_dir / f"{sid}_p1.jpg"
+        refs: list[Path] = []
+        if not cid.endswith("_p1") and base_p1.exists():
+            refs.append(base_p1)
+        for pr in prop_refs:
+            if pr.exists() and pr not in refs:
+                refs.append(pr)
+
+        base_pos = sanitize_image_prompt(pdata.get("positive") or sc.get("visual_action") or sc.get("text") or "")
+        neg = pdata.get("negative") or ""
+        fix_hint = ""
+        final_vis: dict[str, Any] = {"checked": False, "ok": True}
+        anchor_for_vision = prop_refs[0] if (prop_refs and prop_refs[0] != dst) else None
+
+        attempts = max(1, max_retries) if auto_fix else 1
+        for attempt in range(1, attempts + 1):
+            need_gen = (
+                (force and attempt == 1)
+                or not dst.exists()
+                or dst.stat().st_size < 15000
+                or detect_split_collage(dst) > 1
+                or (attempt > 1)
+            )
+            if need_gen:
+                if not auto_fix and not dst.exists():
+                    final_vis = {"checked": True, "ok": False, "reason": "imagem ausente"}
+                    break
+                prompt_now = base_pos + (f". STRICT CORRECTION: {fix_hint}" if fix_hint else "")
+                full_prompt = f"{prompt_now}\nNegative prompt: {neg}" if neg else prompt_now
+                try:
+                    generate_single_image(
+                        full_prompt,
+                        dst,
+                        aspect="16:9",
+                        wait_s=240,
+                        characters=chars,
+                        ref_images=tuple(refs),
+                        script_data=script_data,
+                        ensured_accounts=ensured_accounts,
+                        proj_dir=proj_dir,
+                    )
+                    regenerated_ids.append(cid)
+                except Exception as exc:
+                    final_vis = {"checked": True, "ok": False, "reason": f"erro geracao: {exc}"}
+                    continue
+
+            if attempt == 1 and not force_audit_cached and not force and dst.exists():
+                final_vis = {"checked": False, "ok": True, "reason": "cache_aprovado"}
+                break
+
+            vis = audit_scene_visual_with_vision(
+                [dst],
+                sc,
+                secondary_characters=sec_chars,
+                story_props=matched_props,
+                anchor_prop_image=anchor_for_vision,
+                strict_vision=strict_vision,
+                clip_variant=str(clip.get("prompt_variant") or ""),
+            )
+            final_vis = vis
+            if vis.get("ok", False):
+                for mp in matched_props:
+                    prop_anchors.setdefault(mp["name"].lower(), dst)
+                print(f"  [AUDIT-CENA] {cid}: APROVADA ({vis.get('reason', 'OK')})", flush=True)
+                break
+
+            print(
+                f"  [AUDIT-CENA] {cid} tentativa {attempt}/{attempts} REPROVADA: {vis.get('reason')}",
+                flush=True,
+            )
+            fix_hint = str(vis.get("fix_prompt_hint") or vis.get("reason") or "")
+            if auto_fix and attempt < attempts:
+                dst.unlink(missing_ok=True)
+                for k, v in list(prop_anchors.items()):
+                    if v == dst:
+                        prop_anchors.pop(k, None)
+
+        if not final_vis.get("ok", False):
+            failed_ids.append(cid)
+        return {"clip_id": cid, "path": str(dst), **final_vis}
 
     for sc in script_data.get("scenes", []):
         sid = sc["scene_id"]
         sc_clips = clips_by_scene.get(sid) or [{"clip_id": f"{sid}_p1", "scene_id": sid}]
-        sc_entries: list[dict[str, Any]] = []
+        matched_props = _scene_matching_props(sc, story_props)
+        prop_refs = [
+            prop_anchors[mp["name"].lower()]
+            for mp in matched_props
+            if mp["name"].lower() in prop_anchors and prop_anchors[mp["name"].lower()].exists()
+        ]
 
-        for clip in sc_clips:
-            cid = clip["clip_id"]
-            pdata = prompts_manifest.get(cid) or prompts_manifest.get(f"{sid}_p1") or {}
-            dst = images_dir / f"{cid}.jpg"
-            chars = tuple(sc.get("characters") or pdata.get("characters") or ("Frida", "Luna"))
+        is_veo_target = (
+            videos_dir is not None
+            and bool(veo_scene_ids)
+            and sid in veo_scene_ids
+        )
+        clips_upfront = (
+            sc_clips[:1]
+            if (is_veo_target and generate_veo_inline and not veo_quota_exhausted)
+            else sc_clips
+        )
+        sc_entries: list[dict[str, Any]] = [
+            _run_clip(sc, clip, matched_props, prop_refs)
+            for clip in clips_upfront
+        ]
 
-            base_p1 = images_dir / f"{sid}_p1.jpg"
-            refs: list[Path] = []
-            if not cid.endswith("_p1") and base_p1.exists():
-                refs.append(base_p1)
-            elif anchor_prop_img is not None and anchor_prop_img.exists():
-                refs.append(anchor_prop_img)
-
-            base_pos = sanitize_image_prompt(pdata.get("positive") or sc.get("visual_action") or sc.get("text") or "")
-            neg = pdata.get("negative") or ""
-            fix_hint = ""
-            final_vis: dict[str, Any] = {"checked": False, "ok": True}
-
-            attempts = max(1, max_retries) if auto_fix else 1
-            for attempt in range(1, attempts + 1):
-                if not dst.exists() or dst.stat().st_size < 15000 or detect_split_collage(dst) > 1 or (attempt > 1):
-                    if not auto_fix and not dst.exists():
-                        final_vis = {"checked": True, "ok": False, "reason": "imagem ausente"}
-                        break
-                    prompt_now = base_pos + (f". STRICT CORRECTION: {fix_hint}" if fix_hint else "")
-                    full_prompt = f"{prompt_now}\nNegative prompt: {neg}" if neg else prompt_now
-                    try:
-                        generate_single_image(
-                            full_prompt,
-                            dst,
-                            aspect="16:9",
-                            wait_s=240,
-                            characters=chars,
-                            ref_images=tuple(refs),
-                            script_data=script_data,
-                            ensured_accounts=ensured_accounts,
-                        )
-                        regenerated_ids.append(cid)
-                    except Exception as exc:
-                        final_vis = {"checked": True, "ok": False, "reason": f"erro geracao: {exc}"}
-                        continue
-
-                if attempt == 1 and not force_audit_cached and dst.exists():
-                    final_vis = {"checked": False, "ok": True, "reason": "cache_aprovado"}
-                    break
-
-                vis = audit_scene_visual_with_vision(
-                    [dst],
-                    sc,
-                    secondary_characters=sec_chars,
-                    story_props=story_props,
-                    anchor_prop_image=anchor_prop_img if (anchor_prop_img and anchor_prop_img != dst) else None,
-                )
-                final_vis = vis
-                if vis.get("ok", True):
-                    if anchor_prop_img is None and dst.exists():
-                        anchor_prop_img = dst
-                    print(f"  [AUDIT-CENA] {cid}: APROVADA ({vis.get('reason', 'OK')})", flush=True)
-                    break
-
-                print(
-                    f"  [AUDIT-CENA] {cid} tentativa {attempt}/{attempts} REPROVADA: {vis.get('reason')}",
-                    flush=True,
-                )
-                fix_hint = str(vis.get("fix_prompt_hint") or vis.get("reason") or "")
-                if auto_fix and attempt < attempts:
-                    dst.unlink(missing_ok=True)
-                    if dst == anchor_prop_img:
-                        anchor_prop_img = None
-
-            if not final_vis.get("ok", True):
-                failed_ids.append(cid)
-            sc_entries.append({"clip_id": cid, "path": str(dst), **final_vis})
-
-        # Audita video Veo 3.1 Lite da cena (se existir)
+        # Audita e/ou gera+audita video Veo 3.1 Lite da cena antes de passar para a proxima cena
         vid_entry: dict[str, Any] | None = None
         if videos_dir is not None:
             v_mp4 = videos_dir / f"{sid}.mp4"
-            if v_mp4.exists() and v_mp4.stat().st_size > 50000:
-                with tempfile.TemporaryDirectory() as td:
-                    kf = _extract_video_keyframes(v_mp4, Path(td), sid, count=3)
-                    v_vis = audit_scene_visual_with_vision(
-                        kf,
-                        sc,
-                        secondary_characters=sec_chars,
-                        story_props=story_props,
-                        anchor_prop_image=anchor_prop_img,
+            should_run_veo_inline = is_veo_target and generate_veo_inline and not veo_quota_exhausted
+            should_audit_existing = (not generate_veo_inline) and v_mp4.exists() and v_mp4.stat().st_size > 50000
+
+            if should_run_veo_inline or should_audit_existing:
+                v_attempts = max(1, veo_max_retries) if auto_fix else 1
+                v_fix_hint = ""
+                v_approved = False
+                v_vis: dict[str, Any] = {"checked": False, "ok": False}
+
+                for v_try in range(1, v_attempts + 1):
+                    need_veo_gen = (
+                        should_run_veo_inline and (force or not v_mp4.exists() or v_mp4.stat().st_size < 50000 or v_try > 1)
+                    ) or (should_audit_existing and v_try > 1)
+
+                    if need_veo_gen:
+                        try:
+                            generate_single_veo_video(
+                                sc,
+                                images_dir=images_dir,
+                                videos_dir=videos_dir,
+                                script_data=script_data,
+                                proj_dir=proj_dir,
+                                fix_hint=v_fix_hint,
+                                force=(force or v_try > 1),
+                            )
+                            regenerated_ids.append(f"{sid}.mp4")
+                        except Exception as exc:
+                            err_low = str(exc).lower()
+                            v_vis = {"checked": True, "ok": False, "reason": f"erro Veo: {exc}"}
+                            print(f"  [AUDIT-VIDEO] {sid}.mp4 erro na geracao: {exc}", flush=True)
+                            if is_quota_error_text(str(exc)) or "todas as contas flow" in err_low or "nenhuma conta google flow" in err_low:
+                                veo_quota_exhausted = True
+                                break
+                            if v_try < v_attempts:
+                                continue
+                            break
+
+                    if not v_mp4.exists() or v_mp4.stat().st_size <= 50000:
+                        v_vis = {"checked": True, "ok": False, "reason": "video Veo ausente"}
+                        break
+
+                    with tempfile.TemporaryDirectory() as td:
+                        kf = _extract_video_keyframes(v_mp4, Path(td), sid, count=3)
+                        v_vis = audit_scene_visual_with_vision(
+                            kf,
+                            sc,
+                            secondary_characters=sec_chars,
+                            story_props=matched_props,
+                            anchor_prop_image=prop_refs[0] if prop_refs else None,
+                            strict_vision=strict_vision,
+                        )
+                    if v_vis.get("ok", False):
+                        v_approved = True
+                        _extract_stills_for_veo_subclips(v_mp4, sc_clips, images_dir)
+                        print(f"  [AUDIT-VIDEO] {sid}.mp4: APROVADO ({v_vis.get('reason', 'OK')})", flush=True)
+                        break
+
+                    print(
+                        f"  [AUDIT-VIDEO] {sid}.mp4 tentativa {v_try}/{v_attempts} REPROVADO: {v_vis.get('reason')}",
+                        flush=True,
                     )
-                vid_entry = {"scene_id": sid, "video_path": str(v_mp4), **v_vis}
-                if not v_vis.get("ok", True):
-                    print(f"  [AUDIT-VIDEO] {sid}.mp4 REPROVADO: {v_vis.get('reason')}", flush=True)
-                    if auto_fix:
+                    v_fix_hint = str(v_vis.get("fix_prompt_hint") or v_vis.get("reason") or "")
+                    if auto_fix and v_try < v_attempts:
                         v_mp4.unlink(missing_ok=True)
-                        vid_entry["removed_for_regen"] = True
+                    elif auto_fix:
+                        v_mp4.unlink(missing_ok=True)
+
+                vid_entry = {"scene_id": sid, "video_path": str(v_mp4), **v_vis}
+                if not v_approved and not veo_quota_exhausted:
                     failed_ids.append(f"{sid}.mp4")
-                else:
-                    print(f"  [AUDIT-VIDEO] {sid}.mp4: APROVADO ({v_vis.get('reason', 'OK')})", flush=True)
+
+                if should_run_veo_inline and not v_approved and len(sc_entries) < len(sc_clips):
+                    for extra_clip in sc_clips[1:]:
+                        sc_entries.append(_run_clip(sc, extra_clip, matched_props, prop_refs))
 
         scene_reports.append({
             "scene_id": sid,

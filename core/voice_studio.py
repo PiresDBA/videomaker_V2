@@ -468,6 +468,9 @@ def synthesize_all_scenes(
         prosody_report: dict[str, Any] = {"ok": True, "motivos": []}
         used_voice = ""
         emo_mode = "none"
+        best_score = -1.0
+        best_wav_bytes: bytes | None = None
+        best_meta: tuple[str, str, dict[str, Any], dict[str, Any]] | None = None
 
         for attempt in range(1, max_attempts + 1):
             try:
@@ -484,17 +487,33 @@ def synthesize_all_scenes(
 
                 if enable_prosody_gate:
                     prosody_report = analyze_prosody(wav_path, text=orig_text)
-                    if not prosody_report["ok"] and attempt < max_attempts:
-                        print(f"  [PROSODIA] {sid} tentativa {attempt}/{max_attempts}: {prosody_report['motivos']}; regenerando com mais emocao...", flush=True)
-                        continue
+                else:
+                    prosody_report = {"ok": True, "motivos": []}
 
                 if enable_whisper_qa:
                     qa_report = validate_audio_with_whisper(wav_path, orig_text)
-                    if not qa_report["ok"]:
-                        print(f"  [TTS-QA] {sid} tentativa {attempt}/{max_attempts}: {qa_report['reason']}; regenerando...", flush=True)
-                        continue
                 else:
                     qa_report = {"ok": True, "similarity": 1.0, "reason": "qa_desativado"}
+
+                score = (
+                    (10.0 if qa_report.get("ok") else 0.0)
+                    + (5.0 if prosody_report.get("ok") else 0.0)
+                    + float(qa_report.get("similarity") or 0.0)
+                )
+                if score > best_score and wav_path.exists() and wav_path.stat().st_size > 2000:
+                    best_score = score
+                    best_wav_bytes = wav_path.read_bytes()
+                    best_meta = (used_voice, emo_mode, dict(prosody_report), dict(qa_report))
+
+                if enable_prosody_gate and not prosody_report["ok"] and attempt < max_attempts:
+                    print(f"  [PROSODIA] {sid} tentativa {attempt}/{max_attempts}: {prosody_report['motivos']}; regenerando com mais emocao...", flush=True)
+                    continue
+
+                if enable_whisper_qa and not qa_report["ok"]:
+                    if attempt < max_attempts:
+                        print(f"  [TTS-QA] {sid} tentativa {attempt}/{max_attempts}: {qa_report['reason']}; regenerando...", flush=True)
+                        continue
+                    print(f"  [TTS-QA] {sid} ultima tentativa ainda abaixo do ideal: {qa_report['reason']}", flush=True)
 
                 break
             except Exception as exc:
@@ -502,8 +521,20 @@ def synthesize_all_scenes(
                 print(f"  [TTS] {sid} tentativa {attempt}/{max_attempts} erro: {qa_report['reason']}", flush=True)
                 time.sleep(0.8)
 
+        if best_wav_bytes is not None and best_meta is not None:
+            cur_score = (
+                (10.0 if qa_report.get("ok") else 0.0)
+                + (5.0 if prosody_report.get("ok") else 0.0)
+                + float(qa_report.get("similarity") or 0.0)
+            )
+            if cur_score < best_score or not wav_path.exists():
+                wav_path.write_bytes(best_wav_bytes)
+                used_voice, emo_mode, prosody_report, qa_report = best_meta
+
         if not wav_path.exists() or wav_path.stat().st_size < 2000:
             raise RuntimeError(f"TTS falhou definitivamente na cena '{sid}': {qa_report.get('reason')}")
+        if enable_whisper_qa and not qa_report.get("ok", True):
+            raise RuntimeError(f"Whisper QA reprovou definitivamente a cena '{sid}': {qa_report.get('reason')}")
         dur = probe_duration(wav_path)
         timings.append({
             "scene_id": sid,

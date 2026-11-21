@@ -48,7 +48,9 @@ REGRAS OBRIGATÓRIAS DE RETENÇÃO, EMOÇÃO E ESTRUTURA:
    - "avatar_mode": "frida", "luna", "duo" (troca/reação entre as duas) ou "none" (cena de ação pura em tela cheia).
 6. CENAS CURTAS E PORTUGUÊS LIMPO: 1 a 2 frases curtas por cena (12 a 26 palavras). Zero risadas escritas ("Hahaha", "kkkk") e acentuação perfeita ("cães", "já", "céu", "é", "patinha", "passarinhos", "coro", "piadas").
 7. CENÁRIO CONSISTENTE: Defina "location" em TODA cena preservando continuidade geográfica lógica.
-8. IDADE E ESTILO DOS PERSONAGENS (PADRÃO CRIANÇA / AVATAR 3D DISNEY-PIXAR): Em TODA descrição de "visual_action", descreva Frida e Luna com aparência jovem de criança/pré-adolescente (filhotes jovens de até 1 ano no máximo, equivalentes a crianças de 5 a 10 anos em animação 3D Disney/Pixar, fiéis ao avatar oficial: graciosas, olhos grandes expressivos, traços arredondados de desenho animado — NUNCA cães adultos/velhos nem cães reais fotorrealistas; use versão bebê recém-nascido apenas se a cena for explicitamente um flashback de quando eram bebês).
+8. IDADE, RAÇAS FIXAS E ESTILO DOS PERSONAGENS (PADRÃO CRIANÇA / AVATAR 3D DISNEY-PIXAR): Em TODA descrição de "visual_action", descreva Frida e Luna com aparência jovem de criança/pré-adolescente (filhotes jovens de até 1 ano no máximo, equivalentes a crianças de 5 a 10 anos em animação 3D Disney/Pixar, fiéis ao avatar oficial: graciosas, olhos grandes expressivos, traços arredondados de desenho animado — NUNCA cães adultos/velhos nem cães reais fotorrealistas; use versão bebê recém-nascido apenas se a cena for explicitamente um flashback de quando eram bebês).
+   - FRIDA é obrigatoriamente uma filhote jovem de Buldogue Inglesa fêmea, pelagem caramelo-dourada (fawn golden-tan) com peito e focinho creme, colar de pérolas brancas com pingente dourado de patinha — NUNCA Golden Retriever, nunca preta e branca manchada.
+   - LUNA é obrigatoriamente uma filhote jovem de Dachshund (Salsicha) miniatura de pelo liso marrom-chocolate (chocolate-brown) com marcações caramelo e correntinha dupla dourada com pingentes de coração — NUNCA Cocker Spaniel, nunca labrador.
 9. CONTINUIDADE DE PERSONAGENS SECUNDÁRIOS: Sempre que houver outro personagem recorrente na história (ex.: chihuahua Pipoca, gato Pingo, pombo, esquilo), declare-o na lista de topo "secondary_characters": [{"name": "NomeCurto", "description": "Descrição visual 3D Disney/Pixar completa e fixa do personagem (espécie, raça, cor exata da pelagem/penas, olhos, acessório)"}] e inclua o campo "characters": ["Frida", "Luna", "NomeCurto"] em TODA cena em que ele aparecer, referenciando @NomeCurto e repetindo suas características físicas em "visual_action".
 10. CONSISTÊNCIA DE OBJETOS-CHAVE DA HISTÓRIA (POR VÍDEO): Todo objeto central que se repete ao longo do episódio (ex.: caminha nova, bola favorita, mochila, caixa misteriosa) DEVE ser declarado na lista de topo "story_props": [{"name": "NomeObjeto", "description": "Descrição visual exata e imutável do objeto (forma, cor, material, estampa, tamanho)"}] e mantido idêntico do início ao fim deste vídeo. Quando um vídeo novo começar, os objetos e personagens secundários são zerados para a nova história — apenas Frida e Luna são personagens fixos globais.
 
@@ -231,6 +233,20 @@ def validate_script_schema(
             acts_seen.append(act)
 
         txt = (sc.get("text") or "").strip()
+        vis_act = (sc.get("visual_action") or "").strip()
+        for fld_label, fld_val in (("text", txt), ("visual_action", vis_act)):
+            if re.search(
+                r"\bfrida\b[^.!?;,\n]{0,45}(?:,\s*(?:uma?|filhote|cachorrinha)[^.!?;,\n]{0,30})?\b(?:golden\s+retriever|cocker(?:\s+spaniel)?|labrador|poodle|preta\s+e\s+branca)\b",
+                fld_val,
+                re.I,
+            ):
+                errors.append(f"cena '{sid}' ({fld_label}): Frida descrita com raca/cor errada (Frida e Buldogue Inglesa caramelo-dourada)")
+            if re.search(
+                r"\bluna\b[^.!?;,\n]{0,45}(?:,\s*(?:uma?|filhote|cachorrinha)[^.!?;,\n]{0,30})?\b(?:cocker(?:\s+spaniel)?|golden\s+retriever|labrador|poodle)\b",
+                fld_val,
+                re.I,
+            ):
+                errors.append(f"cena '{sid}' ({fld_label}): Luna descrita com raca errada (Luna e Dachshund/Salsicha marrom-chocolate)")
         if re.search(r"\b(?:hahaha+|kkkk+|rsrs+)\b", txt, re.I):
             errors.append(f"cena '{sid}': contem risada escrita proibida")
 

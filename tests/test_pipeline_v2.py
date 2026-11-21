@@ -415,6 +415,192 @@ class TestVideomakerV2Unified(unittest.TestCase):
         self.assertEqual(len(veo_sel), 10)
         self.assertEqual(len({s["scene_id"] for s in veo_sel}), 10)
 
+    def test_audit_fixes_breeds_selective_bible_fail_closed_and_veo_regen(self):
+        import json
+        from unittest import mock
+        import numpy as np
+        import core.legacy_auditor as legacy_auditor
+        import core.scene_auditor as scene_auditor
+
+        # 1. Validacao de racas canonicas no roteiro
+        bad_breed_frida = _make_sample_script(21)
+        bad_breed_frida["scenes"][1]["visual_action"] = "Frida, filhote de Golden Retriever dourada, observa a irma."
+        errs_f = validate_script_schema(bad_breed_frida)
+        self.assertTrue(any("Frida descrita com raca" in e for e in errs_f), errs_f)
+
+        bad_breed_luna = _make_sample_script(21)
+        bad_breed_luna["scenes"][3]["visual_action"] = "Luna, filhote de Cocker Spaniel marrom, corre no jardim."
+        errs_l = validate_script_schema(bad_breed_luna)
+        self.assertTrue(any("Luna descrita com raca" in e for e in errs_l), errs_l)
+
+        good_sec = _make_sample_script(21)
+        good_sec["scenes"][0]["visual_action"] = "Frida e Luna observam o chihuahua Pipoca pular na grama."
+        self.assertEqual(validate_script_schema(good_sec), [])
+
+        # 2. Character Bible seletiva: nao injeta Frida/Luna quando cena tem apenas personagem secundario
+        p_sec_only = build_image_prompt(
+            {
+                "scene_id": "sc_04",
+                "speaker": "narrador",
+                "text": "O Juiz Bigodes sopra o apito.",
+                "location": "judge tower",
+                "visual_action": "Juiz Bigodes blows a golden whistle",
+                "characters": ["Juiz Bigodes"],
+            },
+            secondary_characters=[{"name": "Juiz Bigodes", "description": "Fluffy gray Persian cat with monocle"}],
+        )
+        self.assertIn("@Juiz Bigodes", p_sec_only["positive"])
+        self.assertNotIn("English bulldog puppy", p_sec_only["positive"])
+        self.assertNotIn("dachshund puppy", p_sec_only["positive"])
+
+        # 3. Vision QA fail-closed em strict_vision=True e legacy_auditor checando matches_action
+        with tempfile.TemporaryDirectory() as td:
+            td_p = Path(td)
+            dummy_jpg = td_p / "frame.jpg"
+            arr = np.full((360, 640, 3), 140, dtype=np.uint8)
+            Image.fromarray(arr).save(dummy_jpg, quality=92)
+
+            with mock.patch.object(scene_auditor, "_get_google_keys", return_value=[]):
+                res_strict = scene_auditor.audit_scene_visual_with_vision(
+                    [dummy_jpg], {"scene_id": "sc_01", "text": "teste", "location": "park", "visual_action": "run"},
+                    strict_vision=True,
+                )
+                self.assertFalse(res_strict["ok"])
+                self.assertTrue(res_strict.get("vision_unavailable"))
+
+            fake_resp = mock.MagicMock()
+            fake_resp.__enter__.return_value = fake_resp
+            fake_resp.read.return_value = json.dumps({
+                "candidates": [{"content": {"parts": [{"text": json.dumps({
+                    "matches_location": True,
+                    "matches_action": False,
+                    "has_collage_or_split": False,
+                    "has_visible_text": False,
+                    "reason": "acao errada",
+                })}]}}]
+            }).encode("utf-8")
+            with mock.patch.object(legacy_auditor, "_get_google_keys", return_value=["k1"]), \
+                 mock.patch("urllib.request.urlopen", return_value=fake_resp):
+                leg_res = legacy_auditor.audit_image_with_vision(
+                    dummy_jpg, "park", "Luna jumps", expected_narration="Luna pula", fail_closed=True,
+                )
+                self.assertFalse(leg_res["ok"])
+
+        # 4. generate_and_audit_scenes: regeneracao de Veo reprovado, stills de _p2 e ancoragem por prop
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td)
+            imgs_dir = proj / "assets" / "images"
+            vids_dir = proj / "assets" / "videos"
+            (proj / "artifacts").mkdir(parents=True, exist_ok=True)
+
+            script = {
+                "title": "Teste Props",
+                "story_props": [{"name": "Caminha", "description": "Red velvet dog bed"}],
+                "scenes": [
+                    {
+                        "scene_id": "sc_01", "act": 1, "speaker": "narrador",
+                        "text": "Frida corre no quintal verde!",
+                        "location": "green yard", "visual_action": "Frida runs on grass",
+                        "characters": ["Frida"],
+                    },
+                    {
+                        "scene_id": "sc_02", "act": 2, "speaker": "luna",
+                        "text": "Olha a Caminha nova na sala!",
+                        "location": "living room", "visual_action": "Luna looks at Caminha",
+                        "characters": ["Luna"],
+                    },
+                ],
+            }
+            vclips = [
+                {"clip_id": "sc_01_p1", "scene_id": "sc_01", "prompt_variant": "main"},
+                {"clip_id": "sc_01_p2", "scene_id": "sc_01", "prompt_variant": "reaction"},
+                {"clip_id": "sc_02_p1", "scene_id": "sc_02", "prompt_variant": "main"},
+            ]
+            prompts = {
+                "sc_01_p1": build_image_prompt(script["scenes"][0], story_props=script["story_props"]),
+                "sc_02_p1": build_image_prompt(script["scenes"][1], story_props=script["story_props"]),
+            }
+
+            rng = np.random.default_rng(7)
+            noise_rgb = rng.integers(60, 200, (360, 640, 3), dtype=np.uint8)
+
+            def _fake_save_img(dst: Path):
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                Image.fromarray(noise_rgb).save(dst, quality=92)
+
+            img_calls: list[str] = []
+            anchor_calls: list[tuple[str, bool]] = []
+            veo_attempts = {"sc_01": 0}
+
+            def _fake_gen_img(prompt, out_path, **kwargs):
+                img_calls.append(out_path.name)
+                _fake_save_img(out_path)
+                return out_path
+
+            def _fake_gen_veo(scene, images_dir, videos_dir, script_data, **kwargs):
+                sid = scene["scene_id"]
+                veo_attempts[sid] = veo_attempts.get(sid, 0) + 1
+                mp4 = videos_dir / f"{sid}.mp4"
+                mp4.parent.mkdir(parents=True, exist_ok=True)
+                mp4.write_bytes(b"\x00" * 60000)
+                return {"ok": True, "path": str(mp4), "account_id": "acc_1", "elapsed_s": 1.0}
+
+            def _fake_audit_vis(frames, scene, **kwargs):
+                anchor_calls.append((scene["scene_id"], kwargs.get("anchor_prop_image") is not None))
+                if any(f.name.startswith("sc_01_f") for f in frames) and veo_attempts["sc_01"] == 1:
+                    return {"checked": True, "ok": False, "reason": "veo tentativa 1 errada", "fix_prompt_hint": "fix action"}
+                return {"checked": True, "ok": True, "reason": "OK"}
+
+            def _fake_kf(v_mp4, out_dir, prefix, count=3):
+                kf = out_dir / f"{prefix}_f1.jpg"
+                _fake_save_img(kf)
+                return [kf]
+
+            def _fake_stills(v_mp4, sc_clips, images_dir):
+                for c in sc_clips[1:]:
+                    _fake_save_img(images_dir / f"{c['clip_id']}.jpg")
+
+            with mock.patch.object(scene_auditor, "generate_single_image", side_effect=_fake_gen_img), \
+                 mock.patch.object(scene_auditor, "generate_single_veo_video", side_effect=_fake_gen_veo), \
+                 mock.patch.object(scene_auditor, "audit_scene_visual_with_vision", side_effect=_fake_audit_vis), \
+                 mock.patch.object(scene_auditor, "_extract_video_keyframes", side_effect=_fake_kf), \
+                 mock.patch.object(scene_auditor, "_extract_stills_for_veo_subclips", side_effect=_fake_stills):
+                rep = scene_auditor.generate_and_audit_scenes(
+                    proj_dir=proj,
+                    script_data=script,
+                    visual_clips=vclips,
+                    prompts_manifest=prompts,
+                    images_dir=imgs_dir,
+                    videos_dir=vids_dir,
+                    veo_scene_ids={"sc_01"},
+                    generate_veo_inline=True,
+                    veo_max_retries=2,
+                    strict_vision=True,
+                )
+
+            self.assertTrue(rep["approved"], rep)
+            self.assertEqual(veo_attempts["sc_01"], 2)
+            self.assertNotIn("sc_01_p2.jpg", img_calls)
+            self.assertTrue((imgs_dir / "sc_01_p2.jpg").exists())
+            # sc_01 nao menciona Caminha -> nao cria ancora de Caminha, logo sc_02 nao herda sc_01_p1 como ancora
+            self.assertFalse(any(has_anc for _, has_anc in anchor_calls))
+
+            # 5. run_final_audit deve reprovar se min_veo_videos=10 e pasta videos estiver vazia
+            vids_dir.joinpath("sc_01.mp4").unlink(missing_ok=True)
+            fa = run_final_audit(
+                proj_dir=proj,
+                script_data=_make_sample_script(21),
+                tts_timings=[],
+                visual_clips=[],
+                images_dir=imgs_dir,
+                out_16_9=proj / "missing_16x9.mp4",
+                out_short=None,
+                thumbs_dir=proj / "thumbs",
+                min_veo_videos=10,
+            )
+            self.assertFalse(fa["approved"])
+            self.assertTrue(any("veo:" in iss for iss in fa["issues"]), fa["issues"])
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():

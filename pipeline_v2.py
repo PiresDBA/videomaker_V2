@@ -21,6 +21,7 @@ from core.media_studio import (
     generate_prompts_for_script,
     generate_thumbnail_variants,
     generate_veo_videos_for_episode,
+    select_veo_scenes,
 )
 from core.motion_shorts import export_3_shorts_pack
 from core.pacing_planner import build_pacing_plan
@@ -221,6 +222,15 @@ def run_pipeline(args: argparse.Namespace) -> int:
         return 0
 
     # 5. IMAGENS 16:9 + AUDITORIA CENA-A-CENA (Narracao x Imagem x Personagem x Objeto) + VEO 3.1 LITE (10x 8s)
+    target_veo = int(getattr(args, "veo_videos", TARGET_VEO_VIDEOS) or 0)
+    flow_accounts = load_accounts_config().get("accounts", [])
+    flow_cdp_alive = any(cdp_is_alive(int(a["cdp_port"])) for a in flow_accounts)
+    veo_scene_ids: set[str] = set()
+    if not getattr(args, "skip_veo", False) and target_veo > 0 and flow_cdp_alive:
+        veo_scene_ids = {
+            s["scene_id"] for s in select_veo_scenes(script_data, visual_clips, target_count=target_veo)
+        }
+
     if not args.skip_images:
         if not getattr(args, "skip_scene_audit", False):
             sc_audit = generate_and_audit_scenes(
@@ -229,24 +239,29 @@ def run_pipeline(args: argparse.Namespace) -> int:
                 visual_clips=visual_clips,
                 prompts_manifest=final_prompts,
                 images_dir=images_dir,
-                videos_dir=None,
+                videos_dir=(videos_dir if veo_scene_ids else None),
                 auto_fix=True,
                 max_retries=3,
                 force_audit_cached=True,
+                force=args.force,
+                veo_scene_ids=veo_scene_ids,
+                generate_veo_inline=bool(veo_scene_ids),
+                veo_max_retries=2,
+                strict_vision=True,
             )
             print(
-                f"Auditoria Cena-a-Cena (Imagens): APPROVED={sc_audit['approved']} | "
+                f"Auditoria Cena-a-Cena (Imagens + Veo): APPROVED={sc_audit['approved']} | "
+                f"Veo={sc_audit['veo_videos_count']}/{len(veo_scene_ids)} | "
                 f"Regeneradas={len(sc_audit['regenerated_clips'])} | Falhas={len(sc_audit['failed_clips'])}",
                 flush=True,
             )
+            if not sc_audit["approved"]:
+                print("  [SCENE-AUDIT-FAIL] Falhas impeditivas:", sc_audit["failed_clips"], sc_audit.get("voice_errors", []), flush=True)
+                return 2
         else:
             generate_images_for_plan(final_prompts, images_dir, force=args.force, script_data=script_data)
-
-        target_veo = int(getattr(args, "veo_videos", TARGET_VEO_VIDEOS) or 0)
-        if not getattr(args, "skip_veo", False) and target_veo > 0:
-            flow_accounts = load_accounts_config().get("accounts", [])
-            if any(cdp_is_alive(int(a["cdp_port"])) for a in flow_accounts):
-                print(f"Gerando ate {target_veo} videos 8s (Veo 3.1 Lite) no pool Flow...", flush=True)
+            if veo_scene_ids:
+                print(f"Gerando ate {len(veo_scene_ids)} videos 8s (Veo 3.1 Lite) no pool Flow...", flush=True)
                 veo_map = generate_veo_videos_for_episode(
                     script_data=script_data,
                     visual_clips=visual_clips,
@@ -254,24 +269,9 @@ def run_pipeline(args: argparse.Namespace) -> int:
                     videos_dir=videos_dir,
                     target_count=target_veo,
                     force=args.force,
+                    proj_dir=proj_dir,
                 )
                 print(f"Veo 3.1 Lite concluidos: {len(veo_map)}/{target_veo}", flush=True)
-                if veo_map and not getattr(args, "skip_scene_audit", False):
-                    veo_audit = generate_and_audit_scenes(
-                        proj_dir=proj_dir,
-                        script_data=script_data,
-                        visual_clips=visual_clips,
-                        prompts_manifest=final_prompts,
-                        images_dir=images_dir,
-                        videos_dir=videos_dir,
-                        auto_fix=True,
-                        max_retries=2,
-                        force_audit_cached=False,
-                    )
-                    print(
-                        f"Auditoria Pos-Veo: APPROVED={veo_audit['approved']} | Veo validados={veo_audit['veo_videos_count']}",
-                        flush=True,
-                    )
     if args.stage == "images":
         return 0
 
@@ -340,6 +340,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
         out_short=out_9_16,
         thumbs_dir=thumbs_dir,
         vision_check=args.vision_audit,
+        min_veo_videos=(len(veo_scene_ids) if (not args.skip_images and veo_scene_ids) else 0),
     )
     print(f"Auto-Auditoria Final: APPROVED={audit['approved']} | Issues={audit['issues_count']}", flush=True)
     if not audit["approved"]:

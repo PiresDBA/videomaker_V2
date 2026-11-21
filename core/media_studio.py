@@ -79,6 +79,7 @@ def build_image_prompt(
         focus_hint = "Luna is the main focal point of the action."
 
     scene_chars = [str(c).strip() for c in (scene.get("characters") or ["Frida", "Luna"]) if str(c).strip()]
+    chars_lower = {c.lower() for c in scene_chars}
     sec_map = {str(s.get("name") or "").strip().lower(): s for s in (secondary_characters or []) if isinstance(s, dict)}
     sec_notes = []
     for ch in scene_chars:
@@ -90,13 +91,21 @@ def build_image_prompt(
         if isinstance(pr, dict) and pr.get("name") and pr.get("description"):
             prop_notes.append(f"{pr['name']}: {sanitize_image_prompt(pr['description'])}")
 
-    bible_parts = [VISUAL_BIBLE["frida"], VISUAL_BIBLE["luna"], *sec_notes]
+    bible_parts = []
+    if "frida" in chars_lower:
+        bible_parts.append(VISUAL_BIBLE["frida"])
+    if "luna" in chars_lower:
+        bible_parts.append(VISUAL_BIBLE["luna"])
+    bible_parts.extend(sec_notes)
+    if not bible_parts:
+        bible_parts = [VISUAL_BIBLE["frida"], VISUAL_BIBLE["luna"]]
+
     positive_parts = [
         POSITIVE_IMAGE_RULE,
         f"Environment strictly locked to: {location}",
         f"Action matching narration: {action}",
         focus_hint,
-        (f"Story Objects Continuity (MUST look identical in every scene): {'; '.join(prop_notes)}" if prop_notes else ""),
+        (f"Story Objects Continuity (whenever visible in scene, MUST look identical): {'; '.join(prop_notes)}" if prop_notes else ""),
         f"Camera framing: {cam_note}",
         f"Character Bible: {'; '.join(bible_parts)}",
         f"Style: {VISUAL_BIBLE['style']}",
@@ -191,11 +200,13 @@ def generate_single_image(
     ref_images: tuple[Path, ...] = (),
     script_data: dict[str, Any] | None = None,
     ensured_accounts: set[str] | None = None,
+    proj_dir: Path | None = None,
 ) -> Path:
     """Gera uma unica imagem via Flow (CDP direto com @Personagem + ref de objeto) com fallback."""
     flow_script = VENDOR_DIR / "flow_fetch.py"
     gemini_script = VENDOR_DIR / "gemini_fetch.py"
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    sec_portrait_dir = (proj_dir / "assets" / "characters") if proj_dir else None
 
     # Caminho preferencial: motor direto core.flow_continuity (Nano Banana 2.1, x1, 0 creditos) usando pool CDP ativo
     try:
@@ -251,10 +262,17 @@ def generate_single_image(
                     await pg.wait_for_timeout(2000)
                 if script_data and ensured_accounts is not None and cdp_url not in ensured_accounts:
                     try:
-                        await ensure_story_characters_created(pg, script_data, proj_url)
-                    except Exception:
-                        pass
-                    ensured_accounts.add(cdp_url)
+                        present = await ensure_story_characters_created(
+                            pg, script_data, proj_url, portrait_dir=sec_portrait_dir
+                        )
+                        needed = tuple(characters or ("Frida", "Luna"))
+                        if all(present.get(c, False) for c in needed):
+                            ensured_accounts.add(cdp_url)
+                        else:
+                            missing = [c for c in needed if not present.get(c, False)]
+                            print(f"  [FlowChars] AVISO: personagens pendentes em {cdp_url}: {missing}", flush=True)
+                    except Exception as char_exc:
+                        print(f"  [FlowChars] ERRO ao garantir personagens em {cdp_url}: {char_exc}", flush=True)
                 ref_names: list[str] = []
                 for rp in all_refs[:2]:
                     try:
@@ -391,22 +409,76 @@ def select_veo_scenes(
         return []
     if len(scenes) <= target_count:
         return scenes
+
+    scene_durs: dict[str, float] = {}
+    for c in (visual_clips or []):
+        sid = c.get("scene_id")
+        if sid:
+            scene_durs[sid] = scene_durs.get(sid, 0.0) + float(c.get("duration") or 0.0)
+
     # Evita ultima cena se for apenas CTA final quando houver margem
     pool = scenes[:-1] if len(scenes) > target_count + 1 else scenes
     step = len(pool) / float(target_count)
     chosen: list[dict[str, Any]] = []
     used_ids: set[str] = set()
     for i in range(target_count):
-        idx = min(len(pool) - 1, int(round(i * step + step * 0.35)))
-        sc = pool[idx]
-        if sc["scene_id"] in used_ids:
-            for cand in pool:
-                if cand["scene_id"] not in used_ids:
-                    sc = cand
-                    break
+        b_start = int(i * step)
+        b_end = min(len(pool), max(b_start + 1, int(round((i + 1) * step))))
+        cands = [s for s in pool[b_start:b_end] if s["scene_id"] not in used_ids]
+        if not cands:
+            cands = [s for s in pool if s["scene_id"] not in used_ids]
+        if scene_durs and cands:
+            sc = min(cands, key=lambda s: abs(scene_durs.get(s["scene_id"], 8.0) - 8.0))
+        else:
+            idx = min(len(pool) - 1, int(round(i * step + step * 0.35)))
+            sc = pool[idx]
+            if sc["scene_id"] in used_ids and cands:
+                sc = cands[0]
         used_ids.add(sc["scene_id"])
         chosen.append(sc)
     return chosen
+
+
+def generate_single_veo_video(
+    scene: dict[str, Any],
+    images_dir: Path,
+    videos_dir: Path,
+    script_data: dict[str, Any],
+    proj_dir: Path | None = None,
+    fix_hint: str = "",
+    force: bool = False,
+) -> dict[str, Any]:
+    """Gera 1 video de 8s no Veo 3.1 Lite para uma cena especifica com failover e continuidade."""
+    import asyncio
+    from core.flow_accounts import generate_video_with_failover
+
+    videos_dir.mkdir(parents=True, exist_ok=True)
+    sid = scene["scene_id"]
+    out_mp4 = videos_dir / f"{sid}.mp4"
+    if not force and out_mp4.exists() and out_mp4.stat().st_size > 100_000:
+        return {"ok": True, "reused": True, "path": str(out_mp4), "account_id": "cache", "elapsed_s": 0.0}
+
+    sec_chars = script_data.get("secondary_characters") or []
+    props = script_data.get("story_props") or []
+    pinfo = build_image_prompt(scene, variant="main", secondary_characters=sec_chars, story_props=props)
+    veo_prompt = (
+        f"8-second continuous smooth 3D animated motion scene matching this narration: '{scene.get('text', '')}'. "
+        f"{pinfo['positive']}"
+    )
+    if fix_hint:
+        veo_prompt += f" STRICT CORRECTION: {fix_hint}"
+    keyframe = images_dir / f"{sid}_p1.jpg"
+    chars = tuple(scene.get("characters") or ("Frida", "Luna"))
+    return asyncio.run(
+        generate_video_with_failover(
+            prompt=veo_prompt,
+            out_mp4=out_mp4,
+            characters=chars,
+            keyframe_path=keyframe if keyframe.exists() else None,
+            script_data=script_data,
+            proj_dir=proj_dir,
+        )
+    )
 
 
 def generate_veo_videos_for_episode(
@@ -416,50 +488,42 @@ def generate_veo_videos_for_episode(
     videos_dir: Path,
     target_count: int = TARGET_VEO_VIDEOS,
     force: bool = False,
+    proj_dir: Path | None = None,
 ) -> dict[str, Path]:
     """Gera ate target_count (10) videos de 8s no Veo 3.1 Lite com failover de contas e consistencia."""
-    import asyncio
-    from core.flow_accounts import generate_video_with_failover
+    from core.flow_accounts import is_quota_error_text
 
     videos_dir.mkdir(parents=True, exist_ok=True)
     selected = select_veo_scenes(script_data, visual_clips, target_count=target_count)
-    sec_chars = script_data.get("secondary_characters") or []
-    props = script_data.get("story_props") or []
     generated: dict[str, Path] = {}
 
     for idx, sc in enumerate(selected, 1):
         sid = sc["scene_id"]
         out_mp4 = videos_dir / f"{sid}.mp4"
-        if not force and out_mp4.exists() and out_mp4.stat().st_size > 100_000:
-            generated[sid] = out_mp4
-            print(f"  [VEO] {idx}/{len(selected)} {sid}: reutilizado ({out_mp4.name})", flush=True)
-            continue
-
-        pinfo = build_image_prompt(sc, variant="main", secondary_characters=sec_chars, story_props=props)
-        veo_prompt = (
-            f"8-second continuous smooth 3D animated motion scene matching this narration: '{sc.get('text', '')}'. "
-            f"{pinfo['positive']}"
-        )
-        keyframe = images_dir / f"{sid}_p1.jpg"
-        chars = tuple(sc.get("characters") or ("Frida", "Luna"))
         try:
-            res = asyncio.run(
-                generate_video_with_failover(
-                    prompt=veo_prompt,
-                    out_mp4=out_mp4,
-                    characters=chars,
-                    keyframe_path=keyframe if keyframe.exists() else None,
-                )
+            res = generate_single_veo_video(
+                sc,
+                images_dir=images_dir,
+                videos_dir=videos_dir,
+                script_data=script_data,
+                proj_dir=proj_dir,
+                force=force,
             )
             generated[sid] = out_mp4
-            print(
-                f"  [VEO] {idx}/{len(selected)} {sid}: OK via {res.get('account_id', '?')} "
-                f"({res.get('elapsed_s', '?')}s)",
-                flush=True,
-            )
+            if res.get("reused"):
+                print(f"  [VEO] {idx}/{len(selected)} {sid}: reutilizado ({out_mp4.name})", flush=True)
+            else:
+                print(
+                    f"  [VEO] {idx}/{len(selected)} {sid}: OK via {res.get('account_id', '?')} "
+                    f"({res.get('elapsed_s', '?')}s)",
+                    flush=True,
+                )
         except Exception as exc:
-            print(f"  [VEO] {idx}/{len(selected)} {sid}: aviso failover/cota -> {exc}", flush=True)
-            break
+            err_low = str(exc).lower()
+            print(f"  [VEO] {idx}/{len(selected)} {sid}: erro -> {exc}", flush=True)
+            if is_quota_error_text(str(exc)) or "todas as contas flow" in err_low or "nenhuma conta google flow" in err_low:
+                break
+            continue
 
     return generated
 

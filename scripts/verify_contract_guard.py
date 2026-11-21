@@ -107,9 +107,15 @@ def check_contract() -> list[str]:
 
     # 3d. Verifica auditoria cena-a-cena e trava de voz
     sa_txt = (ROOT / "core" / "scene_auditor.py").read_text(encoding="utf-8", errors="replace")
-    for sym in ("def audit_voice_consistency", "def generate_and_audit_scenes", "def audit_scene_visual_with_vision"):
+    for sym in ("def audit_voice_consistency", "def generate_and_audit_scenes", "def audit_scene_visual_with_vision", "strict_vision"):
         if sym not in sa_txt:
             errors.append(f"CONTRATO VIOLADO: {sym} ausente em core/scene_auditor.py.")
+    ms_media_txt = (ROOT / "core" / "media_studio.py").read_text(encoding="utf-8", errors="replace")
+    if "def generate_single_veo_video" not in ms_media_txt:
+        errors.append("CONTRATO VIOLADO: def generate_single_veo_video ausente em core/media_studio.py.")
+    au_txt = (ROOT / "core" / "self_audit.py").read_text(encoding="utf-8", errors="replace")
+    if "min_veo_videos" not in au_txt:
+        errors.append("CONTRATO VIOLADO: min_veo_videos ausente em core/self_audit.py.")
     fc_txt = (ROOT / "core" / "flow_continuity.py").read_text(encoding="utf-8", errors="replace")
     if "def _inject_at_character_mentions" not in fc_txt:
         errors.append("CONTRATO VIOLADO: _inject_at_character_mentions ausente em core/flow_continuity.py.")

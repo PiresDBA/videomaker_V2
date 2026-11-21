@@ -31,18 +31,23 @@ def audit_image_with_vision(
     expected_location: str,
     expected_action: str,
     model: str = "gemini-3-flash-preview",
+    expected_narration: str = "",
+    fail_closed: bool = False,
 ) -> dict[str, Any]:
-    """Compara uma imagem real com a cena/cenario esperados usando Gemini Vision."""
+    """Compara uma imagem real com a cena/cenario/narracao esperados usando Gemini Vision."""
     keys = _get_google_keys()
     if not keys:
-        return {"checked": False, "ok": True, "reason": "sem chave Google para Vision"}
+        return {"checked": False, "ok": not fail_closed, "reason": "sem chave Google para Vision"}
 
     b64 = base64.b64encode(image_path.read_bytes()).decode("ascii")
     mime = "image/png" if image_path.suffix.lower() == ".png" else "image/jpeg"
     prompt = (
         "Audit this animated cartoon frame against its intended scene.\n"
-        f"Expected environment/location: {expected_location}\n"
+        + (f'Spoken Narration (Portuguese): "{expected_narration}"\n' if expected_narration else "")
+        + f"Expected environment/location: {expected_location}\n"
         f"Expected visual action: {expected_action}\n"
+        "Character Canon: Frida is a fawn golden-tan young English bulldog puppy with white pearl necklace (NEVER black-and-white spotted, NEVER Golden Retriever); "
+        "Luna is a chocolate-brown miniature dachshund puppy with tan markings (NEVER Cocker Spaniel).\n"
         "Respond ONLY in JSON with keys: "
         '{"matches_location": bool, "matches_action": bool, "has_collage_or_split": bool, "has_visible_text": bool, "reason": "short summary"}'
     )
@@ -56,7 +61,7 @@ def audit_image_with_vision(
         "generationConfig": {"temperature": 0.1, "responseMimeType": "application/json"},
     }).encode("utf-8")
 
-    for key in keys[:3]:
+    for key in keys[:4]:
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
             f"{urllib.parse.quote(model)}:generateContent?key={urllib.parse.quote(key)}"
@@ -69,6 +74,7 @@ def audit_image_with_vision(
             res = json.loads(txt)
             ok = (
                 bool(res.get("matches_location", True))
+                and bool(res.get("matches_action", True))
                 and not bool(res.get("has_collage_or_split", False))
                 and not bool(res.get("has_visible_text", False))
             )
@@ -77,7 +83,7 @@ def audit_image_with_vision(
             return res
         except Exception:
             continue
-    return {"checked": False, "ok": True, "reason": "vision timeout/erro"}
+    return {"checked": False, "ok": not fail_closed, "reason": "vision timeout/erro"}
 
 
 def _collect_legacy_images(legacy_dir: Path) -> list[Path]:
@@ -241,8 +247,14 @@ def import_and_upgrade_legacy(
             if dst_im.exists():
                 continue
             if vision_filter:
-                v = audit_image_with_vision(src_im, sc["location"], sc["visual_action"])
-                if not v.get("ok", True):
+                v = audit_image_with_vision(
+                    src_im,
+                    sc["location"],
+                    sc["visual_action"],
+                    expected_narration=sc.get("text", ""),
+                    fail_closed=True,
+                )
+                if not v.get("ok", False):
                     continue
             fit_aspect_jpeg(src_im, dst_im)
             reused += 1
