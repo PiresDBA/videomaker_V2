@@ -178,12 +178,18 @@ NEGATIVE_IMAGE_RULE = (
     "old dogs, mature adult dogs, heavy aged wrinkles, photorealistic live-action dogs, realistic coarse fur, scary or aggressive dogs"
 )
 
-# Casting emocional multi-voz (Gemini 3.8/2.5 Flash TTS + fallback Edge apenas em ultimo recurso)
+CREDENTIALS_DIR = BASE_DIR / ".credentials"
+CHIRP3_CREDENTIALS_DEFAULT = CREDENTIALS_DIR / "google_cloud_tts.json"
+CHIRP3_USAGE_STATE_FILE = CREDENTIALS_DIR / "chirp3_usage.json"
+CHIRP3_MONTHLY_CHAR_LIMIT = 950_000  # Trava de seguranca abaixo da franquia gratuita de 1.000.000 chars/mes
+
+# Casting emocional multi-voz (Gemini 3.8/2.5 Flash TTS + Google Cloud Chirp 3 HD travado)
 GEMINI_TTS_MODELS = ("gemini-3.8-flash-tts", "gemini-2.5-flash-preview-tts")
 
 SPEAKER_VOICE_PROFILES = {
     "narrador": {
         "gemini_voice": "Kore",
+        "chirp3_voice": "pt-BR-Chirp3-HD-Kore",
         "gemini_alt_voices": (),
         "profile": "narrador",
         "emotion": "Narradora feminina única do início ao fim: narre com energia contagiante, curiosidade e ritmo vivo de storytelling infantil",
@@ -194,6 +200,7 @@ SPEAKER_VOICE_PROFILES = {
     },
     "frida": {
         "gemini_voice": "Sulafat",
+        "chirp3_voice": "pt-BR-Chirp3-HD-Sulafat",
         "gemini_alt_voices": (),
         "profile": "infantil",
         "emotion": "Voz feminina infantil feliz, doce, alegre, calorosa e expressiva de cachorrinha simpática",
@@ -204,6 +211,7 @@ SPEAKER_VOICE_PROFILES = {
     },
     "luna": {
         "gemini_voice": "Leda",
+        "chirp3_voice": "pt-BR-Chirp3-HD-Leda",
         "gemini_alt_voices": (),
         "profile": "infantil",
         "emotion": "Voz feminina infantil feliz, brilhante, animada, curiosa e brincalhona de cachorrinha alegre",
@@ -214,6 +222,7 @@ SPEAKER_VOICE_PROFILES = {
     },
     "secundario": {
         "gemini_voice": "Puck",
+        "chirp3_voice": "pt-BR-Chirp3-HD-Puck",
         "gemini_alt_voices": (),
         "profile": "narrador",
         "emotion": "Voz divertida, expressiva e teatral de personagem coadjuvante de desenho animado",

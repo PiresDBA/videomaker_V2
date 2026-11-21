@@ -70,7 +70,8 @@ def audit_voice_consistency(tts_timings: list[dict[str, Any]]) -> list[str]:
         expected = SPEAKER_VOICE_PROFILES.get(spk, SPEAKER_VOICE_PROFILES["narrador"])["gemini_voice"]
         if not voice:
             continue
-        short_v = voice.split(":")[-1].strip()
+        raw_v = voice.split(":")[-1].strip()
+        short_v = raw_v.split("-")[-1].strip() if "Chirp3-HD-" in raw_v else raw_v
         seen_by_speaker.setdefault(spk, set()).add(short_v)
         if short_v != expected:
             errors.append(

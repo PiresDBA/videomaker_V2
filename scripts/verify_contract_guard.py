@@ -84,10 +84,15 @@ def check_contract() -> list[str]:
     if "def ensure_story_characters_created" not in fa_txt:
         errors.append("CONTRATO VIOLADO: ensure_story_characters_created removido de core/flow_accounts.py.")
 
-    # 3b. Verifica REGRA DE OURO: PROIBIDO Edge TTS em producao
+    # 3b. Verifica REGRA DE OURO: PROIBIDO Edge TTS em producao + trava gratuita Chirp 3 HD
     vs_txt = (ROOT / "core" / "voice_studio.py").read_text(encoding="utf-8", errors="replace")
     if "REGRA DE OURO VIOLADA" not in vs_txt:
         errors.append("CONTRATO VIOLADO: core/voice_studio.py deve bloquear Edge TTS (Regra de Ouro das vozes emocionais).")
+    if "def _synthesize_chirp3_hd" not in vs_txt:
+        errors.append("CONTRATO VIOLADO: _synthesize_chirp3_hd ausente em core/voice_studio.py.")
+    m_chirp_lim = re.search(r"CHIRP3_MONTHLY_CHAR_LIMIT\s*=\s*([0-9_]+)", cfg_txt)
+    if not m_chirp_lim or int(m_chirp_lim.group(1).replace("_", "")) > 1_000_000:
+        errors.append("CONTRATO VIOLADO: config.py CHIRP3_MONTHLY_CHAR_LIMIT deve ser <= 1_000_000 (franquia gratuita).")
     pipe_txt = (ROOT / "pipeline_v2.py").read_text(encoding="utf-8", errors="replace")
     if 'choices=("gemini_emotion", "edge")' in pipe_txt:
         errors.append("CONTRATO VIOLADO: pipeline_v2.py nao pode oferecer 'edge' em --tts-provider.")

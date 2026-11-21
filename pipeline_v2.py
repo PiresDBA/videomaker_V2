@@ -392,7 +392,7 @@ def main() -> int:
     ap.add_argument("--batch-scan", default="", help="Escaneia e audita todas as pastas de video dentro de um diretorio")
     ap.add_argument("--stage", choices=("all", "avatar-only", "script", "tts", "pacing", "images", "shorts", "audit", "publish"), default="all")
     ap.add_argument("--build-avatar", choices=("luna",), default="", help="Gera o pacote de avatar Luna dentro do programa")
-    ap.add_argument("--tts-provider", choices=("gemini_emotion",), default="gemini_emotion", help="Vozes emocionais Gemini TTS (Regra de Ouro: Edge TTS proibido)")
+    ap.add_argument("--tts-provider", choices=("gemini_emotion", "chirp3_hd", "auto"), default="gemini_emotion", help="Vozes emocionais Gemini TTS ou Cloud Chirp 3 HD travado (Regra de Ouro: Edge TTS proibido)")
     ap.add_argument("--short-engine", choices=("auto", "split_70_30", "split_60_40", "motion_hud", "remotion"), default="auto")
     ap.add_argument("--min-words", type=int, default=SCRIPT_MIN_WORDS, help="Minimo de palavras no roteiro")
     ap.add_argument("--max-words", type=int, default=SCRIPT_MAX_WORDS, help="Maximo de palavras no roteiro")

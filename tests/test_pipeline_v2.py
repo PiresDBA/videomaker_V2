@@ -601,6 +601,76 @@ class TestVideomakerV2Unified(unittest.TestCase):
             self.assertFalse(fa["approved"])
             self.assertTrue(any("veo:" in iss for iss in fa["issues"]), fa["issues"])
 
+    def test_chirp3_hd_voice_lock_quota_guard_and_payload(self):
+        import base64
+        import json
+        from unittest import mock
+        import core.voice_studio as vs
+        from core.scene_auditor import audit_voice_consistency
+
+        captured: dict[str, object] = {}
+
+        class _FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def read(self):
+                return json.dumps({"audioContent": base64.b64encode(b"ID3FAKECHIRP").decode("ascii")}).encode("utf-8")
+
+        def _fake_urlopen(req, timeout=45):
+            captured["url"] = req.full_url
+            captured["headers"] = {k.lower(): v for k, v in req.header_items()}
+            captured["payload"] = json.loads(req.data.decode("utf-8"))
+            return _FakeResp()
+
+        with tempfile.TemporaryDirectory() as td:
+            td_p = Path(td)
+            fake_cred = td_p / "sa.json"
+            fake_cred.write_text('{"type":"service_account"}', encoding="utf-8")
+            usage_file = td_p / "chirp3_usage.json"
+            out_mp3 = td_p / "frida.mp3"
+
+            with mock.patch.object(vs, "resolve_chirp3_credentials_path", return_value=fake_cred), \
+                 mock.patch.object(vs, "_get_chirp3_access_token", return_value="tok_oauth2_test"), \
+                 mock.patch("urllib.request.urlopen", side_effect=_fake_urlopen):
+                used_v, mode = vs._synthesize_chirp3_hd("Olá Frida!", "frida", out_mp3, state_file=usage_file)
+
+            self.assertEqual(used_v, "chirp3_hd:pt-BR-Chirp3-HD-Sulafat")
+            self.assertEqual(mode, "chirp3_hd")
+            self.assertTrue(out_mp3.exists())
+            self.assertEqual(captured["url"], "https://texttospeech.googleapis.com/v1/text:synthesize")
+            self.assertEqual(captured["headers"]["authorization"], "Bearer tok_oauth2_test")
+            payload = captured["payload"]
+            self.assertEqual(payload["voice"], {"languageCode": "pt-BR", "name": "pt-BR-Chirp3-HD-Sulafat"})
+            self.assertNotIn("modelName", payload)
+
+            st = json.loads(usage_file.read_text(encoding="utf-8"))
+            self.assertEqual(st["chars_used"], len("Olá Frida!"))
+            with self.assertRaises(RuntimeError) as ctx:
+                vs._consume_chirp3_chars(100, state_file=usage_file, limit=len("Olá Frida!") + 10)
+            self.assertIn("TRAVA DE CUSTO CHIRP 3 HD", str(ctx.exception))
+
+        # audit_voice_consistency aceita Chirp 3 HD travado e reprova troca de voz
+        self.assertEqual(
+            audit_voice_consistency([
+                {"scene_id": "sc_01", "speaker": "narrador", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Kore"},
+                {"scene_id": "sc_02", "speaker": "frida", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Sulafat"},
+                {"scene_id": "sc_03", "speaker": "luna", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Leda"},
+            ]),
+            [],
+        )
+        self.assertTrue(
+            audit_voice_consistency([
+                {"scene_id": "sc_01", "speaker": "narrador", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Puck"},
+            ])
+        )
+        with tempfile.TemporaryDirectory() as td:
+            with self.assertRaises(ValueError):
+                synthesize_all_scenes({"scenes": []}, Path(td), provider="edge")
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():

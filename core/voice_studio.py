@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import datetime as dt
 import difflib
 import itertools
 import json
@@ -23,7 +24,11 @@ from typing import Any
 import numpy as np
 
 from config import (
+    CHIRP3_CREDENTIALS_DEFAULT,
+    CHIRP3_MONTHLY_CHAR_LIMIT,
+    CHIRP3_USAGE_STATE_FILE,
     CPU_WORKERS,
+    CREDENTIALS_DIR,
     ENV_FILE,
     FFMPEG_EXE,
     FFPROBE_EXE,
@@ -58,6 +63,7 @@ PHONETIC_PT_RULES: tuple[tuple[str, str], ...] = (
 
 _WHISPER_MODEL = None
 _KEY_ROTATION = itertools.count()
+_CHIRP3_CREDS_CACHE: dict[str, Any] = {}
 
 
 def normalize_phonetics_pt(text: str) -> str:
@@ -275,8 +281,12 @@ def _synthesize_gemini_direct(
     if not keys:
         raise RuntimeError("Nenhuma chave Google TTS configurada em .env")
 
-    offset = next(_KEY_ROTATION) % len(keys)
-    ordered_keys = keys[offset:] + keys[:offset]
+    if len(keys) > 1:
+        rest = keys[1:]
+        offset = next(_KEY_ROTATION) % len(rest)
+        ordered_keys = [keys[0]] + rest[offset:] + rest[:offset]
+    else:
+        ordered_keys = keys
     profile = SPEAKER_VOICE_PROFILES.get(speaker, SPEAKER_VOICE_PROFILES["narrador"])
     voice = voice_override or profile["gemini_voice"]
     env_model = (load_env_key("GEMINI_TTS_MODEL", ENV_FILE) or "").strip()
@@ -389,6 +399,121 @@ def _synthesize_edge(text: str, speaker: str, out_mp3: Path, slow_retry: bool = 
     return f"edge:{profile['edge_voice']}({rate},{profile['edge_pitch']})", "pitch"
 
 
+def resolve_chirp3_credentials_path() -> Path | None:
+    """Localiza JSON de Conta de Servico Google Cloud para Text-to-Speech (Chirp 3 HD)."""
+    for env_name in ("GOOGLE_CLOUD_TTS_CREDENTIALS", "GOOGLE_APPLICATION_CREDENTIALS"):
+        raw = (load_env_key(env_name, ENV_FILE) or os.environ.get(env_name) or "").strip()
+        if raw:
+            p = Path(raw)
+            if not p.is_absolute():
+                p = ENV_FILE.parent / p
+            if p.is_file():
+                return p
+    if CHIRP3_CREDENTIALS_DEFAULT.is_file():
+        return CHIRP3_CREDENTIALS_DEFAULT
+    if CREDENTIALS_DIR.is_dir():
+        for cand in sorted(CREDENTIALS_DIR.glob("*.json")):
+            if cand.name.startswith(("client_secret", "youtube_token")):
+                continue
+            try:
+                data = json.loads(cand.read_text(encoding="utf-8", errors="ignore"))
+                if isinstance(data, dict) and data.get("type") == "service_account":
+                    return cand
+            except Exception:
+                continue
+    return None
+
+
+def _load_chirp3_usage(state_file: Path = CHIRP3_USAGE_STATE_FILE) -> dict[str, Any]:
+    month_key = dt.date.today().strftime("%Y-%m")
+    if state_file.is_file():
+        try:
+            st = json.loads(state_file.read_text(encoding="utf-8"))
+            if isinstance(st, dict) and st.get("month") == month_key:
+                return st
+        except Exception:
+            pass
+    return {"month": month_key, "chars_used": 0}
+
+
+def _consume_chirp3_chars(
+    n_chars: int,
+    state_file: Path = CHIRP3_USAGE_STATE_FILE,
+    limit: int = CHIRP3_MONTHLY_CHAR_LIMIT,
+) -> int:
+    st = _load_chirp3_usage(state_file)
+    used = int(st.get("chars_used", 0))
+    projected = used + max(0, int(n_chars))
+    if projected > int(limit):
+        raise RuntimeError(
+            f"TRAVA DE CUSTO CHIRP 3 HD: uso mensal ({projected}) excederia o limite gratuito seguro "
+            f"({limit}/1.000.000 chars)."
+        )
+    st["chars_used"] = projected
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    state_file.write_text(json.dumps(st, ensure_ascii=False, indent=2), encoding="utf-8")
+    return projected
+
+
+def _get_chirp3_access_token(cred_path: Path) -> str:
+    from google.auth.transport.requests import Request
+    from google.oauth2 import service_account
+
+    key = str(cred_path.resolve())
+    creds = _CHIRP3_CREDS_CACHE.get(key)
+    if creds is None:
+        creds = service_account.Credentials.from_service_account_file(
+            key,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        )
+        _CHIRP3_CREDS_CACHE[key] = creds
+    if not creds.valid or not creds.token:
+        creds.refresh(Request())
+    return str(creds.token)
+
+
+def _synthesize_chirp3_hd(
+    text: str,
+    speaker: str,
+    out_audio: Path,
+    speaking_rate: float = 1.0,
+    state_file: Path = CHIRP3_USAGE_STATE_FILE,
+) -> tuple[str, str]:
+    """Sintetiza via Google Cloud Text-to-Speech Chirp 3 HD (franquia 1M chars/mes) com OAuth2."""
+    cred_path = resolve_chirp3_credentials_path()
+    if cred_path is None:
+        raise RuntimeError(
+            "Credencial Google Cloud TTS nao encontrada. Salve o JSON da Conta de Servico em "
+            f"{CHIRP3_CREDENTIALS_DEFAULT}."
+        )
+    profile = SPEAKER_VOICE_PROFILES.get(speaker, SPEAKER_VOICE_PROFILES["narrador"])
+    chirp_voice = str(profile.get("chirp3_voice") or "")
+    if not chirp_voice.startswith("pt-BR-Chirp3-HD-"):
+        raise RuntimeError(f"Voz Chirp 3 HD invalida para '{speaker}': {chirp_voice}")
+
+    _consume_chirp3_chars(len(text), state_file=state_file, limit=CHIRP3_MONTHLY_CHAR_LIMIT)
+    token = _get_chirp3_access_token(cred_path)
+    payload = json.dumps({
+        "input": {"text": text},
+        "voice": {"languageCode": "pt-BR", "name": chirp_voice},
+        "audioConfig": {"audioEncoding": "MP3", "speakingRate": float(speaking_rate)},
+    }).encode("utf-8")
+    req = urllib.request.Request(
+        "https://texttospeech.googleapis.com/v1/text:synthesize",
+        data=payload,
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json; charset=utf-8"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=45) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    audio_b64 = data.get("audioContent") or ""
+    if not audio_b64:
+        raise RuntimeError(f"Resposta Chirp 3 HD sem audioContent para {chirp_voice}")
+    out_audio.parent.mkdir(parents=True, exist_ok=True)
+    out_audio.write_bytes(base64.b64decode(audio_b64))
+    return f"chirp3_hd:{chirp_voice}", "chirp3_hd"
+
+
 def _to_wav_norm(src_audio: Path, wav_path: Path) -> float:
     """Converte para WAV 44.1kHz stereo normalizado em -16 LUFS."""
     wav_path.parent.mkdir(parents=True, exist_ok=True)
@@ -416,10 +541,10 @@ def synthesize_all_scenes(
     REGRA DE OURO: Edge TTS e estritamente proibido em producao (sem emocao).
     """
     prov = str(provider or "gemini_emotion").strip().lower()
-    if prov not in ("gemini", "gemini_emotion", "auto"):
+    if prov not in ("gemini", "gemini_emotion", "chirp3_hd", "auto"):
         raise ValueError(
             f"REGRA DE OURO VIOLADA: provedor '{provider}' nao permitido. "
-            "Edge TTS e proibido pois nao tem emocao; use apenas 'gemini_emotion' (Kore/Sulafat/Leda)."
+            "Edge TTS e proibido pois nao tem emocao; use 'gemini_emotion' ou 'chirp3_hd' (Kore/Sulafat/Leda)."
         )
 
     raw_dir = audio_dir / "raw"
@@ -451,7 +576,14 @@ def synthesize_all_scenes(
         profile = SPEAKER_VOICE_PROFILES.get(speaker, SPEAKER_VOICE_PROFILES["narrador"])
         locked_voice = profile["gemini_voice"]
         prev_v = prev_voice_map.get(sid, "")
-        voice_matches_lock = (not prev_v) or prev_v.endswith(f":{locked_voice}") or prev_v == locked_voice
+        voice_matches_lock = (
+            (not prev_v)
+            or prev_v.endswith(f":{locked_voice}")
+            or prev_v.endswith(f"-{locked_voice}")
+            or prev_v == locked_voice
+        )
+        if prov == "chirp3_hd" and prev_v and not prev_v.startswith("chirp3_hd:"):
+            voice_matches_lock = False
 
         if not force and voice_matches_lock and wav_path.exists() and wav_path.stat().st_size > 4000:
             dur = probe_duration(wav_path)
@@ -476,10 +608,23 @@ def synthesize_all_scenes(
             try:
                 # REGRA DE OURO: trava absoluta de voz por personagem (proibido alternar para outra voz)
                 v_choice = locked_voice
-                used_voice, emo_mode = _synthesize_gemini_direct(
-                    tts_text, speaker, emo_dir, mp3_path,
-                    voice_override=v_choice, energy_boost=(attempt >= 2),
-                )
+                if prov == "chirp3_hd":
+                    used_voice, emo_mode = _synthesize_chirp3_hd(
+                        tts_text, speaker, mp3_path, speaking_rate=(1.06 if attempt >= 2 else 1.0)
+                    )
+                else:
+                    try:
+                        used_voice, emo_mode = _synthesize_gemini_direct(
+                            tts_text, speaker, emo_dir, mp3_path,
+                            voice_override=v_choice, energy_boost=(attempt >= 2),
+                        )
+                    except Exception:
+                        if prov == "auto" and resolve_chirp3_credentials_path() is not None:
+                            used_voice, emo_mode = _synthesize_chirp3_hd(
+                                tts_text, speaker, mp3_path, speaking_rate=(1.06 if attempt >= 2 else 1.0)
+                            )
+                        else:
+                            raise
 
                 dur = _to_wav_norm(mp3_path, wav_path)
                 if dur <= 0.25:
