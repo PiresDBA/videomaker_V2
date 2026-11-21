@@ -39,13 +39,16 @@ enforce_baby_puppy_prompt = enforce_youthful_puppy_prompt
 
 
 async def _find_bottom_pill(page):
+    vp = page.viewport_size or {"width": 1600, "height": 920}
+    min_y = max(280, int(vp.get("height", 920) * 0.55))
+    min_x = max(200, int(vp.get("width", 1600) * 0.25))
     btns = page.locator("button")
     n = await btns.count()
     for i in range(n):
         b = btns.nth(i)
         try:
             box = await b.bounding_box()
-            if not box or box["y"] < 600 or box["x"] < 450:
+            if not box or box["y"] < min_y or box["x"] < min_x:
                 continue
             txt = (await b.inner_text() or "").strip()
             if any(tok in txt for tok in ("Nano", "Veo", "720p", "x1", "x2", "x3", "x4")):
@@ -57,23 +60,44 @@ async def _find_bottom_pill(page):
 
 async def ensure_direct_mode(page) -> Any:
     """Garante tab 'Tudo' (dashboard) e sai do modo Agente ('spark') para o painel direto."""
-    close_btn = page.locator('button:has-text("right_panel_close")').first
-    if await close_btn.count() and await close_btn.is_visible():
-        await close_btn.click()
-        await page.wait_for_timeout(700)
+    async def _try_enter_direct():
+        close_btn = page.locator('button:has-text("right_panel_close")').first
+        if await close_btn.count() and await close_btn.is_visible():
+            await close_btn.click()
+            await page.wait_for_timeout(700)
 
-    dash = page.locator('mat-nav-list button:has-text("dashboard")').first
-    if await dash.count():
-        await dash.click()
-        await page.wait_for_timeout(700)
+        dash = page.locator('mat-nav-list button:has-text("dashboard")').first
+        if await dash.count():
+            await dash.click()
+            await page.wait_for_timeout(700)
 
-    pill = await _find_bottom_pill(page)
-    if pill is None:
-        spark = page.locator('button[aria-label*="agente" i], button:has-text("spark")').last
-        if await spark.count():
-            await spark.click()
-            await page.wait_for_timeout(1200)
         pill = await _find_bottom_pill(page)
+        if pill is None:
+            spark = page.locator('button[aria-label*="agente" i], button:has-text("spark")').last
+            if await spark.count():
+                await spark.click()
+                await page.wait_for_timeout(1200)
+            pill = await _find_bottom_pill(page)
+        return pill
+
+    pill = await _try_enter_direct()
+    if pill is None:
+        m = re.match(r"(https://flow\.google\.com(?:/u/\d+)?/project/[^/?#]+)", page.url or "")
+        try:
+            await page.set_viewport_size({"width": 1600, "height": 920})
+            if m:
+                await page.goto(m.group(1), wait_until="domcontentloaded", timeout=30000)
+            else:
+                await page.reload(wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2500)
+            await page.keyboard.press("Escape")
+        except Exception:
+            pass
+        for _ in range(5):
+            pill = await _try_enter_direct()
+            if pill is not None:
+                break
+            await page.wait_for_timeout(1000)
     if pill is None:
         raise RuntimeError("Botao de configuracao direta (Nano/Veo) nao encontrado no Flow.")
     return pill
@@ -515,56 +539,111 @@ async def generate_flow_video(
             raise TimeoutError(f"Timeout ({wait_s}s) aguardando video Veo 3.1 Lite para {out_mp4.name}")
 
         out_mp4.parent.mkdir(parents=True, exist_ok=True)
-        # Aguarda hidratacao completa do submenu de download apos play_circle surgir
-        await page.wait_for_timeout(3000)
+        # Aguarda hidratacao breve apos play_circle surgir e tenta menu rapido (timeout curto)
+        await page.wait_for_timeout(1200)
         tile0 = page.locator("flow-grid-tile-container").first
         downloaded = False
-        for dl_try in range(3):
-            try:
-                await tile0.scroll_into_view_if_needed()
-                await tile0.hover()
-                await page.wait_for_timeout(900)
-                mb = tile0.locator('button[aria-label="Mais opções"]').first
-                if await mb.count():
-                    try:
-                        await mb.click(timeout=5000)
-                    except Exception:
-                        await mb.click(force=True)
-                    await page.wait_for_timeout(850)
-                    dl_item = page.locator('.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Fazer o download")').first
-                    if await dl_item.count():
-                        await dl_item.hover()
-                        await page.wait_for_timeout(850)
-                        sub_dl = page.locator(
-                            '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("720p"), '
-                            '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Original")'
-                        ).last
-                        async with page.expect_download(timeout=90000) as dinfo:
-                            if await sub_dl.count():
-                                await sub_dl.click()
-                            else:
-                                await dl_item.click()
-                        dl_obj = await dinfo.value
-                        await dl_obj.save_as(str(out_mp4))
-                        downloaded = True
-                        break
-            except Exception as dl_err:
-                print(f"  [Flow] Download via menu tentativa {dl_try + 1} falhou ({dl_err})", flush=True)
+        try:
+            await tile0.scroll_into_view_if_needed()
+            await tile0.hover()
+            await page.wait_for_timeout(650)
+            mb = tile0.locator('button[aria-label="Mais opções"]').first
+            if await mb.count():
+                await mb.click(timeout=4000, force=True)
+                await page.wait_for_timeout(650)
+                dl_item = page.locator('.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Fazer o download")').first
+                if await dl_item.count():
+                    await dl_item.hover()
+                    await page.wait_for_timeout(650)
+                    sub_dl = page.locator(
+                        '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("720p"), '
+                        '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Original")'
+                    ).last
+                    async with page.expect_download(timeout=45000) as dinfo:
+                        if await sub_dl.count():
+                            await sub_dl.click(timeout=4000)
+                        else:
+                            await dl_item.click(timeout=4000)
+                    dl_obj = await dinfo.value
+                    await dl_obj.save_as(str(out_mp4))
+                    downloaded = out_mp4.exists() and out_mp4.stat().st_size >= 50_000
+        except Exception as dl_err:
+            print(f"  [Flow] Download via menu falhou rapido ({str(dl_err).splitlines()[0]}); usando fallback direto.", flush=True)
+        finally:
             await page.keyboard.press("Escape")
-            await page.wait_for_timeout(1400)
+            await page.wait_for_timeout(500)
 
         if not downloaded:
-            # Fallback: hover para disparar <video src> ou usar URL capturada na rede
+            # Fallback robusto: abre o tile se hover nao hidratar <video src>, tenta botao de download do player ou URLs reais >= 50KB
             await tile0.hover()
-            await page.wait_for_timeout(2000)
+            await page.wait_for_timeout(900)
             cur = await _snapshot_top_tiles(page, limit=1)
-            vid_url = (cur[0]["vids"][0] if cur and cur[0]["vids"] else None) or (net_video_urls[-1] if net_video_urls else None)
-            if not vid_url:
-                raise RuntimeError(f"Nao foi possivel baixar MP4 gerado do Flow para {out_mp4.name}")
-            resp = await page.context.request.get(vid_url, timeout=180000)
-            if not resp.ok:
-                raise RuntimeError(f"Falha ao baixar MP4 Flow HTTP {resp.status}")
-            out_mp4.write_bytes(await resp.body())
+            modal_urls: list[str] = []
+            if not (cur and cur[0].get("vids")):
+                proj_page_url = page.url or ""
+                try:
+                    await tile0.scroll_into_view_if_needed()
+                    await tile0.click(timeout=4000, force=True)
+                    await page.wait_for_timeout(1800)
+                    dl_btn = page.locator(
+                        'button[aria-label="Baixar mídia"], button[aria-label*="download" i], button[aria-label*="Baixar" i], button:has-text("Fazer o download")'
+                    ).first
+                    if await dl_btn.count() and await dl_btn.is_visible():
+                        try:
+                            async with page.expect_download(timeout=25000) as dinfo:
+                                await dl_btn.click(timeout=4000)
+                                await page.wait_for_timeout(600)
+                                sub_pop = page.locator(
+                                    '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("720p"), '
+                                    '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Original")'
+                                ).last
+                                if await sub_pop.count():
+                                    await sub_pop.click(timeout=4000)
+                            dl_obj = await dinfo.value
+                            await dl_obj.save_as(str(out_mp4))
+                            downloaded = out_mp4.exists() and out_mp4.stat().st_size >= 50_000
+                        except Exception:
+                            pass
+                    if not downloaded:
+                        modal_urls = await page.evaluate(
+                            "() => Array.from(document.querySelectorAll('video')).map(v => v.currentSrc || v.src || '').filter(u => u && u.startsWith('http'))"
+                        )
+                except Exception:
+                    pass
+                finally:
+                    await page.keyboard.press("Escape")
+                    if "/edit/" in (page.url or "") and proj_page_url:
+                        try:
+                            await page.goto(proj_page_url, wait_until="domcontentloaded", timeout=20000)
+                        except Exception:
+                            await page.go_back()
+                    await page.wait_for_timeout(500)
+
+            if not downloaded:
+                cand_urls: list[str] = []
+                for u in [*(cur[0]["vids"] if cur and cur[0].get("vids") else []), *modal_urls, *reversed(net_video_urls)]:
+                    if u and u not in cand_urls:
+                        cand_urls.append(u)
+                if not cand_urls:
+                    raise RuntimeError(f"Nao foi possivel baixar MP4 gerado do Flow para {out_mp4.name}")
+                last_http_info = ""
+                for u in cand_urls:
+                    try:
+                        resp = await page.context.request.get(u, timeout=120000)
+                        if not resp.ok:
+                            last_http_info = f"HTTP {resp.status}"
+                            continue
+                        body = await resp.body()
+                        if len(body) < 50_000:
+                            last_http_info = f"payload curto ({len(body)}B)"
+                            continue
+                        out_mp4.write_bytes(body)
+                        downloaded = True
+                        break
+                    except Exception as fetch_exc:
+                        last_http_info = str(fetch_exc)[:120]
+                if not downloaded:
+                    raise RuntimeError(f"Falha ao baixar MP4 valido (>=50KB) do Flow para {out_mp4.name}: {last_http_info}")
 
         if not out_mp4.exists() or out_mp4.stat().st_size < 50_000:
             out_mp4.unlink(missing_ok=True)

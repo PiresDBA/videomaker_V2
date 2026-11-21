@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import io
 import json
 import re
@@ -144,6 +145,44 @@ def _encode_vision_jpeg_b64(img_path: Path, max_w: int = 960) -> str:
         return base64.b64encode(img_path.read_bytes()).decode("ascii")
 
 
+def _file_sha1(path: Path) -> str:
+    """Hash SHA-1 + tamanho para detectar alteracao real de imagem/video em cache."""
+    if not path.exists() or not path.is_file():
+        return ""
+    h = hashlib.sha1()
+    st = path.stat()
+    with path.open("rb") as fh:
+        while True:
+            chunk = fh.read(65536)
+            if not chunk:
+                break
+            h.update(chunk)
+    return f"{st.st_size}:{h.hexdigest()}"
+
+
+def _scene_audit_fingerprint(
+    media_path: Path,
+    scene: dict[str, Any],
+    matched_props: list[dict[str, str]],
+    anchor_prop_image: Path | None = None,
+    clip_variant: str = "",
+    audio_heard_pt: str = "",
+) -> str:
+    payload = {
+        "schema": "AUDIT_CACHE_V1",
+        "media_hash": _file_sha1(media_path),
+        "anchor_hash": _file_sha1(anchor_prop_image) if anchor_prop_image and anchor_prop_image.exists() else "",
+        "text": str(scene.get("text") or ""),
+        "location": str(scene.get("location") or ""),
+        "visual_action": str(scene.get("visual_action") or ""),
+        "characters": sorted(str(x) for x in (scene.get("characters") or [])),
+        "props": sorted(f"{p.get('name','')}:{p.get('description','')}" for p in matched_props if isinstance(p, dict)),
+        "clip_variant": clip_variant,
+        "audio_heard_pt": audio_heard_pt,
+    }
+    return hashlib.sha1(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
 def audit_scene_visual_with_vision(
     frame_paths: list[Path],
     scene: dict[str, Any],
@@ -153,6 +192,7 @@ def audit_scene_visual_with_vision(
     strict_vision: bool = True,
     clip_variant: str = "",
     audio_heard_pt: str = "",
+    is_video_keyframes: bool = False,
 ) -> dict[str, Any]:
     """Audita cena (imagem ou frames de video) contra narracao PT, personagens e consistencia de objeto."""
     valid_frames = [p for p in frame_paths if p.exists() and p.stat().st_size > 2000]
@@ -175,6 +215,7 @@ def audit_scene_visual_with_vision(
                 "fix_prompt_hint": "Generate a single unified full-frame 16:9 composition with ZERO split panels or collage borders.",
             }
 
+    is_video = bool(is_video_keyframes or len(valid_frames) > 1)
     keys = _get_google_keys()
     if not keys:
         return {
@@ -208,15 +249,22 @@ def audit_scene_visual_with_vision(
         + "Character & Breed Design Rules (STRICT):\n"
         "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace with small gold paw pendant; NEVER Golden Retriever, NEVER black-and-white spotted, NEVER adult/old dog).\n"
         "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel, NEVER random brown/black dog).\n"
-        "- ZERO unrequested dog breeds or random extra animals! Any extra creature (such as a literal red furry monster) MUST NOT appear unless explicitly listed in Expected Characters.\n"
+        "- ZERO unrequested dog breeds or random extra animals! Background/crowd dogs are allowed ONLY when Expected Visual Action or Narration explicitly mentions multiple dogs/competitors (e.g. \"vários cães\", \"competidores\"), and Frida & Luna MUST stay clearly recognizable in the foreground. Unscripted fantasy creatures (like a literal red furry monster) or unscripted foreground props (like a trophy when not mentioned in this scene) MUST NOT appear.\n"
         + (f"- Secondary Characters: {sec_desc}\n" if sec_desc else "")
         + (f"Story Key Objects (treated as FIXED characters, MUST keep exact same color, material and shape across ALL scenes): {props_desc}\n" if props_desc else "")
-        + ("NOTE: The first images attached are sequential temporal keyframes extracted from ONE single 8-second continuous video. Do NOT treat multiple sequential frames as a collage or split-screen; evaluate collage ONLY within an individual frame.\n"
-           if len(valid_frames) > 1 else "")
+        + (
+            f"VIDEO KEYFRAMES AUDIT: The first {len(valid_frames)} attached images are sequential temporal snapshots "
+            "(start, middle, end) extracted from ONE continuous 8-second video. It is EXPECTED that you received multiple sequential images. "
+            "NEVER reject or claim the sequence is a collage of frames; ALWAYS set has_collage_or_split to false for sequential video snapshots.\n"
+            if is_video
+            else ""
+        )
         + ("The LAST image attached is the reference anchor portrait for the story's key object/prop. REJECT (matches_story_props=false) if the key object in the scene changed color (e.g. changed color, material, or shape compared to the attached anchor portrait), changed design, or vanished when expected.\n"
            if anchor_prop_image and anchor_prop_image.exists() else "")
         + "Reject (false) if: the visual contradicts or ignores what the narration is saying, shows wrong dog breeds/colors, "
-          "changes the key story object's appearance/color, has comic-strip/split-screen panels, or has visible watermark/text.\n"
+          "changes the key story object's appearance/color, "
+        + ("" if is_video else "has comic-strip/split-screen panels inside the frame, ")
+        + "or has visible watermark/text.\n"
         "Respond ONLY in JSON with keys: "
         '{"matches_narration": bool, "matches_location": bool, "matches_characters": bool, '
         '"matches_story_props": bool, "has_collage_or_split": bool, "has_visible_text": bool, '
@@ -252,12 +300,15 @@ def audit_scene_visual_with_vision(
                         res = next((x for x in res if isinstance(x, dict)), {})
                     if not isinstance(res, dict):
                         raise ValueError(f"Vision JSON inesperado: {type(res).__name__}")
+                    # Para video, frames individuais ja passaram por detect_split_collage(); evita falso positivo do modelo ao ver 3 keyframes.
+                    collage_flag = False if is_video else bool(res.get("has_collage_or_split", False))
+                    res["has_collage_or_split"] = collage_flag
                     ok = (
                         bool(res.get("matches_narration", True))
                         and bool(res.get("matches_location", True))
                         and bool(res.get("matches_characters", True))
                         and bool(res.get("matches_story_props", True))
-                        and not bool(res.get("has_collage_or_split", False))
+                        and not collage_flag
                         and not bool(res.get("has_visible_text", False))
                     )
                     res["checked"] = True
@@ -300,6 +351,102 @@ def generate_and_audit_scenes(
     artifacts_dir = proj_dir / "artifacts"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     report_path = artifacts_dir / "scene_audit_report.json"
+    cache_path = artifacts_dir / "scene_audit_cache.json"
+    cache_entries: dict[str, dict[str, Any]] = {}
+    if not force and cache_path.exists():
+        try:
+            loaded_c = json.loads(cache_path.read_text(encoding="utf-8"))
+            if isinstance(loaded_c, dict) and isinstance(loaded_c.get("entries"), dict):
+                cache_entries = dict(loaded_c["entries"])
+        except Exception:
+            cache_entries = {}
+
+    legacy_approved: dict[str, dict[str, Any]] = {}
+    report_mtime = 0.0
+    if not force and report_path.exists():
+        try:
+            report_mtime = report_path.stat().st_mtime
+            rep_prev = json.loads(report_path.read_text(encoding="utf-8"))
+            scenes_by_id = {str(s.get("scene_id") or ""): s for s in script_data.get("scenes", [])}
+            for sc_rep in (rep_prev.get("scenes") or []):
+                sid_r = str(sc_rep.get("scene_id") or "")
+                sc_cur = scenes_by_id.get(sid_r)
+                if not sc_cur or str(sc_rep.get("text") or "") != str(sc_cur.get("text") or ""):
+                    continue
+                for cl in (sc_rep.get("clips") or []):
+                    if isinstance(cl, dict) and cl.get("checked") and cl.get("ok") and cl.get("clip_id"):
+                        legacy_approved[f"img:{cl['clip_id']}"] = dict(cl)
+                v_rep = sc_rep.get("video")
+                if isinstance(v_rep, dict) and v_rep.get("checked") and v_rep.get("ok"):
+                    legacy_approved[f"vid:{sid_r}"] = dict(v_rep)
+        except Exception:
+            legacy_approved = {}
+
+    def _save_audit_cache() -> None:
+        try:
+            cache_path.write_text(
+                json.dumps({"schema": "AUDIT_CACHE_V1", "entries": cache_entries}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    def _lookup_cached_approval(
+        cache_key: str,
+        media_path: Path,
+        sc: dict[str, Any],
+        matched_props: list[dict[str, str]],
+        anchor_path: Path | None,
+        min_bytes: int,
+        clip_variant: str = "",
+        audio_heard_pt: str = "",
+        check_collage: bool = False,
+    ) -> tuple[dict[str, Any] | None, str]:
+        if force or not media_path.exists() or media_path.stat().st_size < min_bytes:
+            return None, ""
+        if check_collage and detect_split_collage(media_path) > 1:
+            return None, ""
+        fp = _scene_audit_fingerprint(
+            media_path,
+            sc,
+            matched_props,
+            anchor_path,
+            clip_variant=clip_variant,
+            audio_heard_pt=audio_heard_pt,
+        )
+        cached = cache_entries.get(cache_key)
+        if cached and cached.get("fingerprint") == fp and cached.get("checked") and cached.get("ok"):
+            return dict(cached.get("result") or {"checked": True, "ok": True, "reason": "cache_aprovado"}), fp
+        leg = legacy_approved.get(cache_key)
+        if leg and leg.get("checked") and leg.get("ok") and media_path.stat().st_mtime <= report_mtime + 2.0:
+            clean_res = {k: v for k, v in leg.items() if k not in ("clip_id", "scene_id", "path", "video_path")}
+            cache_entries[cache_key] = {"fingerprint": fp, "checked": True, "ok": True, "result": clean_res}
+            _save_audit_cache()
+            return dict(clean_res), fp
+        return None, fp
+
+    def _store_cached_approval(
+        cache_key: str,
+        media_path: Path,
+        sc: dict[str, Any],
+        matched_props: list[dict[str, str]],
+        anchor_path: Path | None,
+        res: dict[str, Any],
+        clip_variant: str = "",
+        audio_heard_pt: str = "",
+    ) -> None:
+        if not (res.get("checked") and res.get("ok")):
+            return
+        fp = _scene_audit_fingerprint(
+            media_path,
+            sc,
+            matched_props,
+            anchor_path,
+            clip_variant=clip_variant,
+            audio_heard_pt=audio_heard_pt,
+        )
+        cache_entries[cache_key] = {"fingerprint": fp, "checked": True, "ok": True, "result": dict(res)}
+        _save_audit_cache()
 
     sec_chars = script_data.get("secondary_characters") or []
     story_props = script_data.get("story_props") or []
@@ -414,6 +561,25 @@ def generate_and_audit_scenes(
                     final_vis = {"checked": True, "ok": False, "reason": f"erro geracao: {exc}"}
                     continue
 
+            if attempt == 1 and not need_gen:
+                cached_vis, _ = _lookup_cached_approval(
+                    f"img:{cid}",
+                    dst,
+                    sc,
+                    matched_props,
+                    anchor_for_vision,
+                    min_bytes=15000,
+                    clip_variant=str(clip.get("prompt_variant") or ""),
+                    audio_heard_pt=heard_by_scene.get(sid, ""),
+                    check_collage=True,
+                )
+                if cached_vis is not None:
+                    final_vis = cached_vis
+                    for mp in matched_props:
+                        prop_anchors.setdefault(mp["name"].lower(), dst)
+                    print(f"  [AUDIT-CACHE] {cid}: reaprovada do cache ({cached_vis.get('reason', 'OK')})", flush=True)
+                    break
+
             if attempt == 1 and not force_audit_cached and not force and dst.exists():
                 final_vis = {"checked": False, "ok": True, "reason": "cache_aprovado"}
                 break
@@ -430,6 +596,16 @@ def generate_and_audit_scenes(
             )
             final_vis = vis
             if vis.get("ok", False):
+                _store_cached_approval(
+                    f"img:{cid}",
+                    dst,
+                    sc,
+                    matched_props,
+                    anchor_for_vision,
+                    vis,
+                    clip_variant=str(clip.get("prompt_variant") or ""),
+                    audio_heard_pt=heard_by_scene.get(sid, ""),
+                )
                 for mp in matched_props:
                     prop_anchors.setdefault(mp["name"].lower(), dst)
                 print(f"  [AUDIT-CENA] {cid}: APROVADA ({vis.get('reason', 'OK')})", flush=True)
@@ -515,7 +691,7 @@ def generate_and_audit_scenes(
                             err_low = str(exc).lower()
                             v_vis = {"checked": True, "ok": False, "reason": f"erro Veo: {exc}"}
                             print(f"  [AUDIT-VIDEO] {sid}.mp4 erro na geracao: {exc}", flush=True)
-                            if is_quota_error_text(str(exc)) or "todas as contas flow" in err_low or "nenhuma conta google flow" in err_low:
+                            if is_quota_error_text(str(exc)) or "esgotaram" in err_low or "nenhuma conta google flow" in err_low:
                                 veo_quota_exhausted = True
                                 break
                             if v_try < v_attempts:
@@ -525,6 +701,23 @@ def generate_and_audit_scenes(
                     if not v_mp4.exists() or v_mp4.stat().st_size <= 50000:
                         v_vis = {"checked": True, "ok": False, "reason": "video Veo ausente"}
                         break
+
+                    if v_try == 1 and not need_veo_gen:
+                        cached_vid, _ = _lookup_cached_approval(
+                            f"vid:{sid}",
+                            v_mp4,
+                            sc,
+                            matched_props,
+                            prop_refs[0] if prop_refs else None,
+                            min_bytes=50001,
+                            audio_heard_pt=heard_by_scene.get(sid, ""),
+                        )
+                        if cached_vid is not None:
+                            v_vis = cached_vid
+                            v_approved = True
+                            _extract_stills_for_veo_subclips(v_mp4, sc_clips, images_dir)
+                            print(f"  [AUDIT-CACHE] {sid}.mp4: reaprovado do cache ({cached_vid.get('reason', 'OK')})", flush=True)
+                            break
 
                     with tempfile.TemporaryDirectory() as td:
                         kf = _extract_video_keyframes(v_mp4, Path(td), sid, count=3)
@@ -536,9 +729,19 @@ def generate_and_audit_scenes(
                             anchor_prop_image=prop_refs[0] if prop_refs else None,
                             strict_vision=strict_vision,
                             audio_heard_pt=heard_by_scene.get(sid, ""),
+                            is_video_keyframes=True,
                         )
                     if v_vis.get("ok", False):
                         v_approved = True
+                        _store_cached_approval(
+                            f"vid:{sid}",
+                            v_mp4,
+                            sc,
+                            matched_props,
+                            prop_refs[0] if prop_refs else None,
+                            v_vis,
+                            audio_heard_pt=heard_by_scene.get(sid, ""),
+                        )
                         _extract_stills_for_veo_subclips(v_mp4, sc_clips, images_dir)
                         print(f"  [AUDIT-VIDEO] {sid}.mp4: APROVADO ({v_vis.get('reason', 'OK')})", flush=True)
                         break

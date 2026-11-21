@@ -110,7 +110,7 @@ def save_accounts_state(st: dict[str, Any]) -> None:
 
 def cdp_is_alive(port: int) -> bool:
     try:
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=2):
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=0.6):
             return True
     except Exception:
         return False
@@ -407,7 +407,7 @@ async def inspect_all_accounts_status() -> list[dict[str, Any]]:
             "logged_in": False,
             "email": rec.get("email", ""),
             "credits_used_today": int(rec.get("credits_used_today", 0)),
-            "credits_remaining_est": max(0, int(cfg.get("max_credits_per_account_per_day", 50)) - int(rec.get("credits_used_today", 0))),
+            "credits_remaining_est": max(0, int(acc.get("max_credits") or cfg.get("max_credits_per_account_per_day", 50)) - int(rec.get("credits_used_today", 0))),
             "exhausted_today": bool(rec.get("exhausted_today", False)),
             "project_url": acc.get("project_url", ""),
             "characters": {},
@@ -463,6 +463,7 @@ async def generate_video_with_failover(
 
     sec_portrait_dir = (proj_dir / "assets" / "characters") if proj_dir else (CHARACTERS_REF_DIR / "episode_portraits")
     last_err: Exception | None = None
+    had_non_quota_err = False
     for acc in candidates:
         port = int(acc["cdp_port"])
         if not cdp_is_alive(port):
@@ -553,11 +554,14 @@ async def generate_video_with_failover(
                         mark_account_usage(acc["id"], credits_delta=0, exhausted=True, email=email)
                     else:
                         print(f"[FlowFailover] Erro de UI/sessao em {acc['id']} ({email}): {err_txt}; tentando proxima conta...", flush=True)
+                        had_non_quota_err = True
                     last_err = exc
                     continue
             finally:
                 await b.close()
 
+    if had_non_quota_err:
+        raise RuntimeError(f"Erro transitorio de UI/sessao nas contas Flow disponiveis: {last_err}")
     raise RuntimeError(f"Todas as contas Flow disponíveis falharam ou esgotaram 50 créditos hoje: {last_err}")
 
 
