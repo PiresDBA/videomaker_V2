@@ -180,6 +180,8 @@ NEGATIVE_IMAGE_RULE = (
 
 CREDENTIALS_DIR = BASE_DIR / ".credentials"
 CHIRP3_CREDENTIALS_DEFAULT = CREDENTIALS_DIR / "google_cloud_tts.json"
+CHIRP3_OAUTH_CLIENT_DEFAULT = CREDENTIALS_DIR / "client_secret_tts.json"
+CHIRP3_OAUTH_TOKEN_DEFAULT = CREDENTIALS_DIR / "cloud_tts_token.json"
 CHIRP3_USAGE_STATE_FILE = CREDENTIALS_DIR / "chirp3_usage.json"
 CHIRP3_MONTHLY_CHAR_LIMIT = 950_000  # Trava de seguranca abaixo da franquia gratuita de 1.000.000 chars/mes
 

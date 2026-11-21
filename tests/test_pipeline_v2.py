@@ -653,6 +653,21 @@ class TestVideomakerV2Unified(unittest.TestCase):
                 vs._consume_chirp3_chars(100, state_file=usage_file, limit=len("Olá Frida!") + 10)
             self.assertIn("TRAVA DE CUSTO CHIRP 3 HD", str(ctx.exception))
 
+            # Testa também autenticacao via OAuth 2.0 Desktop (token JSON + x-goog-user-project)
+            oauth_tok = td_p / "cloud_tts_token.json"
+            oauth_tok.write_text('{"token":"tok_user_oauth","refresh_token":"r1"}', encoding="utf-8")
+            fake_creds_obj = mock.MagicMock(valid=True, token="tok_user_oauth", quota_project_id="")
+            out_nar = td_p / "narrador.mp3"
+            with mock.patch.object(vs, "resolve_chirp3_credentials_path", return_value=None), \
+                 mock.patch("google.oauth2.credentials.Credentials.from_authorized_user_file", return_value=fake_creds_obj), \
+                 mock.patch.object(vs, "resolve_chirp3_oauth_paths", return_value=(None, oauth_tok, "ingles-514519")), \
+                 mock.patch("urllib.request.urlopen", side_effect=_fake_urlopen):
+                used_n, _ = vs._synthesize_chirp3_hd("Narracao teste", "narrador", out_nar, state_file=usage_file, token_path=oauth_tok)
+            self.assertEqual(used_n, "chirp3_hd:pt-BR-Chirp3-HD-Kore")
+            self.assertEqual(captured["headers"]["authorization"], "Bearer tok_user_oauth")
+            self.assertEqual(captured["headers"]["x-goog-user-project"], "ingles-514519")
+            self.assertEqual(captured["payload"]["voice"]["name"], "pt-BR-Chirp3-HD-Kore")
+
         # audit_voice_consistency aceita Chirp 3 HD travado e reprova troca de voz
         self.assertEqual(
             audit_voice_consistency([

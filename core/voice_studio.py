@@ -26,6 +26,8 @@ import numpy as np
 from config import (
     CHIRP3_CREDENTIALS_DEFAULT,
     CHIRP3_MONTHLY_CHAR_LIMIT,
+    CHIRP3_OAUTH_CLIENT_DEFAULT,
+    CHIRP3_OAUTH_TOKEN_DEFAULT,
     CHIRP3_USAGE_STATE_FILE,
     CPU_WORKERS,
     CREDENTIALS_DIR,
@@ -455,6 +457,90 @@ def _consume_chirp3_chars(
     return projected
 
 
+def _extract_oauth_project_id(secret_path: Path) -> str:
+    try:
+        data = json.loads(secret_path.read_text(encoding="utf-8", errors="ignore"))
+        inner = data.get("installed") or data.get("web") or {}
+        return str(inner.get("project_id") or "").strip()
+    except Exception:
+        return ""
+
+
+def resolve_chirp3_oauth_paths() -> tuple[Path | None, Path, str]:
+    """Localiza client_secret OAuth 2.0 (App para computador), arquivo de token e project_id de cota."""
+    quota_proj = (load_env_key("GOOGLE_CLOUD_TTS_PROJECT", ENV_FILE) or os.environ.get("GOOGLE_CLOUD_TTS_PROJECT") or "").strip()
+    client_path: Path | None = None
+
+    raw = (load_env_key("GOOGLE_CLOUD_TTS_OAUTH_CLIENT", ENV_FILE) or os.environ.get("GOOGLE_CLOUD_TTS_OAUTH_CLIENT") or "").strip()
+    if raw:
+        p = Path(raw)
+        if not p.is_absolute():
+            p = ENV_FILE.parent / p
+        if p.is_file():
+            client_path = p
+
+    if client_path is None and CHIRP3_OAUTH_CLIENT_DEFAULT.is_file():
+        client_path = CHIRP3_OAUTH_CLIENT_DEFAULT
+
+    if client_path is None and CREDENTIALS_DIR.is_dir():
+        for cand in sorted(CREDENTIALS_DIR.glob("client_secret*.json")):
+            pid = _extract_oauth_project_id(cand)
+            low_name = cand.name.lower()
+            if (quota_proj and pid == quota_proj) or ("ingles" in pid.lower()) or ("tts" in low_name) or ("ingles" in low_name):
+                client_path = cand
+                break
+
+    if not quota_proj and client_path is not None:
+        quota_proj = _extract_oauth_project_id(client_path)
+
+    return client_path, CHIRP3_OAUTH_TOKEN_DEFAULT, quota_proj
+
+
+def has_chirp3_auth_configured(token_path: Path = CHIRP3_OAUTH_TOKEN_DEFAULT) -> bool:
+    """Retorna True se houver Conta de Servico JSON ou token OAuth 2.0 salvo para Chirp 3 HD."""
+    return (resolve_chirp3_credentials_path() is not None) or token_path.is_file()
+
+
+def authenticate_chirp3_oauth(
+    client_secret_path: Path | None = None,
+    token_path: Path = CHIRP3_OAUTH_TOKEN_DEFAULT,
+) -> tuple[Path, str]:
+    """Autentica via OAuth 2.0 Desktop (sem precisar de Conta de Servico) e salva cloud_tts_token.json."""
+    from google.auth.transport.requests import Request
+    from google.oauth2.credentials import Credentials
+    from google_auth_oauthlib.flow import InstalledAppFlow
+
+    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+    resolved_client, default_tok, quota_proj = resolve_chirp3_oauth_paths()
+    cpath = client_secret_path or resolved_client
+    tpath = token_path or default_tok
+
+    if cpath is None or not cpath.is_file():
+        raise FileNotFoundError(
+            f"Arquivo OAuth 2.0 nao encontrado. Salve o JSON do cliente OAuth em {CHIRP3_OAUTH_CLIENT_DEFAULT}."
+        )
+    if not quota_proj:
+        quota_proj = _extract_oauth_project_id(cpath)
+
+    creds: Credentials | None = None
+    if tpath.is_file():
+        try:
+            creds = Credentials.from_authorized_user_file(str(tpath), scopes=scopes)
+        except Exception:
+            creds = None
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(str(cpath), scopes=scopes)
+            creds = flow.run_local_server(port=0)
+        tpath.parent.mkdir(parents=True, exist_ok=True)
+        tpath.write_text(creds.to_json(), encoding="utf-8")
+
+    return tpath, quota_proj
+
+
 def _get_chirp3_access_token(cred_path: Path) -> str:
     from google.auth.transport.requests import Request
     from google.oauth2 import service_account
@@ -472,27 +558,54 @@ def _get_chirp3_access_token(cred_path: Path) -> str:
     return str(creds.token)
 
 
+def _get_chirp3_auth_headers(token_path: Path = CHIRP3_OAUTH_TOKEN_DEFAULT) -> dict[str, str]:
+    """Retorna cabecalhos Authorization (+ x-goog-user-project no OAuth2 usuario) para Cloud TTS."""
+    cred_path = resolve_chirp3_credentials_path()
+    if cred_path is not None:
+        token = _get_chirp3_access_token(cred_path)
+        return {"Authorization": f"Bearer {token}"}
+
+    if token_path.is_file():
+        from google.auth.transport.requests import Request
+        from google.oauth2.credentials import Credentials
+
+        scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+        creds = Credentials.from_authorized_user_file(str(token_path), scopes=scopes)
+        if not creds.valid or not creds.token:
+            creds.refresh(Request())
+            token_path.write_text(creds.to_json(), encoding="utf-8")
+        _, _, quota_proj = resolve_chirp3_oauth_paths()
+        proj_id = quota_proj or str(getattr(creds, "quota_project_id", "") or "").strip()
+        hdrs = {"Authorization": f"Bearer {creds.token}"}
+        if proj_id:
+            hdrs["x-goog-user-project"] = proj_id
+        return hdrs
+
+    raise RuntimeError(
+        "Credencial Google Cloud TTS nao encontrada. Salve o JSON do cliente OAuth 2.0 em "
+        f"{CHIRP3_OAUTH_CLIENT_DEFAULT} e rode '--auth-chirp3', ou salve uma Conta de Servico em "
+        f"{CHIRP3_CREDENTIALS_DEFAULT}."
+    )
+
+
 def _synthesize_chirp3_hd(
     text: str,
     speaker: str,
     out_audio: Path,
     speaking_rate: float = 1.0,
     state_file: Path = CHIRP3_USAGE_STATE_FILE,
+    token_path: Path = CHIRP3_OAUTH_TOKEN_DEFAULT,
 ) -> tuple[str, str]:
     """Sintetiza via Google Cloud Text-to-Speech Chirp 3 HD (franquia 1M chars/mes) com OAuth2."""
-    cred_path = resolve_chirp3_credentials_path()
-    if cred_path is None:
-        raise RuntimeError(
-            "Credencial Google Cloud TTS nao encontrada. Salve o JSON da Conta de Servico em "
-            f"{CHIRP3_CREDENTIALS_DEFAULT}."
-        )
     profile = SPEAKER_VOICE_PROFILES.get(speaker, SPEAKER_VOICE_PROFILES["narrador"])
     chirp_voice = str(profile.get("chirp3_voice") or "")
     if not chirp_voice.startswith("pt-BR-Chirp3-HD-"):
         raise RuntimeError(f"Voz Chirp 3 HD invalida para '{speaker}': {chirp_voice}")
 
+    headers = _get_chirp3_auth_headers(token_path=token_path)
+    headers["Content-Type"] = "application/json; charset=utf-8"
     _consume_chirp3_chars(len(text), state_file=state_file, limit=CHIRP3_MONTHLY_CHAR_LIMIT)
-    token = _get_chirp3_access_token(cred_path)
+
     payload = json.dumps({
         "input": {"text": text},
         "voice": {"languageCode": "pt-BR", "name": chirp_voice},
@@ -501,7 +614,7 @@ def _synthesize_chirp3_hd(
     req = urllib.request.Request(
         "https://texttospeech.googleapis.com/v1/text:synthesize",
         data=payload,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json; charset=utf-8"},
+        headers=headers,
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=45) as resp:
@@ -619,7 +732,7 @@ def synthesize_all_scenes(
                             voice_override=v_choice, energy_boost=(attempt >= 2),
                         )
                     except Exception:
-                        if prov == "auto" and resolve_chirp3_credentials_path() is not None:
+                        if prov == "auto" and has_chirp3_auth_configured():
                             used_voice, emo_mode = _synthesize_chirp3_hd(
                                 tts_text, speaker, mp3_path, speaking_rate=(1.06 if attempt >= 2 else 1.0)
                             )

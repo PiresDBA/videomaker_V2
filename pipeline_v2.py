@@ -9,7 +9,16 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from config import CPU_WORKERS, MAX_IMAGE_SECONDS, PROJECTS_DIR, SCRIPT_MAX_WORDS, SCRIPT_MIN_WORDS, SHORT_TARGET_SECONDS, TARGET_VEO_VIDEOS
+from config import (
+    CHIRP3_MONTHLY_CHAR_LIMIT,
+    CPU_WORKERS,
+    MAX_IMAGE_SECONDS,
+    PROJECTS_DIR,
+    SCRIPT_MAX_WORDS,
+    SCRIPT_MIN_WORDS,
+    SHORT_TARGET_SECONDS,
+    TARGET_VEO_VIDEOS,
+)
 import core.pacing_planner as _pacing_mod
 import core.self_audit as _audit_mod
 from core.avatar_studio import build_luna_avatar_pack
@@ -29,7 +38,12 @@ from core.scene_auditor import generate_and_audit_scenes
 from core.script_engine import generate_script, normalize_script_records, validate_script_schema
 from core.self_audit import run_final_audit
 from core.video_assembler import assemble_video, export_short_9_16
-from core.voice_studio import synthesize_all_scenes
+from core.voice_studio import (
+    _load_chirp3_usage,
+    _synthesize_chirp3_hd,
+    authenticate_chirp3_oauth,
+    synthesize_all_scenes,
+)
 from core.youtube_publisher import publish_episode_youtube_pt, publish_shorts_pack_youtube_pt
 
 
@@ -55,6 +69,20 @@ def run_pipeline(args: argparse.Namespace) -> int:
         print("Avatar Luna gerado/atualizado:", {k: str(v) for k, v in created.items()})
         if args.stage == "avatar-only":
             return 0
+
+    if getattr(args, "auth_chirp3", False):
+        import tempfile
+
+        tok_path, proj_id = authenticate_chirp3_oauth()
+        print(f"Chirp 3 HD OAuth2 OK: token={tok_path} | quota_project={proj_id or '-'}", flush=True)
+        with tempfile.TemporaryDirectory() as td:
+            for spk in ("narrador", "frida", "luna"):
+                out_mp3 = Path(td) / f"smoke_{spk}.mp3"
+                used_v, _ = _synthesize_chirp3_hd("Oi! Tudo pronto!", spk, out_mp3)
+                print(f"  [Chirp3-Smoke] {spk:8s} -> {used_v} ({out_mp3.stat().st_size} bytes)", flush=True)
+        usage = _load_chirp3_usage()
+        print(f"Uso mensal Chirp 3 HD: {usage.get('chars_used', 0)}/{CHIRP3_MONTHLY_CHAR_LIMIT} caracteres", flush=True)
+        return 0
 
     if getattr(args, "flow_accounts_status", False):
         import asyncio
@@ -393,6 +421,7 @@ def main() -> int:
     ap.add_argument("--stage", choices=("all", "avatar-only", "script", "tts", "pacing", "images", "shorts", "audit", "publish"), default="all")
     ap.add_argument("--build-avatar", choices=("luna",), default="", help="Gera o pacote de avatar Luna dentro do programa")
     ap.add_argument("--tts-provider", choices=("gemini_emotion", "chirp3_hd", "auto"), default="gemini_emotion", help="Vozes emocionais Gemini TTS ou Cloud Chirp 3 HD travado (Regra de Ouro: Edge TTS proibido)")
+    ap.add_argument("--auth-chirp3", action="store_true", help="Autentica OAuth 2.0 para Google Cloud Chirp 3 HD e testa as vozes Kore/Sulafat/Leda")
     ap.add_argument("--short-engine", choices=("auto", "split_70_30", "split_60_40", "motion_hud", "remotion"), default="auto")
     ap.add_argument("--min-words", type=int, default=SCRIPT_MIN_WORDS, help="Minimo de palavras no roteiro")
     ap.add_argument("--max-words", type=int, default=SCRIPT_MAX_WORDS, help="Maximo de palavras no roteiro")
