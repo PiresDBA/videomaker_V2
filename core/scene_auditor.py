@@ -211,6 +211,8 @@ def audit_scene_visual_with_vision(
         "- ZERO unrequested dog breeds or random extra animals! Any extra creature (such as a literal red furry monster) MUST NOT appear unless explicitly listed in Expected Characters.\n"
         + (f"- Secondary Characters: {sec_desc}\n" if sec_desc else "")
         + (f"Story Key Objects (treated as FIXED characters, MUST keep exact same color, material and shape across ALL scenes): {props_desc}\n" if props_desc else "")
+        + ("NOTE: The first images attached are sequential temporal keyframes extracted from ONE single 8-second continuous video. Do NOT treat multiple sequential frames as a collage or split-screen; evaluate collage ONLY within an individual frame.\n"
+           if len(valid_frames) > 1 else "")
         + ("The LAST image attached is the reference anchor portrait for the story's key object/prop. REJECT (matches_story_props=false) if the key object in the scene changed color (e.g. white or pink instead of red velvet with golden hearts), changed design, or vanished when expected.\n"
            if anchor_prop_image and anchor_prop_image.exists() else "")
         + "Reject (false) if: the visual contradicts or ignores what the narration is saying, shows wrong dog breeds/colors, "
