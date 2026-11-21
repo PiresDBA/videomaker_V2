@@ -329,6 +329,10 @@ def _vision_match_scene(
                     with urllib.request.urlopen(req, timeout=28) as resp:
                         data = json.loads(resp.read().decode("utf-8"))
                     res = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
+                    if isinstance(res, list):
+                        res = next((x for x in res if isinstance(x, dict)), {})
+                    if not isinstance(res, dict):
+                        continue
                     conf = float(res.get("confidence") or 0.0)
                     if conf > 1.0:
                         conf = round(conf / (10.0 if conf <= 10.0 else 100.0), 3)

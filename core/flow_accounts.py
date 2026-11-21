@@ -762,8 +762,8 @@ async def ensure_story_characters_created(
                 await generate_flow_image(
                     page,
                     prompt=(
-                        f"Isolated single stylized 3D animated prop/object centered on soft neutral studio background, "
-                        f"full object clearly visible, NO dogs, NO animals, NO humans, NO text, NO collage: {pdesc}"
+                        f"Single 3D animated cartoon prop object centered on a clean soft neutral studio background, "
+                        f"crisp studio lighting, full object clearly visible and isolated: {pdesc}"
                     ),
                     out_jpg=portrait,
                     characters=(),

@@ -246,6 +246,10 @@ def audit_scene_visual_with_vision(
                         data = json.loads(resp.read().decode("utf-8"))
                     txt = data["candidates"][0]["content"]["parts"][0]["text"]
                     res = json.loads(txt)
+                    if isinstance(res, list):
+                        res = next((x for x in res if isinstance(x, dict)), {})
+                    if not isinstance(res, dict):
+                        raise ValueError(f"Vision JSON inesperado: {type(res).__name__}")
                     ok = (
                         bool(res.get("matches_narration", True))
                         and bool(res.get("matches_location", True))
