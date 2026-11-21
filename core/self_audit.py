@@ -13,6 +13,7 @@ from config import FFPROBE_EXE, MAX_IMAGE_SECONDS, SHORT_HEIGHT, SHORT_WIDTH, TH
 from core.audio_fx import detect_pauses_in_wav, run_earshot_critique
 from core.legacy_auditor import audit_image_with_vision
 from core.media_studio import detect_split_collage
+from core.scene_auditor import audit_voice_consistency
 from core.script_engine import count_total_words, validate_script_schema
 
 
@@ -72,6 +73,7 @@ def run_final_audit(
         elif t.get("qa") and not t["qa"].get("ok", True):
             audio_failures.append(f"{t.get('scene_id')}: Whisper QA reprovado ({t['qa'].get('reason')})")
     issues.extend(f"audio: {e}" for e in audio_failures)
+    issues.extend(f"voice: {e}" for e in audit_voice_consistency(tts_timings))
 
     # 3. Cenas x Imagens (ritmo <= 5s, sem colagem, resolucao, coerencia visual opcional)
     image_failures = []
@@ -130,6 +132,9 @@ def run_final_audit(
             if tim.size != (THUMB_WIDTH, THUMB_HEIGHT):
                 issues.append(f"thumb {tp.name}: tamanho {tim.size} != {THUMB_WIDTH}x{THUMB_HEIGHT}")
 
+    videos_dir = images_dir.parent / "videos"
+    veo_count = len(list(videos_dir.glob("*.mp4"))) if videos_dir.exists() else 0
+
     report = {
         "approved": len(issues) == 0,
         "issues_count": len(issues),
@@ -138,6 +143,7 @@ def run_final_audit(
             "words": count_total_words(script_data),
             "scenes": len(script_data.get("scenes", [])),
             "visual_clips": len(visual_clips),
+            "veo_videos": veo_count,
             "thumbs": len(thumb_files),
             "detected_pauses": len(pauses),
         },

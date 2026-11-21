@@ -265,6 +265,18 @@ async def _snapshot_top_tiles(page, limit: int = 6) -> list[dict[str, Any]]:
     )
 
 
+def _inject_at_character_mentions(prompt: str, attached_chars: list[str]) -> str:
+    """Garante mencoes @Personagem (ex.: @Frida @Luna @Pipoca) no prompt para trava no Flow."""
+    clean_names = []
+    for ch in attached_chars:
+        name = ch.split(":", 1)[-1].strip()
+        if name and f"@{name.lower()}" not in prompt.lower():
+            clean_names.append(f"@{name}")
+    if not clean_names:
+        return prompt
+    return f"{' '.join(clean_names)}: {prompt}"
+
+
 async def generate_flow_image(
     page,
     prompt: str,
@@ -293,6 +305,7 @@ async def generate_flow_image(
     before_srcs = {im["src"] for t in before for im in t["imgs"] if im["src"]}
 
     prompt = enforce_baby_puppy_prompt(prompt)
+    prompt = _inject_at_character_mentions(prompt, [a for a in attached if a.startswith("char:")])
     ed = page.locator('[contenteditable="true"]').last
     await ed.click()
     await ed.fill(prompt)
@@ -372,6 +385,7 @@ async def generate_flow_video(
     before_arias = [t["aria"] for t in before]
 
     prompt = enforce_baby_puppy_prompt(prompt)
+    prompt = _inject_at_character_mentions(prompt, [a for a in attached if a.startswith("char:")])
     ed = page.locator('[contenteditable="true"]').last
     await ed.click()
     await ed.fill(prompt)

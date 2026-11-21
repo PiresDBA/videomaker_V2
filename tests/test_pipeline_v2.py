@@ -369,6 +369,52 @@ class TestVideomakerV2Unified(unittest.TestCase):
         self.assertEqual(len(wins), 3)
         self.assertLess(wins[2]["end"], fake_clips[-2]["start"] + 0.5)
 
+    def test_voice_lock_story_props_at_mentions_and_veo_selection(self):
+        from core.flow_continuity import _inject_at_character_mentions
+        from core.media_studio import select_veo_scenes
+        from core.scene_auditor import audit_voice_consistency
+
+        # 1. Trava de vozes (Kore/Sulafat/Leda sem troca)
+        ok_timings = [
+            {"scene_id": "sc_01", "speaker": "narrador", "voice": "gemini-3.8-flash-tts:Kore"},
+            {"scene_id": "sc_02", "speaker": "frida", "voice": "gemini-3.8-flash-tts:Sulafat"},
+            {"scene_id": "sc_03", "speaker": "luna", "voice": "gemini-3.8-flash-tts:Leda"},
+        ]
+        self.assertEqual(audit_voice_consistency(ok_timings), [])
+        bad_timings = ok_timings + [
+            {"scene_id": "sc_17", "speaker": "narrador", "voice": "gemini-3.8-flash-tts:Puck"},
+        ]
+        self.assertTrue(audit_voice_consistency(bad_timings))
+
+        # 2. Consistencia de objeto-chave por episodio (story_props) e mencao @Personagem
+        norm = normalize_script_records({
+            "title": "A Caminha Nova",
+            "secondary_characters": [{"name": "Pipoca", "description": "Cute 3D Chihuahua puppy"}],
+            "story_props": [{"name": "Caminha", "description": "Round red velvet dog bed with gold hearts"}],
+            "scenes": [
+                {
+                    "scene_id": "sc_01", "speaker": "luna", "text": "Olha a caminha e o Pipoca!",
+                    "location": "cozy living room", "visual_action": "Luna and Pipoca near the bed",
+                }
+            ],
+        })
+        self.assertEqual(norm["story_props"][0]["name"], "Caminha")
+        p = build_image_prompt(
+            norm["scenes"][0],
+            secondary_characters=norm["secondary_characters"],
+            story_props=norm["story_props"],
+        )
+        self.assertIn("Round red velvet dog bed with gold hearts", p["positive"])
+        self.assertIn("@Pipoca", p["positive"])
+        flow_txt = _inject_at_character_mentions("running in park", ["char:Frida", "char:Pipoca"])
+        self.assertTrue(flow_txt.startswith("@Frida @Pipoca:"))
+
+        # 3. Selecao de 10 cenas para Veo 3.1 Lite (8s cada)
+        big_script = _make_sample_script(22)
+        veo_sel = select_veo_scenes(big_script, [], target_count=10)
+        self.assertEqual(len(veo_sel), 10)
+        self.assertEqual(len({s["scene_id"] for s in veo_sel}), 10)
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():

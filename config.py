@@ -128,6 +128,8 @@ CTA_TAIL_SECONDS = 10.0
 MAX_IMAGE_SECONDS = 5.0
 MIN_IMAGE_SECONDS = 3.5
 TARGET_BEAT_SECONDS = 4.2
+TARGET_VEO_VIDEOS = 10
+VOICE_LOCK_STRICT = True
 
 SHORT_MIN_SECONDS = 30.0
 SHORT_MAX_SECONDS = 40.0
@@ -182,9 +184,9 @@ GEMINI_TTS_MODELS = ("gemini-3.8-flash-tts", "gemini-2.5-flash-preview-tts")
 SPEAKER_VOICE_PROFILES = {
     "narrador": {
         "gemini_voice": "Kore",
-        "gemini_alt_voices": ("Puck", "Aoede"),
+        "gemini_alt_voices": (),
         "profile": "narrador",
-        "emotion": "Narre com energia contagiante, curiosidade e ritmo vivo de storytelling infantil",
+        "emotion": "Narradora feminina única do início ao fim: narre com energia contagiante, curiosidade e ritmo vivo de storytelling infantil",
         "edge_voice": "pt-BR-ThalitaNeural",
         "edge_rate": "+6%",
         "edge_pitch": "+4Hz",
@@ -192,9 +194,9 @@ SPEAKER_VOICE_PROFILES = {
     },
     "frida": {
         "gemini_voice": "Sulafat",
-        "gemini_alt_voices": ("Aoede", "Leda"),
+        "gemini_alt_voices": (),
         "profile": "infantil",
-        "emotion": "Voz feminina doce, calorosa, levemente grave e expressiva de buldogue simpatica",
+        "emotion": "Voz feminina infantil feliz, doce, alegre, calorosa e expressiva de cachorrinha simpática",
         "edge_voice": "pt-BR-FranciscaNeural",
         "edge_rate": "-2%",
         "edge_pitch": "-5Hz",
@@ -202,9 +204,9 @@ SPEAKER_VOICE_PROFILES = {
     },
     "luna": {
         "gemini_voice": "Leda",
-        "gemini_alt_voices": ("Zephyr", "Puck"),
+        "gemini_alt_voices": (),
         "profile": "infantil",
-        "emotion": "Voz feminina infantil brilhante, rapida, curiosa e dramatica de cachorrinha agitada",
+        "emotion": "Voz feminina infantil feliz, brilhante, animada, curiosa e brincalhona de cachorrinha alegre",
         "edge_voice": "pt-BR-ThalitaNeural",
         "edge_rate": "+12%",
         "edge_pitch": "+12Hz",
@@ -212,7 +214,7 @@ SPEAKER_VOICE_PROFILES = {
     },
     "secundario": {
         "gemini_voice": "Puck",
-        "gemini_alt_voices": ("Fenrir", "Orus"),
+        "gemini_alt_voices": (),
         "profile": "narrador",
         "emotion": "Voz divertida, expressiva e teatral de personagem coadjuvante de desenho animado",
         "edge_voice": "pt-BR-AntonioNeural",

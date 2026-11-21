@@ -427,6 +427,16 @@ def synthesize_all_scenes(
     raw_dir.mkdir(parents=True, exist_ok=True)
     wav_dir.mkdir(parents=True, exist_ok=True)
 
+    prev_timings_path = audio_dir.parent.parent / "artifacts" / "tts_timings_v2.json"
+    prev_voice_map: dict[str, str] = {}
+    if prev_timings_path.exists():
+        try:
+            for item in json.loads(prev_timings_path.read_text(encoding="utf-8")):
+                if isinstance(item, dict) and item.get("scene_id") and item.get("voice"):
+                    prev_voice_map[str(item["scene_id"])] = str(item["voice"])
+        except Exception:
+            pass
+
     timings: list[dict[str, Any]] = []
     for sc in script_data.get("scenes", []):
         sid = sc["scene_id"]
@@ -438,17 +448,21 @@ def synthesize_all_scenes(
         mp3_path = raw_dir / f"{sid}.mp3"
         wav_path = wav_dir / f"{sid}.wav"
 
-        if not force and wav_path.exists() and wav_path.stat().st_size > 4000:
+        profile = SPEAKER_VOICE_PROFILES.get(speaker, SPEAKER_VOICE_PROFILES["narrador"])
+        locked_voice = profile["gemini_voice"]
+        prev_v = prev_voice_map.get(sid, "")
+        voice_matches_lock = (not prev_v) or prev_v.endswith(f":{locked_voice}") or prev_v == locked_voice
+
+        if not force and voice_matches_lock and wav_path.exists() and wav_path.stat().st_size > 4000:
             dur = probe_duration(wav_path)
             if dur > 0.2:
                 timings.append({
-                    "scene_id": sid, "speaker": speaker, "wav_path": str(wav_path),
+                    "scene_id": sid, "speaker": speaker,
+                    "voice": prev_v or f"locked:{locked_voice}",
+                    "wav_path": str(wav_path),
                     "duration": dur, "emotion_mode": "cached", "qa": {"ok": True, "cached": True},
                 })
                 continue
-
-        profile = SPEAKER_VOICE_PROFILES.get(speaker, SPEAKER_VOICE_PROFILES["narrador"])
-        alt_voices = (profile["gemini_voice"],) + tuple(profile.get("gemini_alt_voices", ()))
 
         qa_report: dict[str, Any] = {"ok": False}
         prosody_report: dict[str, Any] = {"ok": True, "motivos": []}
@@ -457,7 +471,8 @@ def synthesize_all_scenes(
 
         for attempt in range(1, max_attempts + 1):
             try:
-                v_choice = alt_voices[(attempt - 1) % len(alt_voices)] if attempt >= 2 else alt_voices[0]
+                # REGRA DE OURO: trava absoluta de voz por personagem (proibido alternar para outra voz)
+                v_choice = locked_voice
                 used_voice, emo_mode = _synthesize_gemini_direct(
                     tts_text, speaker, emo_dir, mp3_path,
                     voice_override=v_choice, energy_boost=(attempt >= 2),

@@ -24,6 +24,8 @@ def build_pacing_plan(
     cursor = 0.0
     kb_idx = 0
     scenes = script_data.get("scenes", [])
+    sec_chars = script_data.get("secondary_characters") or []
+    story_props = script_data.get("story_props") or []
 
     for sc_idx, sc in enumerate(scenes):
         sid = sc["scene_id"]
@@ -42,7 +44,12 @@ def build_pacing_plan(
         for p_idx in range(n_parts):
             variant = _SPLIT_VARIANTS[p_idx % len(_SPLIT_VARIANTS)]
             img_key = f"{sid}_p{p_idx + 1}"
-            prompts_manifest[img_key] = build_image_prompt(sc, variant=variant)
+            prompts_manifest[img_key] = build_image_prompt(
+                sc,
+                variant=variant,
+                secondary_characters=sec_chars,
+                story_props=story_props,
+            )
 
             kb_preset = KEN_BURNS_PRESETS[kb_idx % len(KEN_BURNS_PRESETS)]
             kb_idx += 1
@@ -57,6 +64,8 @@ def build_pacing_plan(
                 "speaker": speaker,
                 "location": sc.get("location", ""),
                 "text": sc.get("text", ""),
+                "visual_action": sc.get("visual_action", ""),
+                "characters": list(sc.get("characters") or ["Frida", "Luna"]),
                 "sfx": sc.get("sfx") if p_idx == 0 else None,
                 "avatar_mode": avatar_mode,
                 "avatar_pip": avatar_mode != "none",

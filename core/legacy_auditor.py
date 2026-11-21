@@ -189,9 +189,9 @@ def import_and_upgrade_legacy(
     legacy_dir: Path,
     target_proj_dir: Path,
     reuse_clean_images: bool = True,
-    vision_filter: bool = False,
+    vision_filter: bool = True,
 ) -> dict[str, Any]:
-    """Converte um projeto legado para v2: reescreve roteiro em 3 atos e reaproveita imagens limpas."""
+    """Converte um projeto legado para v2: reescreve roteiro em 3 atos e so reaproveita imagens aprovadas na visao."""
     report = scan_legacy_project(legacy_dir)
     script_p = legacy_dir / "artifacts" / "script.json"
     if not script_p.exists():
@@ -210,16 +210,19 @@ def import_and_upgrade_legacy(
     if not out_script.exists():
         prompt = (
             f"{SYSTEM_PROMPT}\n\n"
-            f"ADAPTE E MELHORE ESTA HISTÓRIA EXISTENTE DO CANAL ('{legacy_title}') PARA O FORMATO V2 DE ALTA RETENÇÃO (450-550 PALAVRAS, 3 ATOS, DIÁLOGO VIVO FRIDA x LUNA):\n"
-            f"{summary_text}"
+            f"ADAPTE E MELHORE ESTA HISTÓRIA EXISTENTE DO CANAL ('{legacy_title}') PARA O FORMATO V2 DE ALTA RETENÇÃO (OBRIGATÓRIO: ENTRE 450 E 550 PALAVRAS NO TOTAL, 3 ATOS, DIÁLOGO VIVO FRIDA x LUNA, COM 'story_props' PARA OBJETOS RECORRENTES E 'secondary_characters' SE HOUVER OUTROS PERSONAGENS).\n"
+            f"IMPORTANTE: Frida é uma buldogue inglesa caramelo-dourada de colar de pérolas (NUNCA preta/branca manchada); Luna é uma salsicha marrom-chocolate de correntinhas douradas.\n"
+            f"BASE DA HISTÓRIA:\n{summary_text}"
         )
         raw_resp = _call_gemini_text_api(prompt)
         parsed = normalize_script_records(extract_json_object(raw_resp))
         errs = validate_script_schema(parsed)
-        if errs:
-            # 1 retry automatico com feedback
+        for _retry in range(2):
+            if not errs:
+                break
             raw_resp = _call_gemini_text_api(prompt + f"\n\nCORRIJA EXATAMENTE ESTES ERROS: {'; '.join(errs)}")
             parsed = normalize_script_records(extract_json_object(raw_resp))
+            errs = validate_script_schema(parsed)
         out_script.write_text(json.dumps(parsed, ensure_ascii=False, indent=2), encoding="utf-8")
     else:
         parsed = normalize_script_records(json.loads(out_script.read_text(encoding="utf-8")))

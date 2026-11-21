@@ -49,15 +49,18 @@ REGRAS OBRIGATÓRIAS DE RETENÇÃO, EMOÇÃO E ESTRUTURA:
 6. CENAS CURTAS E PORTUGUÊS LIMPO: 1 a 2 frases curtas por cena (12 a 26 palavras). Zero risadas escritas ("Hahaha", "kkkk") e acentuação perfeita ("cães", "já", "céu", "é", "patinha", "passarinhos", "coro", "piadas").
 7. CENÁRIO CONSISTENTE: Defina "location" em TODA cena preservando continuidade geográfica lógica.
 8. IDADE E ESTILO DOS PERSONAGENS (PADRÃO CRIANÇA / AVATAR 3D DISNEY-PIXAR): Em TODA descrição de "visual_action", descreva Frida e Luna com aparência jovem de criança/pré-adolescente (filhotes jovens de até 1 ano no máximo, equivalentes a crianças de 5 a 10 anos em animação 3D Disney/Pixar, fiéis ao avatar oficial: graciosas, olhos grandes expressivos, traços arredondados de desenho animado — NUNCA cães adultos/velhos nem cães reais fotorrealistas; use versão bebê recém-nascido apenas se a cena for explicitamente um flashback de quando eram bebês).
-9. CONTINUIDADE DE PERSONAGENS SECUNDÁRIOS: Sempre que houver outro personagem recorrente na história (ex.: gato Pingo, pombo, esquilo, outro cão), declare-o na lista de topo "secondary_characters": [{"name": "NomeCurto", "description": "Descrição visual 3D Disney/Pixar completa e fixa do personagem (espécie, cor exata da pelagem/penas, olhos, acessório)"}] e inclua o campo "characters": ["Frida", "Luna", "NomeCurto"] em TODA cena em que ele aparecer, repetindo suas características físicas em "visual_action".
+9. CONTINUIDADE DE PERSONAGENS SECUNDÁRIOS: Sempre que houver outro personagem recorrente na história (ex.: chihuahua Pipoca, gato Pingo, pombo, esquilo), declare-o na lista de topo "secondary_characters": [{"name": "NomeCurto", "description": "Descrição visual 3D Disney/Pixar completa e fixa do personagem (espécie, raça, cor exata da pelagem/penas, olhos, acessório)"}] e inclua o campo "characters": ["Frida", "Luna", "NomeCurto"] em TODA cena em que ele aparecer, referenciando @NomeCurto e repetindo suas características físicas em "visual_action".
+10. CONSISTÊNCIA DE OBJETOS-CHAVE DA HISTÓRIA (POR VÍDEO): Todo objeto central que se repete ao longo do episódio (ex.: caminha nova, bola favorita, mochila, caixa misteriosa) DEVE ser declarado na lista de topo "story_props": [{"name": "NomeObjeto", "description": "Descrição visual exata e imutável do objeto (forma, cor, material, estampa, tamanho)"}] e mantido idêntico do início ao fim deste vídeo. Quando um vídeo novo começar, os objetos e personagens secundários são zerados para a nova história — apenas Frida e Luna são personagens fixos globais.
 
-FORMATO DE SAÍDA (APENAS JSON puro, sem markdown):
+FORMATOS DE SAÍDA (APENAS JSON puro, sem markdown):
 {
   "title": "Título curto <= 55 caracteres com curiosidade",
   "thumb_hook": "2 A 3 PALAVRAS",
   "description": "Descrição curta otimizada para YouTube",
   "tags": ["frida e luna", "historia infantil"],
   "target_minutes": 3.5,
+  "secondary_characters": [],
+  "story_props": [{"name": "Caminha", "description": "Round plush red velvet dog bed embroidered with small golden hearts"}],
   "scenes": [
     {
       "scene_id": "sc_01",
@@ -104,6 +107,14 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
             cdesc = " ".join(str(item.get("description") or "").split())
             sec_chars_out.append({"name": cname, "description": cdesc})
             sec_names.append(cname)
+
+    props_in = data.get("story_props") or []
+    props_out: list[dict[str, str]] = []
+    for item in props_in:
+        if isinstance(item, dict) and str(item.get("name") or "").strip():
+            pname = " ".join(str(item["name"]).split())
+            pdesc = " ".join(str(item.get("description") or "").split())
+            props_out.append({"name": pname, "description": pdesc})
 
     raw_scenes = data.get("scenes", [])
     scenes_out = []
@@ -165,6 +176,7 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
         "tags": list(data.get("tags") or ["frida e luna", "cachorros falantes", "animacao 3d"]),
         "target_minutes": float(data.get("target_minutes") or 3.5),
         "secondary_characters": sec_chars_out,
+        "story_props": props_out,
         "scenes": scenes_out,
     }
     return out

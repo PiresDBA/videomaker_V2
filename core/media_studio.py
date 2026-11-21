@@ -15,6 +15,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 from config import (
     NEGATIVE_IMAGE_RULE,
     POSITIVE_IMAGE_RULE,
+    TARGET_VEO_VIDEOS,
     THUMB_HEIGHT,
     THUMB_WIDTH,
     VENDOR_DIR,
@@ -57,9 +58,11 @@ def sanitize_image_prompt(text: str) -> str:
 def build_image_prompt(
     scene: dict[str, Any],
     variant: str = "main",
-    max_chars: int = 2200,
-) -> dict[str, str]:
-    """Gera prompt positivo e negativo travados na Biblia Visual e na localizacao da cena."""
+    max_chars: int = 2400,
+    secondary_characters: list[dict[str, str]] | None = None,
+    story_props: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    """Gera prompt positivo e negativo travados na Biblia Visual, personagens secundarios e objetos da historia."""
     location = sanitize_image_prompt(scene.get("location") or "")
     action = sanitize_image_prompt(scene.get("visual_action") or scene.get("text") or "")
     if not location:
@@ -75,13 +78,27 @@ def build_image_prompt(
     elif speaker == "luna":
         focus_hint = "Luna is the main focal point of the action."
 
+    scene_chars = [str(c).strip() for c in (scene.get("characters") or ["Frida", "Luna"]) if str(c).strip()]
+    sec_map = {str(s.get("name") or "").strip().lower(): s for s in (secondary_characters or []) if isinstance(s, dict)}
+    sec_notes = []
+    for ch in scene_chars:
+        if ch.lower() in sec_map and sec_map[ch.lower()].get("description"):
+            sec_notes.append(f"@{ch} ({ch}): {sanitize_image_prompt(sec_map[ch.lower()]['description'])}")
+
+    prop_notes = []
+    for pr in (story_props or []):
+        if isinstance(pr, dict) and pr.get("name") and pr.get("description"):
+            prop_notes.append(f"{pr['name']}: {sanitize_image_prompt(pr['description'])}")
+
+    bible_parts = [VISUAL_BIBLE["frida"], VISUAL_BIBLE["luna"], *sec_notes]
     positive_parts = [
         POSITIVE_IMAGE_RULE,
         f"Environment strictly locked to: {location}",
-        f"Action: {action}",
+        f"Action matching narration: {action}",
         focus_hint,
+        (f"Story Objects Continuity (MUST look identical in every scene): {'; '.join(prop_notes)}" if prop_notes else ""),
         f"Camera framing: {cam_note}",
-        f"Character Bible: {VISUAL_BIBLE['frida']}; {VISUAL_BIBLE['luna']}",
+        f"Character Bible: {'; '.join(bible_parts)}",
         f"Style: {VISUAL_BIBLE['style']}",
     ]
     positive = ". ".join(p.strip().rstrip(".") for p in positive_parts if p and p.strip()) + "."
@@ -92,18 +109,27 @@ def build_image_prompt(
         "positive": positive,
         "negative": NEGATIVE_IMAGE_RULE,
         "combined": f"{positive}\nNegative prompt: {NEGATIVE_IMAGE_RULE}",
+        "characters": scene_chars,
+        "story_props": list(story_props or []),
+        "location": location,
+        "visual_action": action,
+        "narration_pt": str(scene.get("text") or ""),
     }
 
 
 def generate_prompts_for_script(
     script_data: dict[str, Any],
     out_path: Path | None = None,
-) -> dict[str, dict[str, str]]:
+) -> dict[str, dict[str, Any]]:
     """Cria o manifesto inicial de prompts (1 prompt base por cena)."""
-    prompts: dict[str, dict[str, str]] = {}
+    prompts: dict[str, dict[str, Any]] = {}
+    sec_chars = script_data.get("secondary_characters") or []
+    props = script_data.get("story_props") or []
     for sc in script_data.get("scenes", []):
         sid = sc["scene_id"]
-        prompts[f"{sid}_p1"] = build_image_prompt(sc, variant="main")
+        prompts[f"{sid}_p1"] = build_image_prompt(
+            sc, variant="main", secondary_characters=sec_chars, story_props=props
+        )
     if out_path is not None:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(json.dumps(prompts, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -161,37 +187,100 @@ def generate_single_image(
     ref_image: Path | None = None,
     wait_s: int = 240,
     pause_s: float = 3.0,
+    characters: tuple[str, ...] = ("Frida", "Luna"),
+    ref_images: tuple[Path, ...] = (),
+    script_data: dict[str, Any] | None = None,
+    ensured_accounts: set[str] | None = None,
 ) -> Path:
-    """Gera uma unica imagem via Flow (CDP direto Nov-2026 ou flow_fetch) com fallback para Gemini Web."""
+    """Gera uma unica imagem via Flow (CDP direto com @Personagem + ref de objeto) com fallback."""
     flow_script = VENDOR_DIR / "flow_fetch.py"
     gemini_script = VENDOR_DIR / "gemini_fetch.py"
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Caminho preferencial: motor direto core.flow_continuity (Nano Banana 2.1, x1, 0 creditos) quando CDP estiver vivo
+    # Caminho preferencial: motor direto core.flow_continuity (Nano Banana 2.1, x1, 0 creditos) usando pool CDP ativo
     try:
-        import asyncio, urllib.request
+        import asyncio, os, urllib.request
         from core.flow_continuity import DEFAULT_CDP_URL, DEFAULT_FLOW_PROJECT_URL, generate_flow_image
+        from core.flow_accounts import (
+            cdp_is_alive,
+            ensure_story_characters_created,
+            get_next_available_accounts,
+            load_accounts_config,
+            upload_media_to_flow,
+        )
         from playwright.async_api import async_playwright
 
-        with urllib.request.urlopen(f"{DEFAULT_CDP_URL}/json/version", timeout=2):
-            pass
+        candidates: list[tuple[str, str]] = []
+        seen_urls: set[str] = set()
+        accounts_cfg = load_accounts_config().get("accounts", [])
+        port_to_proj = {f"http://127.0.0.1:{int(a['cdp_port'])}": a.get("project_url") or DEFAULT_FLOW_PROJECT_URL for a in accounts_cfg}
 
-        async def _run_direct():
+        env_cdp = os.environ.get("GEMINI_CDP_URL", "").strip().rstrip("/")
+        if env_cdp:
+            candidates.append((env_cdp, port_to_proj.get(env_cdp, DEFAULT_FLOW_PROJECT_URL)))
+            seen_urls.add(env_cdp)
+
+        for acc in get_next_available_accounts(ignore_soft_daily_cap=True):
+            port = int(acc["cdp_port"])
+            cdp_url = f"http://127.0.0.1:{port}"
+            if cdp_url not in seen_urls and cdp_is_alive(port):
+                candidates.append((cdp_url, acc.get("project_url") or DEFAULT_FLOW_PROJECT_URL))
+                seen_urls.add(cdp_url)
+
+        if DEFAULT_CDP_URL not in seen_urls:
+            try:
+                with urllib.request.urlopen(f"{DEFAULT_CDP_URL}/json/version", timeout=2):
+                    candidates.append((DEFAULT_CDP_URL, port_to_proj.get(DEFAULT_CDP_URL, DEFAULT_FLOW_PROJECT_URL)))
+            except Exception:
+                pass
+
+        all_refs: list[Path] = []
+        if ref_image and Path(ref_image).exists():
+            all_refs.append(Path(ref_image))
+        for rp in ref_images:
+            if rp and Path(rp).exists() and Path(rp) not in all_refs:
+                all_refs.append(Path(rp))
+
+        async def _run_direct(cdp_url: str, proj_url: str) -> None:
             async with async_playwright() as pw:
-                b = await pw.chromium.connect_over_cdp(DEFAULT_CDP_URL, timeout=10000)
+                b = await pw.chromium.connect_over_cdp(cdp_url, timeout=10000)
                 ctx = b.contexts[0]
                 pg = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
-                if "flow.google.com/project/" not in pg.url:
-                    await pg.goto(DEFAULT_FLOW_PROJECT_URL, wait_until="domcontentloaded", timeout=30000)
+                if "flow.google.com" not in pg.url or "/project/" not in pg.url:
+                    await pg.goto(proj_url, wait_until="domcontentloaded", timeout=30000)
                     await pg.wait_for_timeout(2000)
-                await generate_flow_image(pg, sanitize_image_prompt(prompt), out_path, wait_s=min(wait_s, 180))
+                if script_data and ensured_accounts is not None and cdp_url not in ensured_accounts:
+                    try:
+                        await ensure_story_characters_created(pg, script_data, proj_url)
+                    except Exception:
+                        pass
+                    ensured_accounts.add(cdp_url)
+                ref_names: list[str] = []
+                for rp in all_refs[:2]:
+                    try:
+                        if await upload_media_to_flow(pg, rp):
+                            ref_names.append(rp.name)
+                    except Exception:
+                        pass
+                await generate_flow_image(
+                    pg,
+                    sanitize_image_prompt(prompt),
+                    out_path,
+                    characters=characters or ("Frida", "Luna"),
+                    ref_images=tuple(ref_names),
+                    wait_s=min(wait_s, 180),
+                )
                 await b.close()
 
-        asyncio.run(_run_direct())
-        if out_path.exists() and out_path.stat().st_size >= 10000:
-            tw, th = (1080, 1920) if aspect == "9:16" else (VIDEO_WIDTH, VIDEO_HEIGHT)
-            fit_aspect_jpeg(out_path, out_path, tw, th)
-            return out_path
+        for cdp_url, proj_url in candidates:
+            try:
+                asyncio.run(_run_direct(cdp_url, proj_url))
+                if out_path.exists() and out_path.stat().st_size >= 10000:
+                    tw, th = (1080, 1920) if aspect == "9:16" else (VIDEO_WIDTH, VIDEO_HEIGHT)
+                    fit_aspect_jpeg(out_path, out_path, tw, th)
+                    return out_path
+            except Exception:
+                continue
     except Exception:
         pass
 
@@ -230,30 +319,55 @@ def generate_single_image(
 
 
 def generate_images_for_plan(
-    prompts_manifest: dict[str, dict[str, str]],
+    prompts_manifest: dict[str, dict[str, Any]],
     images_dir: Path,
     wait_s: int = 240,
     pause_s: float = 3.5,
     max_retries_collage: int = 2,
     force: bool = False,
+    script_data: dict[str, Any] | None = None,
 ) -> dict[str, Path]:
-    """Gera imagens 16:9 bloqueando colagens (rejeita se detect_split_collage > 1)."""
+    """Gera imagens 16:9 bloqueando colagens (rejeita se detect_split_collage > 1) e mantendo referencia de objetos/personagens."""
     images_dir.mkdir(parents=True, exist_ok=True)
     generated: dict[str, Path] = {}
+    ensured_accounts: set[str] = set()
+    anchor_prop_img: Path | None = None
 
     for img_id, pdata in prompts_manifest.items():
         dst = images_dir / f"{img_id}.jpg"
         if not force and dst.exists() and dst.stat().st_size > 15000 and detect_split_collage(dst) == 1:
             generated[img_id] = dst
+            if anchor_prop_img is None and img_id.endswith("_p1"):
+                anchor_prop_img = dst
             continue
+
+        chars = tuple(pdata.get("characters") or ("Frida", "Luna"))
+        refs: list[Path] = []
+        base_p1 = images_dir / f"{img_id.rsplit('_p', 1)[0]}_p1.jpg"
+        if not img_id.endswith("_p1") and base_p1.exists():
+            refs.append(base_p1)
+        elif anchor_prop_img is not None and anchor_prop_img.exists():
+            refs.append(anchor_prop_img)
 
         full_prompt = f"{sanitize_image_prompt(pdata['positive'])}\nNegative prompt: {pdata['negative']}"
         for attempt in range(1, max_retries_collage + 1):
             try:
-                generate_single_image(full_prompt, dst, aspect="16:9", wait_s=wait_s, pause_s=pause_s)
+                generate_single_image(
+                    full_prompt,
+                    dst,
+                    aspect="16:9",
+                    wait_s=wait_s,
+                    pause_s=pause_s,
+                    characters=chars,
+                    ref_images=tuple(refs),
+                    script_data=script_data,
+                    ensured_accounts=ensured_accounts,
+                )
                 panels = detect_split_collage(dst)
                 if panels == 1:
                     generated[img_id] = dst
+                    if anchor_prop_img is None:
+                        anchor_prop_img = dst
                     print(f"  [IMG] {img_id}: OK (single full-frame)", flush=True)
                     break
                 print(f"  [IMG] {img_id}: colagem detectada ({panels} paineis) na tentativa {attempt}, regenerando...", flush=True)
@@ -263,6 +377,90 @@ def generate_images_for_plan(
 
         if img_id not in generated:
             raise RuntimeError(f"Nao foi possivel gerar imagem limpa para '{img_id}'.")
+    return generated
+
+
+def select_veo_scenes(
+    script_data: dict[str, Any],
+    visual_clips: list[dict[str, Any]],
+    target_count: int = TARGET_VEO_VIDEOS,
+) -> list[dict[str, Any]]:
+    """Seleciona N cenas (padrao 10 -> ~80s) distribuidas nos 3 atos para animacao 8s no Veo 3.1 Lite."""
+    scenes = list(script_data.get("scenes") or [])
+    if not scenes or target_count <= 0:
+        return []
+    if len(scenes) <= target_count:
+        return scenes
+    # Evita ultima cena se for apenas CTA final quando houver margem
+    pool = scenes[:-1] if len(scenes) > target_count + 1 else scenes
+    step = len(pool) / float(target_count)
+    chosen: list[dict[str, Any]] = []
+    used_ids: set[str] = set()
+    for i in range(target_count):
+        idx = min(len(pool) - 1, int(round(i * step + step * 0.35)))
+        sc = pool[idx]
+        if sc["scene_id"] in used_ids:
+            for cand in pool:
+                if cand["scene_id"] not in used_ids:
+                    sc = cand
+                    break
+        used_ids.add(sc["scene_id"])
+        chosen.append(sc)
+    return chosen
+
+
+def generate_veo_videos_for_episode(
+    script_data: dict[str, Any],
+    visual_clips: list[dict[str, Any]],
+    images_dir: Path,
+    videos_dir: Path,
+    target_count: int = TARGET_VEO_VIDEOS,
+    force: bool = False,
+) -> dict[str, Path]:
+    """Gera ate target_count (10) videos de 8s no Veo 3.1 Lite com failover de contas e consistencia."""
+    import asyncio
+    from core.flow_accounts import generate_video_with_failover
+
+    videos_dir.mkdir(parents=True, exist_ok=True)
+    selected = select_veo_scenes(script_data, visual_clips, target_count=target_count)
+    sec_chars = script_data.get("secondary_characters") or []
+    props = script_data.get("story_props") or []
+    generated: dict[str, Path] = {}
+
+    for idx, sc in enumerate(selected, 1):
+        sid = sc["scene_id"]
+        out_mp4 = videos_dir / f"{sid}.mp4"
+        if not force and out_mp4.exists() and out_mp4.stat().st_size > 100_000:
+            generated[sid] = out_mp4
+            print(f"  [VEO] {idx}/{len(selected)} {sid}: reutilizado ({out_mp4.name})", flush=True)
+            continue
+
+        pinfo = build_image_prompt(sc, variant="main", secondary_characters=sec_chars, story_props=props)
+        veo_prompt = (
+            f"8-second continuous smooth 3D animated motion scene matching this narration: '{sc.get('text', '')}'. "
+            f"{pinfo['positive']}"
+        )
+        keyframe = images_dir / f"{sid}_p1.jpg"
+        chars = tuple(sc.get("characters") or ("Frida", "Luna"))
+        try:
+            res = asyncio.run(
+                generate_video_with_failover(
+                    prompt=veo_prompt,
+                    out_mp4=out_mp4,
+                    characters=chars,
+                    keyframe_path=keyframe if keyframe.exists() else None,
+                )
+            )
+            generated[sid] = out_mp4
+            print(
+                f"  [VEO] {idx}/{len(selected)} {sid}: OK via {res.get('account_id', '?')} "
+                f"({res.get('elapsed_s', '?')}s)",
+                flush=True,
+            )
+        except Exception as exc:
+            print(f"  [VEO] {idx}/{len(selected)} {sid}: aviso failover/cota -> {exc}", flush=True)
+            break
+
     return generated
 
 

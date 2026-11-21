@@ -9,19 +9,22 @@ import sys
 import unicodedata
 from pathlib import Path
 
-from config import CPU_WORKERS, MAX_IMAGE_SECONDS, PROJECTS_DIR, SCRIPT_MAX_WORDS, SCRIPT_MIN_WORDS, SHORT_TARGET_SECONDS
+from config import CPU_WORKERS, MAX_IMAGE_SECONDS, PROJECTS_DIR, SCRIPT_MAX_WORDS, SCRIPT_MIN_WORDS, SHORT_TARGET_SECONDS, TARGET_VEO_VIDEOS
 import core.pacing_planner as _pacing_mod
 import core.self_audit as _audit_mod
 from core.avatar_studio import build_luna_avatar_pack
+from core.flow_accounts import cdp_is_alive, load_accounts_config
 from core.flow_continuity import FLOW_YOUTHFUL_PUPPY_STYLE_PREFIX
 from core.legacy_auditor import batch_scan_legacy_root, import_and_upgrade_legacy
 from core.media_studio import (
     generate_images_for_plan,
     generate_prompts_for_script,
     generate_thumbnail_variants,
+    generate_veo_videos_for_episode,
 )
 from core.motion_shorts import export_3_shorts_pack
 from core.pacing_planner import build_pacing_plan
+from core.scene_auditor import generate_and_audit_scenes
 from core.script_engine import generate_script, normalize_script_records, validate_script_schema
 from core.self_audit import run_final_audit
 from core.video_assembler import assemble_video, export_short_9_16
@@ -135,11 +138,12 @@ def run_pipeline(args: argparse.Namespace) -> int:
     proj_dir = PROJECTS_DIR / slug
     artifacts_dir = proj_dir / "artifacts"
     images_dir = proj_dir / "assets" / "images"
+    videos_dir = proj_dir / "assets" / "videos"
     audio_dir = proj_dir / "assets" / "audio"
     work_dir = proj_dir / "work"
     output_dir = proj_dir / "output"
     thumbs_dir = output_dir / "thumbs"
-    for d in (artifacts_dir, images_dir, audio_dir, work_dir, output_dir, thumbs_dir):
+    for d in (artifacts_dir, images_dir, videos_dir, audio_dir, work_dir, output_dir, thumbs_dir):
         d.mkdir(parents=True, exist_ok=True)
 
     script_path = artifacts_dir / "script_v2.json"
@@ -150,7 +154,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     # 1. ROTEIRO / IMPORTACAO DE LEGADO
     if args.legacy_dir and (not script_path.exists() or args.force):
-        imp = import_and_upgrade_legacy(Path(args.legacy_dir), proj_dir, reuse_clean_images=True, vision_filter=args.vision_audit)
+        imp = import_and_upgrade_legacy(Path(args.legacy_dir), proj_dir, reuse_clean_images=True, vision_filter=True)
         print(f"Legado importado: {imp['images_reused']} imagens limpas reaproveitadas | acoes={imp['audit']['recommended_actions']}")
         script_data = normalize_script_records(json.loads(script_path.read_text(encoding="utf-8")))
     elif args.script_file:
@@ -216,9 +220,58 @@ def run_pipeline(args: argparse.Namespace) -> int:
     if args.stage == "pacing":
         return 0
 
-    # 5. IMAGENS 16:9 SEM COLAGEM (recria apenas o que faltar ou reprovar)
+    # 5. IMAGENS 16:9 + AUDITORIA CENA-A-CENA (Narracao x Imagem x Personagem x Objeto) + VEO 3.1 LITE (10x 8s)
     if not args.skip_images:
-        generate_images_for_plan(final_prompts, images_dir, force=args.force)
+        if not getattr(args, "skip_scene_audit", False):
+            sc_audit = generate_and_audit_scenes(
+                proj_dir=proj_dir,
+                script_data=script_data,
+                visual_clips=visual_clips,
+                prompts_manifest=final_prompts,
+                images_dir=images_dir,
+                videos_dir=None,
+                auto_fix=True,
+                max_retries=3,
+                force_audit_cached=True,
+            )
+            print(
+                f"Auditoria Cena-a-Cena (Imagens): APPROVED={sc_audit['approved']} | "
+                f"Regeneradas={len(sc_audit['regenerated_clips'])} | Falhas={len(sc_audit['failed_clips'])}",
+                flush=True,
+            )
+        else:
+            generate_images_for_plan(final_prompts, images_dir, force=args.force, script_data=script_data)
+
+        target_veo = int(getattr(args, "veo_videos", TARGET_VEO_VIDEOS) or 0)
+        if not getattr(args, "skip_veo", False) and target_veo > 0:
+            flow_accounts = load_accounts_config().get("accounts", [])
+            if any(cdp_is_alive(int(a["cdp_port"])) for a in flow_accounts):
+                print(f"Gerando ate {target_veo} videos 8s (Veo 3.1 Lite) no pool Flow...", flush=True)
+                veo_map = generate_veo_videos_for_episode(
+                    script_data=script_data,
+                    visual_clips=visual_clips,
+                    images_dir=images_dir,
+                    videos_dir=videos_dir,
+                    target_count=target_veo,
+                    force=args.force,
+                )
+                print(f"Veo 3.1 Lite concluidos: {len(veo_map)}/{target_veo}", flush=True)
+                if veo_map and not getattr(args, "skip_scene_audit", False):
+                    veo_audit = generate_and_audit_scenes(
+                        proj_dir=proj_dir,
+                        script_data=script_data,
+                        visual_clips=visual_clips,
+                        prompts_manifest=final_prompts,
+                        images_dir=images_dir,
+                        videos_dir=videos_dir,
+                        auto_fix=True,
+                        max_retries=2,
+                        force_audit_cached=False,
+                    )
+                    print(
+                        f"Auditoria Pos-Veo: APPROVED={veo_audit['approved']} | Veo validados={veo_audit['veo_videos_count']}",
+                        flush=True,
+                    )
     if args.stage == "images":
         return 0
 
@@ -359,6 +412,9 @@ def main() -> int:
     ap.add_argument("--skip-prosody-gate", action="store_true")
     ap.add_argument("--skip-whisper-qa", action="store_true")
     ap.add_argument("--skip-images", action="store_true")
+    ap.add_argument("--skip-veo", action="store_true", help="Pula geracao dos 10 videos 8s Veo 3.1 Lite")
+    ap.add_argument("--veo-videos", type=int, default=TARGET_VEO_VIDEOS, help="Quantidade alvo de videos 8s Veo 3.1 Lite (padrao 10)")
+    ap.add_argument("--skip-scene-audit", action="store_true", help="Desativa auditoria cena-a-cena antes de avancar")
     ap.add_argument("--skip-short", action="store_true")
     ap.add_argument("--skip-thumbs", action="store_true")
     ap.add_argument("--vision-audit", action="store_true", help="Compara imagens geradas x cenario via Gemini Vision")

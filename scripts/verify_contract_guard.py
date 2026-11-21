@@ -16,6 +16,7 @@ REQUIRED_FILES = (
     "CONTRATO_MOTOR_V2.md",
     "AGENTS.md",
     "core/video_assembler.py",
+    "core/scene_auditor.py",
     "core/audio_fx.py",
     "core/flow_continuity.py",
     "core/flow_accounts.py",
@@ -58,6 +59,11 @@ def check_contract() -> list[str]:
         errors.append("CONTRATO VIOLADO: MAX_IMAGE_SECONDS em config.py deve ser <= 5.0.")
     if "1 year old max" not in cfg_txt:
         errors.append("CONTRATO VIOLADO: config.py VISUAL_BIBLE deve manter o canone '1 year old max' (crianca/pre-adolescente 3D).")
+    if "VOICE_LOCK_STRICT = True" not in cfg_txt:
+        errors.append("CONTRATO VIOLADO: config.py deve manter VOICE_LOCK_STRICT = True (trava absoluta Kore/Sulafat/Leda).")
+    m_veo = re.search(r"TARGET_VEO_VIDEOS\s*=\s*([0-9]+)", cfg_txt)
+    if not m_veo or int(m_veo.group(1)) < 10:
+        errors.append("CONTRATO VIOLADO: config.py deve manter TARGET_VEO_VIDEOS >= 10 (videos 8s Veo 3.1 Lite).")
 
     # 2. Verifica YouTube PT nao marcado para criancas
     yt_txt = (ROOT / "core" / "youtube_publisher.py").read_text(encoding="utf-8", errors="replace")
@@ -98,6 +104,15 @@ def check_contract() -> list[str]:
             "CONTRATO VIOLADO: core/motion_shorts.py deve manter SHORT_SPLIT_TOP_RATIO = 0.70, "
             "resolve_split_avatar_states, _SmoothAvatarPlayer e outro_guard."
         )
+
+    # 3d. Verifica auditoria cena-a-cena e trava de voz
+    sa_txt = (ROOT / "core" / "scene_auditor.py").read_text(encoding="utf-8", errors="replace")
+    for sym in ("def audit_voice_consistency", "def generate_and_audit_scenes", "def audit_scene_visual_with_vision"):
+        if sym not in sa_txt:
+            errors.append(f"CONTRATO VIOLADO: {sym} ausente em core/scene_auditor.py.")
+    fc_txt = (ROOT / "core" / "flow_continuity.py").read_text(encoding="utf-8", errors="replace")
+    if "def _inject_at_character_mentions" not in fc_txt:
+        errors.append("CONTRATO VIOLADO: _inject_at_character_mentions ausente em core/flow_continuity.py.")
 
     # 4. Compilacao Python de todos os modulos principais
     for py_path in [ROOT / "config.py", ROOT / "pipeline_v2.py", *sorted((ROOT / "core").glob("*.py")), Path(__file__)]:
