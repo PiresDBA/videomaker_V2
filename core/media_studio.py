@@ -469,10 +469,7 @@ def generate_single_veo_video(
     sec_chars = script_data.get("secondary_characters") or []
     props = script_data.get("story_props") or []
     pinfo = build_image_prompt(scene, variant="main", secondary_characters=sec_chars, story_props=props)
-    veo_prompt = (
-        f"8-second continuous smooth 3D animated motion scene matching this narration: '{scene.get('text', '')}'. "
-        f"{pinfo['positive']}"
-    )
+    veo_prompt = f"8-second continuous smooth 3D animated motion scene: {pinfo['positive']}"
     if fix_hint:
         veo_prompt += f" STRICT CORRECTION: {fix_hint}"
     keyframe = images_dir / f"{sid}_p1.jpg"
