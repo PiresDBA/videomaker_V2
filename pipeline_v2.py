@@ -105,7 +105,6 @@ def run_pipeline(args: argparse.Namespace) -> int:
             detect_logged_email,
             ensure_account_cdp,
             ensure_flow_project,
-            load_accounts_config,
             mark_account_usage,
         )
         from playwright.async_api import async_playwright
