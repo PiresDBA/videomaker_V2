@@ -348,6 +348,27 @@ class TestVideomakerV2Unified(unittest.TestCase):
             with self.assertRaises(ValueError):
                 synthesize_all_scenes({"scenes": []}, Path(td), provider="edge")
 
+        # Fronteiras limpas de 3 Shorts: nunca corta falas no meio e Short 03 evita o outro final
+        from core.motion_shorts import select_3_short_windows
+        fake_clips = []
+        t_cur = 0.0
+        for idx in range(12):
+            dur = 12.0
+            fake_clips.append({
+                "clip_id": f"sc_{idx:02d}_p1",
+                "scene_id": f"sc_{idx:02d}",
+                "scene_audio_start": t_cur,
+                "scene_audio_dur": dur - 0.3,
+                "start": t_cur,
+                "end": t_cur + dur,
+                "speaker": "narrador",
+                "sfx": None,
+            })
+            t_cur += dur
+        wins = select_3_short_windows(fake_clips)
+        self.assertEqual(len(wins), 3)
+        self.assertLess(wins[2]["end"], fake_clips[-2]["start"] + 0.5)
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():

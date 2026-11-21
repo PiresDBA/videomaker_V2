@@ -86,10 +86,18 @@ def check_contract() -> list[str]:
     if 'choices=("gemini_emotion", "edge")' in pipe_txt:
         errors.append("CONTRATO VIOLADO: pipeline_v2.py nao pode oferecer 'edge' em --tts-provider.")
 
-    # 3c. Verifica Shorts 70/30 + sincronia labial estrita
+    # 3c. Verifica Shorts 70/30 + sincronia labial estrita + reprodutor continuo 30fps + cortes limpos
     ms_txt = (ROOT / "core" / "motion_shorts.py").read_text(encoding="utf-8", errors="replace")
-    if "SHORT_SPLIT_TOP_RATIO = 0.70" not in ms_txt or "def resolve_split_avatar_states" not in ms_txt:
-        errors.append("CONTRATO VIOLADO: core/motion_shorts.py deve manter SHORT_SPLIT_TOP_RATIO = 0.70 e resolve_split_avatar_states.")
+    if (
+        "SHORT_SPLIT_TOP_RATIO = 0.70" not in ms_txt
+        or "def resolve_split_avatar_states" not in ms_txt
+        or "class _SmoothAvatarPlayer" not in ms_txt
+        or "outro_guard" not in ms_txt
+    ):
+        errors.append(
+            "CONTRATO VIOLADO: core/motion_shorts.py deve manter SHORT_SPLIT_TOP_RATIO = 0.70, "
+            "resolve_split_avatar_states, _SmoothAvatarPlayer e outro_guard."
+        )
 
     # 4. Compilacao Python de todos os modulos principais
     for py_path in [ROOT / "config.py", ROOT / "pipeline_v2.py", *sorted((ROOT / "core").glob("*.py")), Path(__file__)]:

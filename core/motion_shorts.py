@@ -315,35 +315,36 @@ def _snap_window_to_scenes(
     target_start: float,
     tgt_dur: float,
     total: float,
+    max_end: float | None = None,
 ) -> tuple[float, float]:
-    """Alinha o inicio do Short ao comeco limpo de uma fala/cena para nao cortar palavras."""
+    """Alinha inicio e fim do Short exatamente nas fronteiras das falas para NUNCA cortar palavras."""
+    end_limit = min(total, max_end) if max_end is not None else total
     if not scene_bounds:
-        st = max(0.0, min(total - tgt_dur, target_start))
-        return round(st, 3), round(min(total, st + tgt_dur), 3)
+        st = max(0.0, min(end_limit - tgt_dur, target_start))
+        return round(st, 3), round(min(end_limit, st + tgt_dur), 3)
 
-    best_st = min(
-        (s for s, _ in scene_bounds if s <= max(0.0, total - min(SHORT_MIN_SECONDS, tgt_dur))),
-        key=lambda s: abs(s - target_start),
-        default=max(0.0, min(total - tgt_dur, target_start)),
-    )
-    if abs(best_st - target_start) > 8.5:
-        best_st = max(0.0, min(total - tgt_dur, target_start))
+    min_span = min(SHORT_MIN_SECONDS, tgt_dur)
+    max_span = max(SHORT_MAX_SECONDS, tgt_dur + 4.0)
 
-    raw_en = min(total, best_st + tgt_dur)
-    # Tenta fechar no final de uma cena proxima (dentro de SHORT_MIN_SECONDS..SHORT_MAX_SECONDS)
-    best_en = raw_en
-    for _, ce in scene_bounds:
-        span = ce - best_st
-        if SHORT_MIN_SECONDS <= span <= SHORT_MAX_SECONDS and abs(span - tgt_dur) < abs((best_en - best_st) - tgt_dur):
-            best_en = min(total, ce)
-    return round(best_st, 3), round(best_en, 3)
+    valid_starts = [s for s, _ in scene_bounds if s <= max(0.0, end_limit - min_span)]
+    best_st = min(valid_starts, key=lambda s: abs(s - target_start)) if valid_starts else 0.0
+
+    # Escolhe obrigatoriamente o final exato de uma cena dentro do limite permitido
+    cands = [ce for _, ce in scene_bounds if ce <= end_limit + 0.05 and min_span <= (ce - best_st) <= max_span]
+    if not cands:
+        cands = [ce for _, ce in scene_bounds if ce <= end_limit + 0.05 and (ce - best_st) >= 12.0]
+    if cands:
+        best_en = min(cands, key=lambda ce: abs((ce - best_st) - tgt_dur))
+    else:
+        best_en = min(end_limit, best_st + tgt_dur)
+    return round(best_st, 3), round(min(end_limit, best_en), 3)
 
 
 def select_3_short_windows(
     visual_clips: list[dict[str, Any]],
     target_seconds: float | None = None,
 ) -> list[dict[str, Any]]:
-    """Seleciona 3 janelas limpas (Gancho Ato 1, Storybook Ato 2, Climax/Final Ato 3)."""
+    """Seleciona 3 janelas limpas (Gancho Ato 1, Storybook Ato 2, Climax Ato 3 sem pegar a despedida final)."""
     tgt = float(target_seconds) if target_seconds is not None else SHORT_TARGET_SECONDS
     if not visual_clips:
         return [{"name": "01_hook", "variant": "hook", "badge": "ELAS FALARAM?!", "start": 0.0, "end": tgt}]
@@ -359,17 +360,26 @@ def select_3_short_windows(
             continue
         seen.add(sid)
         cs = float(c["scene_audio_start"])
-        ce = cs + float(c["scene_audio_dur"]) + 0.20
+        ce = cs + float(c["scene_audio_dur"]) + 0.22
         scene_bounds.append((cs, min(total, ce)))
 
+    # Evita pegar o encerramento/CTA final do episodio longo no Short 03 quando ha duracao suficiente
+    outro_guard = (scene_bounds[-2][0] - 0.1) if len(scene_bounds) >= 6 and total > 90.0 else total
+
     s1_st, s1_en = _snap_window_to_scenes(scene_bounds, 0.0, tgt, total)
-    s2_st, s2_en = _snap_window_to_scenes(scene_bounds, max(s1_en * 0.85, total * 0.40), tgt, total)
-    s3_st, s3_en = _snap_window_to_scenes(scene_bounds, max(s2_en * 0.85, total - tgt), tgt, total)
+    s2_st, s2_en = _snap_window_to_scenes(scene_bounds, max(s1_en * 0.85, total * 0.38), tgt, total)
+    s3_st, s3_en = _snap_window_to_scenes(
+        scene_bounds,
+        max(s2_en * 0.85, outro_guard - tgt),
+        tgt,
+        total,
+        max_end=outro_guard,
+    )
 
     return [
         {"name": "01_hook", "variant": "hook", "badge": "ELAS FALARAM?!", "start": s1_st, "end": s1_en},
         {"name": "02_storybook", "variant": "storybook", "badge": "CAPÍTULO SECRETO!", "start": s2_st, "end": s2_en},
-        {"name": "03_final", "variant": "final", "badge": "FINAL SURPREENDENTE!", "start": s3_st, "end": s3_en},
+        {"name": "03_final", "variant": "final", "badge": "VIRADA SURPREENDENTE!", "start": s3_st, "end": s3_en},
     ]
 
 
@@ -562,7 +572,7 @@ def _build_per_frame_speaker_and_levels(
     """Mapeia cada frame para (speaker, level) usando o WAV isolado da fala de Frida/Luna quando disponivel."""
     from core.avatar_studio import _compute_speech_levels
 
-    fallback_levels = _compute_speech_levels(wav_fallback, fps, n_frames, threshold=0.018, silence_ms=260) if wav_fallback.exists() else [0] * n_frames
+    fallback_levels = _compute_speech_levels(wav_fallback, fps, n_frames, threshold=0.015, silence_ms=420) if wav_fallback.exists() else [0] * n_frames
 
     speakers = ["narrador"] * n_frames
     levels = [0] * n_frames
@@ -596,7 +606,7 @@ def _build_per_frame_speaker_and_levels(
         if scene_wav and scene_wav.is_file():
             sc_total_frames = max(1, int(round(sdur * fps)))
             try:
-                scene_levels = _compute_speech_levels(scene_wav, fps, sc_total_frames, threshold=0.018, silence_ms=240)
+                scene_levels = _compute_speech_levels(scene_wav, fps, sc_total_frames, threshold=0.015, silence_ms=420)
             except Exception:
                 scene_levels = None
 
@@ -612,6 +622,76 @@ def _build_per_frame_speaker_and_levels(
     return speakers, levels
 
 
+class _SmoothAvatarPlayer:
+    """Reprodutor sequencial 30fps continuo (igual ao video principal) sem trepidacao nem teleporte de frames."""
+
+    def __init__(self, bank: dict[str, Any], seed: int = 1, crossfade_len: int = 9) -> None:
+        import random
+        self.rng = random.Random(seed)
+        self.rep_frames = bank["reposo"]
+        self.hab_bank = bank["hablando"]
+        self.crossfade_len = max(1, int(crossfade_len))
+
+        self.idx_rep = 0
+        self.cur_vid_idx = self.rng.randrange(len(self.hab_bank))
+        self.cur_vid = self.hab_bank[self.cur_vid_idx]
+        self.idx_hab = self.rng.choice(self.cur_vid.get("peak_starts") or [4])
+        self.was_talking = False
+
+        self.blend_rem = 0
+        self.xf_from = self.rep_frames[0]
+        self.last_out = self.rep_frames[0]
+
+    def _start_crossfade(self) -> None:
+        self.xf_from = self.last_out.copy()
+        self.blend_rem = self.crossfade_len
+
+    def _pick_next_hab_clip(self, prefer_peak: bool = False) -> None:
+        if len(self.hab_bank) > 1:
+            cands = [k for k in range(len(self.hab_bank)) if k != self.cur_vid_idx]
+            self.cur_vid_idx = self.rng.choice(cands)
+        self.cur_vid = self.hab_bank[self.cur_vid_idx]
+        peaks = self.cur_vid.get("peak_starts") or []
+        if prefer_peak and peaks:
+            self.idx_hab = self.rng.choice(peaks)
+        else:
+            max_start = max(4, len(self.cur_vid["frames"]) - 24)
+            self.idx_hab = self.rng.randint(4, max_start)
+        self._start_crossfade()
+
+    def next_frame(self, talking: bool, speech_level: int):
+        import cv2
+
+        if not talking:
+            if self.was_talking:
+                self._start_crossfade()
+                self.was_talking = False
+            else:
+                self.idx_rep += 1
+                if self.idx_rep >= max(1, len(self.rep_frames) - 6):
+                    self._start_crossfade()
+                    self.idx_rep = 0
+            raw_sq = self.rep_frames[self.idx_rep % len(self.rep_frames)]
+        else:
+            if not self.was_talking:
+                self._pick_next_hab_clip(prefer_peak=(speech_level >= 2))
+                self.was_talking = True
+            else:
+                self.idx_hab += 1
+                if self.idx_hab >= max(1, len(self.cur_vid["frames"]) - 6):
+                    self._pick_next_hab_clip(prefer_peak=(speech_level >= 2))
+            raw_sq = self.cur_vid["frames"][self.idx_hab % len(self.cur_vid["frames"])]
+
+        if self.blend_rem > 0:
+            a = (self.crossfade_len - self.blend_rem + 1) / float(self.crossfade_len + 1)
+            out = cv2.addWeighted(self.xf_from, 1.0 - a, raw_sq, a, 0)
+            self.blend_rem -= 1
+        else:
+            out = raw_sq
+        self.last_out = out
+        return out
+
+
 def _render_split_bottom_stage(
     visual_clips: list[dict[str, Any]],
     st: float,
@@ -620,7 +700,7 @@ def _render_split_bottom_stage(
     out_mp4: Path,
     variant: str = "hook",
 ) -> Path | None:
-    """Renderiza os 30% inferiores (1080x576) com visual infantil alegre e sincronia labial estrita."""
+    """Renderiza os 30% inferiores (1080x576) com visual infantil alegre, 30fps fluido e sincronia labial estrita."""
     import cv2
     import numpy as np
     from config import AVATAR_PROFILES, VIDEO_FPS
@@ -638,11 +718,11 @@ def _render_split_bottom_stage(
         visual_clips, st, dur, wav_path, fps, n_frames
     )
 
-    active_sz, idle_sz = 426, 392
-    mask_cache = {
-        active_sz: _make_card_mask(active_sz),
-        idle_sz: _make_card_mask(idle_sz),
-    }
+    # Tamanho 100% estavel e generoso (sem pulos nem redimensionamento brusco)
+    card_sz = 412
+    card_mask = _make_card_mask(card_sz)
+    in_sz = card_sz - 2 * card_mask["margin"]
+    alpha_f = (card_mask["alpha"].astype(np.float32) / 255.0)[:, :, None]
 
     bg_base = _build_bottom_playful_backdrop(w, h, variant)
     badge_frida = _make_sticker_badge_bgra("FRIDA", (245, 158, 11), (120, 53, 15), w=210, h=56)
@@ -650,7 +730,6 @@ def _render_split_bottom_stage(
     badge_talk_f = _make_sticker_badge_bgra("FALANDO!", (255, 77, 109), (125, 18, 48), w=196, h=48)
     badge_talk_l = _make_sticker_badge_bgra("FALANDO!", (139, 92, 246), (62, 24, 128), w=196, h=48)
 
-    # Estrelinhas sutis que piscam no fundo pastel
     sparkle_pts = [
         (58, 126, 0.0), (540, 122, 1.3), (1022, 128, 2.5),
         (540, 442, 0.8), (64, 470, 2.1), (1016, 468, 3.1),
@@ -660,15 +739,9 @@ def _render_split_bottom_stage(
     tmp_raw = out_mp4.with_suffix(".bot_raw.mp4")
     vw = cv2.VideoWriter(str(tmp_raw), fourcc, float(fps), (w, h))
 
-    f_rep = frida_bank["reposo"]
-    f_hab_clip = frida_bank["hablando"][0]
-    f_hab = f_hab_clip["frames"]
-    f_peaks = f_hab_clip.get("peak_starts") or [4]
-
-    l_rep = luna_bank["reposo"]
-    l_hab_clip = luna_bank["hablando"][0]
-    l_hab = l_hab_clip["frames"]
-    l_peaks = l_hab_clip.get("peak_starts") or [4]
+    seed_base = abs(hash(f"{variant}_{int(round(st * 10))}")) % (2 ** 31)
+    frida_player = _SmoothAvatarPlayer(frida_bank, seed=seed_base + 11, crossfade_len=9)
+    luna_player = _SmoothAvatarPlayer(luna_bank, seed=seed_base + 29, crossfade_len=9)
 
     prof_f = AVATAR_PROFILES["frida"]
     prof_l = AVATAR_PROFILES["luna"]
@@ -676,51 +749,30 @@ def _render_split_bottom_stage(
     def _paste_card(
         canvas: np.ndarray,
         raw_sq: np.ndarray,
-        size: int,
         cx: int,
         cy: int,
-        talking: bool,
+        highlighted: bool,
         prof: dict[str, Any],
         glow_bgr: tuple[int, int, int],
     ) -> None:
-        m = mask_cache[size]
-        in_sz = size - 2 * m["margin"]
         sq = cv2.resize(raw_sq, (in_sz, in_sz), interpolation=cv2.INTER_AREA)
-        card = np.zeros((size, size, 3), np.uint8)
-        card[m["margin"]:size - m["margin"], m["margin"]:size - m["margin"]] = sq
-        card[m["outer_border"] > 0] = glow_bgr if talking else (255, 255, 255)
-        card[m["inner_border"] > 0] = prof["border_gold_bgr"] if talking else prof["border_accent_bgr"]
-        card[m["outline"] > 0] = (90, 48, 86)
+        card = np.zeros((card_sz, card_sz, 3), np.uint8)
+        m = card_mask["margin"]
+        card[m:card_sz - m, m:card_sz - m] = sq
+        card[card_mask["outer_border"] > 0] = glow_bgr if highlighted else (255, 255, 255)
+        card[card_mask["inner_border"] > 0] = prof["border_gold_bgr"] if highlighted else prof["border_accent_bgr"]
+        card[card_mask["outline"] > 0] = (90, 48, 86)
 
-        x0 = max(0, min(w - size, cx - size // 2))
-        y0 = max(0, min(h - size, cy - size // 2))
+        x0 = max(0, min(w - card_sz, cx - card_sz // 2))
+        y0 = max(0, min(h - card_sz, cy - card_sz // 2))
 
-        if talking:
-            # Halo brilhante suave atras do avatar que esta falando
-            cv2.circle(canvas, (cx, cy), size // 2 + 12, glow_bgr, 10, cv2.LINE_AA)
+        if highlighted:
+            cv2.circle(canvas, (cx, cy), card_sz // 2 + 10, glow_bgr, 10, cv2.LINE_AA)
 
-        roi = canvas[y0:y0 + size, x0:x0 + size]
-        af = (m["alpha"].astype(np.float32) / 255.0)[:, :, None]
-        canvas[y0:y0 + size, x0:x0 + size] = np.clip(
-            roi.astype(np.float32) * (1.0 - af) + card.astype(np.float32) * af, 0, 255
+        roi = canvas[y0:y0 + card_sz, x0:x0 + card_sz]
+        canvas[y0:y0 + card_sz, x0:x0 + card_sz] = np.clip(
+            roi.astype(np.float32) * (1.0 - alpha_f) + card.astype(np.float32) * alpha_f, 0, 255
         ).astype(np.uint8)
-
-    def _pick_frame(rep_list, hab_list, peaks, talking: bool, lv: int, idx: int):
-        if not talking:
-            # Estritamente boca fechada (reposo suave)
-            return rep_list[(idx // 2) % len(rep_list)]
-        if lv >= 2 and peaks:
-            base = peaks[(idx // 10) % len(peaks)]
-            return hab_list[(base + (idx % 10)) % len(hab_list)]
-        return hab_list[idx % len(hab_list)]
-
-    prev_f_img = f_rep[0]
-    prev_l_img = l_rep[0]
-    prev_f_talk = False
-    prev_l_talk = False
-    xf_f = 0
-    xf_l = 0
-    xf_len = 5
 
     try:
         for i in range(n_frames):
@@ -729,57 +781,33 @@ def _render_split_bottom_stage(
             lv = frame_levels[i]
             f_talking, l_talking = resolve_split_avatar_states(spk, lv)
 
-            if f_talking != prev_f_talk:
-                xf_f = xf_len
-                prev_f_talk = f_talking
-            if l_talking != prev_l_talk:
-                xf_l = xf_len
-                prev_l_talk = l_talking
+            # Destaque visual firme durante todo o turno da personagem (sem piscar em virgulas)
+            f_turn = (spk == "frida")
+            l_turn = (spk == "luna")
 
-            fr_img = _pick_frame(f_rep, f_hab, f_peaks, f_talking, lv, i)
-            lu_img = _pick_frame(l_rep, l_hab, l_peaks, l_talking, lv, i)
-
-            if xf_f > 0:
-                a = 1.0 - (xf_f / float(xf_len + 1))
-                fr_blend = cv2.addWeighted(prev_f_img, 1.0 - a, fr_img, a, 0)
-                xf_f -= 1
-            else:
-                fr_blend = fr_img
-            prev_f_img = fr_blend
-
-            if xf_l > 0:
-                a = 1.0 - (xf_l / float(xf_len + 1))
-                lu_blend = cv2.addWeighted(prev_l_img, 1.0 - a, lu_img, a, 0)
-                xf_l -= 1
-            else:
-                lu_blend = lu_img
-            prev_l_img = lu_blend
+            fr_img = frida_player.next_frame(f_talking, lv)
+            lu_img = luna_player.next_frame(l_talking, lv)
 
             frame = bg_base.copy()
 
             # Estrelinhas piscando suavemente no fundo pastel
             for sx, sy, ph in sparkle_pts:
-                pulse = 0.5 + 0.5 * math.sin(t * 4.2 + ph)
-                rad = int(5 + 7 * pulse)
+                pulse = 0.5 + 0.5 * math.sin(t * 3.0 + ph)
+                rad = int(5 + 6 * pulse)
                 cv2.line(frame, (sx - rad, sy), (sx + rad, sy), (255, 255, 255), 3, cv2.LINE_AA)
                 cv2.line(frame, (sx, sy - rad), (sx, sy + rad), (255, 255, 255), 3, cv2.LINE_AA)
                 cv2.circle(frame, (sx, sy), max(2, rad // 3), (120, 235, 255), -1, cv2.LINE_AA)
 
-            # Leve pulo alegre APENAS no avatar que esta falando de verdade
-            f_cy = 296 - (int(round(abs(math.sin(t * 11.0)) * 7)) if f_talking else 0)
-            l_cy = 296 - (int(round(abs(math.sin(t * 11.0)) * 7)) if l_talking else 0)
+            # Posicao 100% estavel (zero trepidacao!)
+            _paste_card(frame, fr_img, 285, 296, f_turn, prof_f, (20, 215, 255))
+            _paste_card(frame, lu_img, 795, 296, l_turn, prof_l, (240, 225, 45))
 
-            _paste_card(frame, fr_blend, active_sz if f_talking else idle_sz, 285, f_cy, f_talking, prof_f, (20, 215, 255))
-            _paste_card(frame, lu_blend, active_sz if l_talking else idle_sz, 795, l_cy, l_talking, prof_l, (240, 225, 45))
-
-            # Etiquetas coloridas de nome bem encaixadas na base de cada card
             _alpha_paste_bgra(frame, badge_frida, 285, 514)
             _alpha_paste_bgra(frame, badge_luna, 795, 514)
 
-            # Selo "FALANDO!" aparece APENAS quando a propria cachorrinha esta falando
-            if f_talking:
+            if f_turn:
                 _alpha_paste_bgra(frame, badge_talk_f, 285, 108)
-            elif l_talking:
+            elif l_turn:
                 _alpha_paste_bgra(frame, badge_talk_l, 795, 108)
 
             vw.write(frame)
@@ -821,19 +849,21 @@ def export_split_short_70_30(
              "-i", str(master_16_9), "-vn", "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", str(tmp_audio)],
             check=True,
         )
+        from config import VIDEO_FPS
         _build_top_frame_overlay(variant, tmp_frame)
 
         crop_w = f"ih*{SHORT_WIDTH}/{top_h}"
         x_pan = f"(iw-{crop_w})*(0.5+0.18*sin(2*PI*t/8))"
         top_fc = (
-            f"[0:v]crop={crop_w}:ih:{x_pan}:0,scale={SHORT_WIDTH}:{top_h}:flags=lanczos,setsar=1[base];"
-            f"[base][1:v]overlay=0:0:shortest=1[topout]"
+            f"[0:v]fps={VIDEO_FPS},setpts=PTS-STARTPTS,crop={crop_w}:ih:{x_pan}:0,scale={SHORT_WIDTH}:{top_h}:flags=lanczos,setsar=1[base];"
+            f"[1:v]fps={VIDEO_FPS},setpts=PTS-STARTPTS[frm];"
+            f"[base][frm]overlay=0:0:shortest=1[topout]"
         )
         subprocess.run(
             [FFMPEG_EXE, "-y", "-v", "error", "-ss", f"{st:.3f}", "-t", f"{dur:.3f}", "-i", str(master_16_9),
-             "-loop", "1", "-i", str(tmp_frame),
+             "-framerate", str(VIDEO_FPS), "-loop", "1", "-i", str(tmp_frame),
              "-filter_complex", top_fc, "-map", "[topout]", "-t", f"{dur:.3f}",
-             "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", str(tmp_top)],
+             "-r", str(VIDEO_FPS), "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", str(tmp_top)],
             check=True,
         )
 
@@ -845,7 +875,9 @@ def export_split_short_70_30(
         write_short_pop_ass(win_clips, ass_short, hook_badge=hook_badge, offset_s=st, dur=dur, split_mode=True, variant=variant)
 
         fc = (
-            f"[0:v][1:v]vstack=inputs=2,"
+            f"[0:v]fps={VIDEO_FPS},setpts=PTS-STARTPTS[tv];"
+            f"[1:v]fps={VIDEO_FPS},setpts=PTS-STARTPTS[bv];"
+            f"[tv][bv]vstack=inputs=2,"
             f"drawbox=x=0:y=0:w={SHORT_WIDTH}:h=16:color=#FFFBEB@0.45:t=fill,"
             f"drawbox=x=0:y=0:w='iw*t/{dur:.3f}':h=16:color=#FFD60A@0.98:t=fill,"
             f"ass={ass_short.name}[vout]"
@@ -853,7 +885,7 @@ def export_split_short_70_30(
         subprocess.run(
             [FFMPEG_EXE, "-y", "-v", "error", "-i", str(tmp_top), "-i", str(tmp_bot), "-i", str(tmp_audio),
              "-filter_complex", fc, "-map", "[vout]", "-map", "2:a",
-             "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
+             "-r", str(VIDEO_FPS), "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
              "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart", str(out_short)],
             cwd=str(ass_short.parent),
             check=True,
