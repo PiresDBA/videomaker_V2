@@ -265,8 +265,14 @@ def render_avatar_pip_clip(
     out_mov: Path,
     card_size: int = 290,
     is_active_speaker: bool = True,
+    level_offset_s: float = 0.0,
+    soft_style: bool = False,
 ) -> Path | None:
-    """Renderiza card RGBA (.mov qtrle) continuo com alinhamento e crossfade suave por transparencia."""
+    """Renderiza card RGBA (.mov qtrle) continuo com alinhamento e crossfade suave por transparencia.
+
+    `level_offset_s`: janela do PiP comeca no meio da cena (boca sincronizada ao trecho certo do WAV).
+    `soft_style`: PiP discreto do plano de direcao (borda clara suave, sem dourado chamativo, opacidade plena).
+    """
     char = character.lower()
     bank = _index_character_bank(char)
     if not bank:
@@ -274,7 +280,12 @@ def render_avatar_pip_clip(
 
     prof = AVATAR_PROFILES[char]
     n_frames = max(1, int(round(dur * VIDEO_FPS)))
-    levels = _compute_speech_levels(wav_path, VIDEO_FPS, n_frames) if is_active_speaker else [0] * n_frames
+    off_frames = max(0, int(round(level_offset_s * VIDEO_FPS)))
+    if is_active_speaker:
+        levels = _compute_speech_levels(wav_path, VIDEO_FPS, n_frames + off_frames)[off_frames:off_frames + n_frames]
+        levels += [0] * (n_frames - len(levels))
+    else:
+        levels = [0] * n_frames
     assets = _make_card_mask(card_size)
 
     tmp_rgb = out_mov.with_suffix(".rgb.mp4")
@@ -300,7 +311,7 @@ def render_avatar_pip_clip(
     prev_sq: np.ndarray | None = None
 
     fade_n = max(1, int(0.24 * VIDEO_FPS))
-    opacity_scale = 1.0 if is_active_speaker else 0.88
+    opacity_scale = 1.0 if (is_active_speaker or soft_style) else 0.88
     inner_sz = card_size - 2 * assets["margin"]
 
     def _pick_next_hab_clip(prefer_peak: bool = False) -> None:
@@ -346,9 +357,15 @@ def render_avatar_pip_clip(
         av_pad[assets["margin"]:card_size - assets["margin"], assets["margin"]:card_size - assets["margin"]] = sq
 
         canvas[assets["inner"] > 0] = av_pad[assets["inner"] > 0]
-        canvas[assets["outer_border"] > 0] = prof["border_gold_bgr"] if is_active_speaker else (140, 140, 140)
-        canvas[assets["inner_border"] > 0] = prof["border_accent_bgr"]
-        canvas[assets["outline"] > 0] = (24, 30, 40)
+        if soft_style:
+            # Moldura discreta e quente, integrada a luz da pracinha (sem dourado chamativo)
+            canvas[assets["outer_border"] > 0] = (238, 244, 250)
+            canvas[assets["inner_border"] > 0] = (200, 214, 228)
+            canvas[assets["outline"] > 0] = (70, 60, 55)
+        else:
+            canvas[assets["outer_border"] > 0] = prof["border_gold_bgr"] if is_active_speaker else (140, 140, 140)
+            canvas[assets["inner_border"] > 0] = prof["border_accent_bgr"]
+            canvas[assets["outline"] > 0] = (24, 30, 40)
 
         factor = opacity_scale
         if i < fade_n:

@@ -208,8 +208,14 @@ def run_pipeline(args: argparse.Namespace) -> int:
     if args.stage == "tts":
         return 0
 
-    # 4. RITMO (DIVISAO <= 5s + KEN BURNS + DUAL AVATAR)
-    visual_clips, final_prompts = build_pacing_plan(script_data, timings)
+    # 4. RITMO (DIVISAO <= 5s + KEN BURNS + DUAL AVATAR + PLANO DE DIRECAO OPCIONAL)
+    montage_plan = None
+    mp_arg = getattr(args, "montage_plan", "")
+    mp_path = Path(mp_arg) if mp_arg else (artifacts_dir / "plano_montagem_direcao_v2.json")
+    if mp_path.is_file():
+        montage_plan = json.loads(mp_path.read_text(encoding="utf-8"))
+        print(f"Plano de direcao carregado: {mp_path.name} ({len(montage_plan.get('scenes', []))} cenas)", flush=True)
+    visual_clips, final_prompts = build_pacing_plan(script_data, timings, montage_plan=montage_plan)
     pacing_path.write_text(json.dumps(visual_clips, ensure_ascii=False, indent=2), encoding="utf-8")
     prompts_path.write_text(json.dumps(final_prompts, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Pacing: {len(visual_clips)} sub-clips visuais (<= 5s cada)", flush=True)
@@ -334,6 +340,7 @@ def main() -> int:
     ap.add_argument("--prompt", default="", help="Tema do novo episodio")
     ap.add_argument("--slug", default="", help="Slug do projeto")
     ap.add_argument("--script-file", default="", help="Caminho para script_v2.json pronto")
+    ap.add_argument("--montage-plan", default="", help="JSON opcional de direcao cena a cena (pausas comicas + PiP pontual)")
     ap.add_argument("--legacy-dir", default="", help="Pasta de um video legado para auditar e refazer no motor v2")
     ap.add_argument("--batch-scan", default="", help="Escaneia e audita todas as pastas de video dentro de um diretorio")
     ap.add_argument("--stage", choices=("all", "avatar-only", "script", "tts", "pacing", "images", "shorts", "audit", "publish"), default="all")

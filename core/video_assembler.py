@@ -485,6 +485,9 @@ _CORNER_POS = {
     "BR": ("W-w-44", "H-h-42"),
 }
 
+# PiP do plano de direcao: janela compacta (~13% da largura 1920) nos cantos superiores
+PIP_PLAN_CARD_PX = 250
+
 
 def _plan_avatar_overlays(
     visual_clips: list[dict[str, Any]],
@@ -508,6 +511,25 @@ def _plan_avatar_overlays(
         dur = float(c["scene_audio_dur"])
         en = st + dur
         wav = Path(c["wav_path"])
+
+        pp = c.get("pip_plan")
+        if pp:
+            # PiP pontual do plano de direcao: 1 personagem, canto superior fixo, janela curta, visual discreto
+            char = str(pp["character"]).lower()
+            if char not in ("frida", "luna"):
+                continue
+            w_st = st + float(pp.get("start_offset", 0.0))
+            w_en = st + float(pp.get("end_offset", c.get("scene_total_dur", dur)))
+            corner = str(pp.get("corner") or "TR").upper()
+            x_expr, y_expr = _CORNER_POS.get(corner if corner in ("TL", "TR") else "TR")
+            jobs.append({
+                "sid": sid, "char": char, "wav": wav, "dur": round(w_en - w_st, 3),
+                "mov": avatar_dir / f"{sid}_{char}_pip.mov",
+                "card_sz": PIP_PLAN_CARD_PX, "active": (char == spk), "st": w_st, "en": w_en,
+                "x_expr": x_expr, "y_expr": y_expr,
+                "level_offset": float(pp.get("start_offset", 0.0)), "soft": True,
+            })
+            continue
 
         corners = detect_emptiest_corners(images_dir / f"{c['clip_id']}.jpg")
         if mode == "duo":
@@ -544,6 +566,7 @@ def _plan_avatar_overlays(
         res = render_avatar_pip_clip(
             j["sid"], j["char"], j["wav"], j["dur"], j["mov"],
             card_size=j["card_sz"], is_active_speaker=j["active"],
+            level_offset_s=j.get("level_offset", 0.0), soft_style=j.get("soft", False),
         )
         if res and res.exists():
             return (j["st"], j["en"], j["x_expr"], j["y_expr"], res)
@@ -603,7 +626,7 @@ def assemble_video(
         sid = clip["scene_id"]
         dur = float(clip["duration"])
         img_path = images_dir / f"{clip['clip_id']}.jpg"
-        vid_path = _resolve_clip_video(clip, images_dir)
+        vid_path = None if clip.get("force_still") else _resolve_clip_video(clip, images_dir)
         seg_mp4 = clips_dir / f"{clip['clip_id']}.mp4"
         if vid_path is not None:
             v_dur = max(0.5, probe_duration(vid_path))
@@ -624,7 +647,10 @@ def assemble_video(
             if not img_path.exists():
                 raise FileNotFoundError(f"Imagem ausente: {img_path}")
             render_ken_burns_clip(img_path, clip["ken_burns"], dur, seg_mp4, allow_nvenc=allow_gpu)
-            ov_style = infer_scene_overlay_style(clip) if overlay_style == "auto" else overlay_style
+            if clip.get("overlay_style"):
+                ov_style = str(clip["overlay_style"])
+            else:
+                ov_style = infer_scene_overlay_style(clip) if overlay_style == "auto" else overlay_style
             apply_contextual_particle_overlay(
                 seg_mp4,
                 ov_style,
@@ -666,9 +692,10 @@ def assemble_video(
         write_pop_ass(visual_clips, ass_16_9)
 
     overlays = _plan_avatar_overlays(visual_clips, images_dir, avatar_dir) if with_avatar else []
+    plan_mode = any(c.get("pip_plan") or c.get("overlay_style") for c in visual_clips)
     sparkles_mov = avatar_dir / "hook_sparkles.mov"
     hook_spark_dur = min(7.5, total_dur)
-    if with_avatar and hook_spark_dur >= 2.0:
+    if with_avatar and hook_spark_dur >= 2.0 and not plan_mode:
         render_magic_sparkles_overlay(hook_spark_dur, sparkles_mov)
     else:
         sparkles_mov = None
