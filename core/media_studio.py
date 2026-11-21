@@ -2,10 +2,12 @@
 """Prompts travados na Biblia Visual, geracao 16:9 sem colagens e 3 Thumbnails CTR."""
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +15,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 
 from config import (
+    MAX_VEO_GENERATIONS_PER_SCENE,
     NEGATIVE_IMAGE_RULE,
     POSITIVE_IMAGE_RULE,
     TARGET_VEO_VIDEOS,
@@ -447,6 +450,28 @@ def select_veo_scenes(
     return chosen
 
 
+def _resolve_veo_ledger_path(videos_dir: Path, proj_dir: Path | None) -> Path:
+    if proj_dir is not None:
+        return proj_dir / "artifacts" / "veo_generation_ledger.json"
+    return videos_dir.parent.parent / "artifacts" / "veo_generation_ledger.json"
+
+
+def _load_veo_ledger(ledger_path: Path) -> dict[str, Any]:
+    if ledger_path.exists():
+        try:
+            data = json.loads(ledger_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and isinstance(data.get("scenes"), dict):
+                return data
+        except Exception:
+            pass
+    return {"schema": "VEO_LEDGER_V1", "scenes": {}}
+
+
+def _save_veo_ledger(ledger_path: Path, data: dict[str, Any]) -> None:
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    ledger_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def generate_single_veo_video(
     scene: dict[str, Any],
     images_dir: Path,
@@ -455,16 +480,29 @@ def generate_single_veo_video(
     proj_dir: Path | None = None,
     fix_hint: str = "",
     force: bool = False,
+    allow_extra_veo: bool = False,
+    max_per_scene: int = MAX_VEO_GENERATIONS_PER_SCENE,
 ) -> dict[str, Any]:
-    """Gera 1 video de 8s no Veo 3.1 Lite para uma cena especifica com failover e continuidade."""
+    """Gera 1 video de 8s no Veo 3.1 Lite para uma cena especifica com failover, continuidade e ledger anti-loop."""
     import asyncio
     from core.flow_accounts import generate_video_with_failover
+    from core.voice_studio import probe_duration
 
     videos_dir.mkdir(parents=True, exist_ok=True)
     sid = scene["scene_id"]
     out_mp4 = videos_dir / f"{sid}.mp4"
     if not force and out_mp4.exists() and out_mp4.stat().st_size > 100_000:
         return {"ok": True, "reused": True, "path": str(out_mp4), "account_id": "cache", "elapsed_s": 0.0}
+
+    ledger_path = _resolve_veo_ledger_path(videos_dir, proj_dir)
+    ledger = _load_veo_ledger(ledger_path)
+    entries = ledger.setdefault("scenes", {}).setdefault(sid, [])
+    prior_count = sum(1 for e in entries if isinstance(e, dict) and e.get("status") in ("dispatched", "downloaded"))
+    if (not allow_extra_veo) and prior_count >= max(1, int(max_per_scene)):
+        raise RuntimeError(
+            f"[TRAVA-VEO-CENA] Cena {sid} ja atingiu o limite de {max_per_scene} geracao(oes) Veo paga(s) "
+            f"no ledger ({ledger_path.name}); bloqueado para impedir loop de creditos."
+        )
 
     sec_chars = script_data.get("secondary_characters") or []
     props = script_data.get("story_props") or []
@@ -493,8 +531,18 @@ def generate_single_veo_video(
         if pn not in chars_list:
             chars_list.append(pn)
     chars = tuple(chars_list)
+
+    entry: dict[str, Any] = {
+        "ts": int(time.time()),
+        "status": "dispatched",
+        "prompt_sha1": hashlib.sha1(veo_prompt.encode("utf-8", errors="ignore")).hexdigest()[:12],
+        "out_mp4": str(out_mp4),
+    }
+    entries.append(entry)
+    _save_veo_ledger(ledger_path, ledger)
+
     try:
-        return asyncio.run(
+        res = asyncio.run(
             generate_video_with_failover(
                 prompt=veo_prompt,
                 out_mp4=out_mp4,
@@ -504,7 +552,31 @@ def generate_single_veo_video(
                 proj_dir=proj_dir,
             )
         )
-    except Exception:
+        dur = probe_duration(out_mp4) if out_mp4.exists() else 0.0
+        if not out_mp4.exists() or out_mp4.stat().st_size < 50_000 or dur < 2.0:
+            raise RuntimeError(
+                f"Arquivo Veo baixado invalido para {sid}: bytes={out_mp4.stat().st_size if out_mp4.exists() else 0}, dur={dur:.2f}s"
+            )
+        entry["status"] = "downloaded"
+        entry["account_id"] = str((res or {}).get("account_id") or "")
+        entry["bytes"] = out_mp4.stat().st_size
+        entry["duration_s"] = round(dur, 2)
+        _save_veo_ledger(ledger_path, ledger)
+        return res
+    except Exception as exc:
+        err_low = str(exc).lower()
+        pre_dispatch = any(
+            tok in err_low
+            for tok in (
+                "offline", "deslogada", "nao encontrado no flow",
+                "creditos insuficientes", "quota", "esgotaram",
+                "nenhuma conta", "configurada",
+            )
+        )
+        if pre_dispatch:
+            entry["status"] = "pre_dispatch_error"
+        entry["error"] = str(exc)[:180]
+        _save_veo_ledger(ledger_path, ledger)
         if out_mp4.exists() and out_mp4.stat().st_size < 100_000:
             out_mp4.unlink(missing_ok=True)
         raise

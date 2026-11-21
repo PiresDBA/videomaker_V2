@@ -457,6 +457,25 @@ async def generate_flow_image(
     }
 
 
+async def _wait_for_inflight_flow_generation(page, max_wait_s: int = 180) -> bool:
+    """Aguarda qualquer geracao em andamento no grid do Flow concluir antes de enviar novo prompt."""
+    t0 = time.time()
+    logged = False
+    while time.time() - t0 < max_wait_s:
+        cur = await _snapshot_top_tiles(page, limit=3)
+        busy = any(re.search(r"\b\d+%", t.get("txt") or "") for t in cur)
+        if not busy:
+            return True
+        if not logged:
+            print(
+                "  [Flow] Geracao em andamento detectada no grid; aguardando concluir antes de enviar novo prompt...",
+                flush=True,
+            )
+            logged = True
+        await page.wait_for_timeout(4000)
+    raise TimeoutError(f"Geracao anterior no grid do Flow nao finalizou em {max_wait_s}s; envio bloqueado para evitar duplicata.")
+
+
 async def generate_flow_video(
     page,
     prompt: str,
@@ -484,6 +503,7 @@ async def generate_flow_video(
         if vid_ref and await attach_reference_from_plus(page, "Vídeos", vid_ref, exact=False):
             attached.append(f"vid:{vid_ref[:30]}")
 
+    await _wait_for_inflight_flow_generation(page, max_wait_s=min(wait_s, 180))
     before = await _snapshot_top_tiles(page, limit=4)
     before_srcs = {im["src"] for t in before for im in t["imgs"] if im["src"]}
     before_arias = [t["aria"] for t in before]

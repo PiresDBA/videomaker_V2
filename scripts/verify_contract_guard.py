@@ -64,6 +64,9 @@ def check_contract() -> list[str]:
     m_veo = re.search(r"TARGET_VEO_VIDEOS\s*=\s*([0-9]+)", cfg_txt)
     if not m_veo or int(m_veo.group(1)) < 10:
         errors.append("CONTRATO VIOLADO: config.py deve manter TARGET_VEO_VIDEOS >= 10 (videos 8s Veo 3.1 Lite).")
+    m_veo_scene = re.search(r"MAX_VEO_GENERATIONS_PER_SCENE\s*=\s*([0-9]+)", cfg_txt)
+    if not m_veo_scene or int(m_veo_scene.group(1)) != 1:
+        errors.append("CONTRATO VIOLADO: config.py deve manter MAX_VEO_GENERATIONS_PER_SCENE = 1 (maximo 1 geracao Veo paga por cena).")
 
     # 2. Verifica YouTube PT nao marcado para criancas
     yt_txt = (ROOT / "core" / "youtube_publisher.py").read_text(encoding="utf-8", errors="replace")
@@ -116,14 +119,16 @@ def check_contract() -> list[str]:
         if sym not in sa_txt:
             errors.append(f"CONTRATO VIOLADO: {sym} ausente em core/scene_auditor.py.")
     ms_media_txt = (ROOT / "core" / "media_studio.py").read_text(encoding="utf-8", errors="replace")
-    if "def generate_single_veo_video" not in ms_media_txt:
-        errors.append("CONTRATO VIOLADO: def generate_single_veo_video ausente em core/media_studio.py.")
+    if "def generate_single_veo_video" not in ms_media_txt or "veo_generation_ledger" not in ms_media_txt:
+        errors.append("CONTRATO VIOLADO: core/media_studio.py deve manter generate_single_veo_video e veo_generation_ledger.")
     au_txt = (ROOT / "core" / "self_audit.py").read_text(encoding="utf-8", errors="replace")
     if "min_veo_videos" not in au_txt:
         errors.append("CONTRATO VIOLADO: min_veo_videos ausente em core/self_audit.py.")
     fc_txt = (ROOT / "core" / "flow_continuity.py").read_text(encoding="utf-8", errors="replace")
-    if "def _inject_at_character_mentions" not in fc_txt:
-        errors.append("CONTRATO VIOLADO: _inject_at_character_mentions ausente em core/flow_continuity.py.")
+    if "def _inject_at_character_mentions" not in fc_txt or "def _wait_for_inflight_flow_generation" not in fc_txt:
+        errors.append("CONTRATO VIOLADO: core/flow_continuity.py deve manter _inject_at_character_mentions e _wait_for_inflight_flow_generation.")
+    if "def _resolve_scene_videos" not in va_txt:
+        errors.append("CONTRATO VIOLADO: _resolve_scene_videos ausente em core/video_assembler.py.")
 
     # 4. Compilacao Python de todos os modulos principais
     for py_path in [ROOT / "config.py", ROOT / "pipeline_v2.py", *sorted((ROOT / "core").glob("*.py")), Path(__file__)]:

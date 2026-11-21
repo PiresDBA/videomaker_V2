@@ -398,6 +398,105 @@ def render_motion_video_subclip(
     return out_mp4
 
 
+def _resolve_scene_videos(scene_id: str, images_dir: Path) -> list[Path]:
+    """Localiza todos os videos Veo validos (>50KB) associados a cena em ordem deterministica."""
+    videos_dir = images_dir.parent / "videos"
+    found: list[Path] = []
+    seen: set[str] = set()
+
+    def _add(p: Path) -> None:
+        try:
+            rp = str(p.resolve())
+        except Exception:
+            rp = str(p)
+        if rp not in seen and p.exists() and p.is_file() and p.stat().st_size > 50_000:
+            seen.add(rp)
+            found.append(p)
+
+    for base in (videos_dir, images_dir):
+        _add(base / f"{scene_id}.mp4")
+        if base.exists():
+            for pat in (f"{scene_id}_v*.mp4", f"{scene_id}_p*.mp4"):
+                for cand in sorted(base.glob(pat)):
+                    _add(cand)
+    return found
+
+
+def render_multi_video_montage_subclip(
+    video_paths: list[Path],
+    scene_start_s: float,
+    clip_start_s: float,
+    clip_dur: float,
+    scene_total_dur: float,
+    out_mp4: Path,
+    allow_nvenc: bool = True,
+) -> Path:
+    """Edita multiplos videos da mesma cena em sequencia uniforme dentro dos sub-clips."""
+    if len(video_paths) <= 1:
+        return render_motion_video_subclip(
+            video_paths[0],
+            max(0.0, float(clip_start_s) - float(scene_start_s)),
+            clip_dur,
+            out_mp4,
+            allow_nvenc=allow_nvenc,
+        )
+    out_mp4.parent.mkdir(parents=True, exist_ok=True)
+    n_vids = len(video_paths)
+    tot = max(0.5, float(scene_total_dur))
+    slot = tot / n_vids
+    rel_start = max(0.0, float(clip_start_s) - float(scene_start_s))
+    rel_end = rel_start + max(0.1, float(clip_dur))
+
+    overlaps: list[tuple[int, float, float]] = []
+    for idx in range(n_vids):
+        ov_s = max(rel_start, idx * slot)
+        ov_e = min(rel_end, (idx + 1) * slot)
+        if ov_e > ov_s + 1e-4:
+            if overlaps and (ov_e - ov_s) < 0.12:
+                pi, ps, _ = overlaps[-1]
+                overlaps[-1] = (pi, ps, ov_e)
+            else:
+                overlaps.append((idx, ov_s, ov_e))
+    if len(overlaps) >= 2 and (overlaps[0][2] - overlaps[0][1]) < 0.12:
+        _, first_s, _ = overlaps.pop(0)
+        ni, _, ne = overlaps[0]
+        overlaps[0] = (ni, first_s, ne)
+
+    pieces: list[Path] = []
+    for idx, ov_s, ov_e in overlaps:
+        ov_dur = ov_e - ov_s
+        vp = video_paths[idx]
+        v_dur = max(0.5, probe_duration(vp))
+        src_ss = min(max(0.0, (ov_s - idx * slot) + 0.35), max(0.0, v_dur - ov_dur - 0.1))
+        part_mp4 = out_mp4.parent / f"{out_mp4.stem}_part{idx}_{len(pieces)}.mp4"
+        render_motion_video_subclip(vp, src_ss, ov_dur, part_mp4, pts_factor=1.0, allow_nvenc=allow_nvenc)
+        pieces.append(part_mp4)
+
+    if not pieces:
+        return render_motion_video_subclip(video_paths[0], 0.0, clip_dur, out_mp4, allow_nvenc=allow_nvenc)
+    if len(pieces) == 1:
+        pieces[0].replace(out_mp4)
+        return out_mp4
+
+    concat_list = out_mp4.parent / f"{out_mp4.stem}_concat.txt"
+    try:
+        concat_list.write_text(
+            "\n".join(f"file '{p.as_posix()}'" for p in pieces) + "\n",
+            encoding="utf-8",
+        )
+        _run_h264_ffmpeg(
+            [FFMPEG_EXE, "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(concat_list), "-an"],
+            [str(out_mp4)],
+            quality="fast",
+            allow_nvenc=allow_nvenc,
+        )
+    finally:
+        concat_list.unlink(missing_ok=True)
+        for p in pieces:
+            p.unlink(missing_ok=True)
+    return out_mp4
+
+
 def _resolve_clip_video(clip: dict[str, Any], images_dir: Path) -> Path | None:
     """Localiza clipe de video Veo associado ao sub-clip ou a cena."""
     explicit = clip.get("video_path")
@@ -603,34 +702,57 @@ def assemble_video(
         sid = clip["scene_id"]
         dur = float(clip["duration"])
         img_path = images_dir / f"{clip['clip_id']}.jpg"
-        vid_path = _resolve_clip_video(clip, images_dir)
+        scene_vids = _resolve_scene_videos(sid, images_dir)
         seg_mp4 = clips_dir / f"{clip['clip_id']}.mp4"
-        if vid_path is not None:
+        if len(scene_vids) >= 2:
+            vid_path = scene_vids[0]
             v_dur = max(0.5, probe_duration(vid_path))
             tot_scene = max(dur, scene_totals.get(sid, dur))
-            pts = (tot_scene / (v_dur - 0.05)) if tot_scene > (v_dur - 0.05) else 1.0
-            rel_out = max(0.0, float(clip.get("start", scene_starts[sid])) - scene_starts[sid])
-            src_ss = rel_out / max(0.5, pts)
             if not img_path.exists():
                 img_path.parent.mkdir(parents=True, exist_ok=True)
                 subprocess.run(
-                    [FFMPEG_EXE, "-y", "-v", "error", "-ss", f"{min(src_ss + dur * 0.25, max(0.0, v_dur - 0.1)):.2f}",
+                    [FFMPEG_EXE, "-y", "-v", "error", "-ss", f"{min(dur * 0.25, max(0.0, v_dur - 0.1)):.2f}",
                      "-i", str(vid_path), "-vframes", "1", "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080",
                      str(img_path)],
                     check=True,
                 )
-            render_motion_video_subclip(vid_path, src_ss, dur, seg_mp4, pts_factor=pts, allow_nvenc=allow_gpu)
-        else:
-            if not img_path.exists():
-                raise FileNotFoundError(f"Imagem ausente: {img_path}")
-            render_ken_burns_clip(img_path, clip["ken_burns"], dur, seg_mp4, allow_nvenc=allow_gpu)
-            ov_style = infer_scene_overlay_style(clip) if overlay_style == "auto" else overlay_style
-            apply_contextual_particle_overlay(
+            render_multi_video_montage_subclip(
+                scene_vids,
+                scene_starts[sid],
+                float(clip.get("start", scene_starts[sid])),
+                dur,
+                tot_scene,
                 seg_mp4,
-                ov_style,
-                seed=abs(hash(clip["clip_id"])) % (2 ** 31),
                 allow_nvenc=allow_gpu,
             )
+        else:
+            vid_path = scene_vids[0] if scene_vids else _resolve_clip_video(clip, images_dir)
+            if vid_path is not None:
+                v_dur = max(0.5, probe_duration(vid_path))
+                tot_scene = max(dur, scene_totals.get(sid, dur))
+                pts = (tot_scene / (v_dur - 0.05)) if tot_scene > (v_dur - 0.05) else 1.0
+                rel_out = max(0.0, float(clip.get("start", scene_starts[sid])) - scene_starts[sid])
+                src_ss = rel_out / max(0.5, pts)
+                if not img_path.exists():
+                    img_path.parent.mkdir(parents=True, exist_ok=True)
+                    subprocess.run(
+                        [FFMPEG_EXE, "-y", "-v", "error", "-ss", f"{min(src_ss + dur * 0.25, max(0.0, v_dur - 0.1)):.2f}",
+                         "-i", str(vid_path), "-vframes", "1", "-vf", "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080",
+                         str(img_path)],
+                        check=True,
+                    )
+                render_motion_video_subclip(vid_path, src_ss, dur, seg_mp4, pts_factor=pts, allow_nvenc=allow_gpu)
+            else:
+                if not img_path.exists():
+                    raise FileNotFoundError(f"Imagem ausente: {img_path}")
+                render_ken_burns_clip(img_path, clip["ken_burns"], dur, seg_mp4, allow_nvenc=allow_gpu)
+                ov_style = infer_scene_overlay_style(clip) if overlay_style == "auto" else overlay_style
+                apply_contextual_particle_overlay(
+                    seg_mp4,
+                    ov_style,
+                    seed=abs(hash(clip["clip_id"])) % (2 ** 31),
+                    allow_nvenc=allow_gpu,
+                )
         return seg_mp4
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as clip_ex:

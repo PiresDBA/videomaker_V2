@@ -67,26 +67,39 @@ async def _harvest_account_tiles(
                 return []
             email = await detect_logged_email(page)
 
+            if "/edit/" in (page.url or "") and acc.get("project_url"):
+                await page.goto(acc["project_url"], wait_until="domcontentloaded", timeout=30000)
+                await page.wait_for_timeout(1500)
+            dash = page.locator('mat-nav-list button:has-text("dashboard")').first
+            if await dash.count():
+                try:
+                    await dash.click(timeout=3000)
+                    await page.wait_for_timeout(700)
+                except Exception:
+                    pass
+
             # 1) Clica no filtro "Vídeos" antes de ler o grid (evita imagens empurrarem videos Veo para baixo)
             async def _click_grid_filter(label: str) -> bool:
-                for sel in (
-                    f'button[role="tab"]:has-text("{label}")',
-                    f'[role="tab"]:has-text("{label}")',
-                    f'button:has-text("{label}")',
-                    f'mat-chip-option:has-text("{label}")',
-                ):
-                    loc = page.locator(sel)
-                    cnt = await loc.count()
-                    for i in range(min(cnt, 6)):
-                        el = loc.nth(i)
-                        try:
-                            box = await el.bounding_box()
-                            if box and box["y"] < 320 and await el.is_visible():
-                                await el.click(timeout=3000)
-                                await page.wait_for_timeout(1200)
-                                return True
-                        except Exception:
-                            pass
+                labels = (label, "Videos") if label == "Vídeos" else (label,)
+                for lbl in labels:
+                    for sel in (
+                        f'button[role="tab"]:has-text("{lbl}")',
+                        f'[role="tab"]:has-text("{lbl}")',
+                        f'button:has-text("{lbl}")',
+                        f'mat-chip-option:has-text("{lbl}")',
+                    ):
+                        loc = page.locator(sel)
+                        cnt = await loc.count()
+                        for i in range(min(cnt, 8)):
+                            el = loc.nth(i)
+                            try:
+                                box = await el.bounding_box()
+                                if box and box["y"] < 420 and await el.is_visible():
+                                    await el.click(timeout=3000)
+                                    await page.wait_for_timeout(1200)
+                                    return True
+                            except Exception:
+                                pass
                 return False
 
             async def _collect_tiles(scrolls: int = 5) -> list[dict[str, Any]]:
@@ -117,6 +130,13 @@ async def _harvest_account_tiles(
                 pass
             # Fase A: Filtro Vídeos (prioridade maxima para recuperar todos os Veo)
             vid_filtered = await _click_grid_filter("Vídeos")
+            if not vid_filtered and acc.get("project_url"):
+                try:
+                    await page.goto(acc["project_url"], wait_until="domcontentloaded", timeout=30000)
+                    await page.wait_for_timeout(2500)
+                    vid_filtered = await _click_grid_filter("Vídeos")
+                except Exception:
+                    pass
             video_tiles = await _collect_tiles(scrolls=6)
             print(f"[RecoverFlow] {acc['id']} ({email}) [filtro Vídeos={vid_filtered}]: {len(video_tiles)} tiles.", flush=True)
 

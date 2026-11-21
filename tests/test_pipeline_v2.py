@@ -1089,6 +1089,82 @@ class TestVideomakerV2Unified(unittest.TestCase):
             self.assertEqual(len(archived), 1, "Video reprovado deve ir para _archive e nao ser apagado!")
             self.assertTrue(all(x == [] for x in seen_sec_in_vision))
 
+    def test_veo_ledger_1_per_scene_lock_and_multi_video_scene_montage(self):
+        import json as _json
+        import subprocess
+        from unittest import mock
+        from config import FFMPEG_EXE, MAX_VEO_GENERATIONS_PER_SCENE
+        import core.flow_accounts as fa
+        import core.media_studio as ms
+        import core.video_assembler as va
+        from core.voice_studio import probe_duration
+
+        self.assertEqual(MAX_VEO_GENERATIONS_PER_SCENE, 1)
+
+        with tempfile.TemporaryDirectory() as td:
+            proj = Path(td)
+            imgs_dir = proj / "assets" / "images"
+            vids_dir = proj / "assets" / "videos"
+            imgs_dir.mkdir(parents=True, exist_ok=True)
+            vids_dir.mkdir(parents=True, exist_ok=True)
+            (proj / "artifacts").mkdir(parents=True, exist_ok=True)
+
+            # 1. Ledger bloqueia 2a geracao paga na mesma cena mesmo se o arquivo foi arquivado/removido
+            src_dummy = vids_dir / "_src_valid.mp4"
+            subprocess.run(
+                [FFMPEG_EXE, "-y", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=640x360:d=2.5",
+                 "-c:v", "libx264", "-preset", "ultrafast", str(src_dummy)],
+                check=True,
+            )
+            while src_dummy.stat().st_size < 55_000:
+                src_dummy.write_bytes(src_dummy.read_bytes() + b"\x00" * 55_000)
+
+            async def _fake_failover(**kwargs):
+                dst = Path(kwargs["out_mp4"])
+                dst.write_bytes(src_dummy.read_bytes())
+                return {"ok": True, "path": str(dst), "account_id": "acc_5"}
+
+            sc1 = {"scene_id": "sc_01", "text": "Largada!", "location": "pista", "visual_action": "Corrida", "characters": ["Frida"]}
+            sc2 = {"scene_id": "sc_02", "text": "Luna corre!", "location": "pista", "visual_action": "Luna corre", "characters": ["Luna"]}
+            script = {"title": "Ledger", "scenes": [sc1, sc2]}
+
+            with mock.patch.object(fa, "generate_video_with_failover", side_effect=_fake_failover):
+                ms.generate_single_veo_video(sc1, imgs_dir, vids_dir, script, proj_dir=proj, force=True)
+                ledger = _json.loads((proj / "artifacts" / "veo_generation_ledger.json").read_text(encoding="utf-8"))
+                self.assertEqual(ledger["scenes"]["sc_01"][0]["status"], "downloaded")
+
+                # Arquiva/remove sc_01.mp4 -> 2a tentativa forçada deve bater no TRAVA-VEO-CENA!
+                (vids_dir / "sc_01.mp4").unlink()
+                with self.assertRaises(RuntimeError) as ctx:
+                    ms.generate_single_veo_video(sc1, imgs_dir, vids_dir, script, proj_dir=proj, force=True)
+                self.assertIn("TRAVA-VEO-CENA", str(ctx.exception))
+
+                # Outra cena distinta (sc_02) e allow_extra_veo=True funcionam normalmente
+                ms.generate_single_veo_video(sc2, imgs_dir, vids_dir, script, proj_dir=proj, force=True)
+                ms.generate_single_veo_video(sc1, imgs_dir, vids_dir, script, proj_dir=proj, force=True, allow_extra_veo=True)
+
+            # 2. _resolve_scene_videos + render_multi_video_montage_subclip combinam multiplos videos da mesma cena
+            src_dummy.unlink(missing_ok=True)
+            (vids_dir / "sc_02.mp4").unlink(missing_ok=True)
+            colors = ("red", "green", "yellow")
+            for name, col in zip(("sc_01.mp4", "sc_01_v2.mp4", "sc_01_v3.mp4"), colors):
+                p = vids_dir / name
+                subprocess.run(
+                    [FFMPEG_EXE, "-y", "-v", "error", "-f", "lavfi", "-i", f"color=c={col}:s=640x360:d=2.2",
+                     "-c:v", "libx264", "-preset", "ultrafast", str(p)],
+                    check=True,
+                )
+                if p.stat().st_size <= 50_000:
+                    p.write_bytes(p.read_bytes() + b"\x00" * 52_000)
+
+            found_vids = va._resolve_scene_videos("sc_01", imgs_dir)
+            self.assertEqual([p.name for p in found_vids], ["sc_01.mp4", "sc_01_v2.mp4", "sc_01_v3.mp4"])
+
+            out_seg = proj / "work" / "sc_01_p1.mp4"
+            va.render_multi_video_montage_subclip(found_vids, 0.0, 0.0, 4.5, 6.0, out_seg, allow_nvenc=False)
+            self.assertTrue(out_seg.exists() and out_seg.stat().st_size > 10_000)
+            self.assertAlmostEqual(probe_duration(out_seg), 4.5, delta=0.45)
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():
