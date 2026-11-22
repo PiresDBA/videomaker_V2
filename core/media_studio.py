@@ -245,6 +245,16 @@ def generate_single_image(
                 candidates.append((cdp_url, acc.get("project_url") or DEFAULT_FLOW_PROJECT_URL))
                 seen_urls.add(cdp_url)
 
+        # Nano Banana 2.1 usa 0 creditos: contas sem cota Veo ainda servem para gerar imagens
+        for acc in accounts_cfg:
+            if not acc.get("enabled", True):
+                continue
+            port = int(acc["cdp_port"])
+            cdp_url = f"http://127.0.0.1:{port}"
+            if cdp_url not in seen_urls and cdp_url not in _UNAVAILABLE_CDP_URLS and cdp_is_alive(port):
+                candidates.append((cdp_url, acc.get("project_url") or DEFAULT_FLOW_PROJECT_URL))
+                seen_urls.add(cdp_url)
+
         if DEFAULT_CDP_URL not in seen_urls and DEFAULT_CDP_URL not in _UNAVAILABLE_CDP_URLS:
             try:
                 with urllib.request.urlopen(f"{DEFAULT_CDP_URL}/json/version", timeout=2):
@@ -262,44 +272,45 @@ def generate_single_image(
         async def _run_direct(cdp_url: str, proj_url: str) -> None:
             async with async_playwright() as pw:
                 b = await pw.chromium.connect_over_cdp(cdp_url, timeout=10000)
-                ctx = b.contexts[0]
-                pg = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
-                if "flow.google.com" not in pg.url or "/project/" not in pg.url:
-                    await pg.goto(proj_url, wait_until="domcontentloaded", timeout=30000)
-                    await pg.wait_for_timeout(2000)
-                if await check_needs_google_login(pg):
-                    _UNAVAILABLE_CDP_URLS.add(cdp_url)
+                try:
+                    ctx = b.contexts[0]
+                    pg = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
+                    if "flow.google.com" not in pg.url or "/project/" not in pg.url:
+                        await pg.goto(proj_url, wait_until="domcontentloaded", timeout=30000)
+                        await pg.wait_for_timeout(2000)
+                    if await check_needs_google_login(pg):
+                        _UNAVAILABLE_CDP_URLS.add(cdp_url)
+                        raise RuntimeError(f"Conta Flow {cdp_url} deslogada; pulando.")
+                    if script_data and ensured_accounts is not None and cdp_url not in ensured_accounts:
+                        try:
+                            present = await ensure_story_characters_created(
+                                pg, script_data, proj_url, portrait_dir=sec_portrait_dir
+                            )
+                            needed = tuple(characters or ("Frida", "Luna"))
+                            if all(present.get(c, False) for c in needed):
+                                ensured_accounts.add(cdp_url)
+                            else:
+                                missing = [c for c in needed if not present.get(c, False)]
+                                print(f"  [FlowChars] AVISO: personagens pendentes em {cdp_url}: {missing}", flush=True)
+                        except Exception as char_exc:
+                            print(f"  [FlowChars] ERRO ao garantir personagens em {cdp_url}: {char_exc}", flush=True)
+                    ref_names: list[str] = []
+                    for rp in all_refs[:2]:
+                        try:
+                            if await upload_media_to_flow(pg, rp):
+                                ref_names.append(rp.name)
+                        except Exception:
+                            pass
+                    await generate_flow_image(
+                        pg,
+                        sanitize_image_prompt(prompt),
+                        out_path,
+                        characters=characters or ("Frida", "Luna"),
+                        ref_images=tuple(ref_names),
+                        wait_s=min(wait_s, 180),
+                    )
+                finally:
                     await b.close()
-                    raise RuntimeError(f"Conta Flow {cdp_url} deslogada; pulando.")
-                if script_data and ensured_accounts is not None and cdp_url not in ensured_accounts:
-                    try:
-                        present = await ensure_story_characters_created(
-                            pg, script_data, proj_url, portrait_dir=sec_portrait_dir
-                        )
-                        needed = tuple(characters or ("Frida", "Luna"))
-                        if all(present.get(c, False) for c in needed):
-                            ensured_accounts.add(cdp_url)
-                        else:
-                            missing = [c for c in needed if not present.get(c, False)]
-                            print(f"  [FlowChars] AVISO: personagens pendentes em {cdp_url}: {missing}", flush=True)
-                    except Exception as char_exc:
-                        print(f"  [FlowChars] ERRO ao garantir personagens em {cdp_url}: {char_exc}", flush=True)
-                ref_names: list[str] = []
-                for rp in all_refs[:2]:
-                    try:
-                        if await upload_media_to_flow(pg, rp):
-                            ref_names.append(rp.name)
-                    except Exception:
-                        pass
-                await generate_flow_image(
-                    pg,
-                    sanitize_image_prompt(prompt),
-                    out_path,
-                    characters=characters or ("Frida", "Luna"),
-                    ref_images=tuple(ref_names),
-                    wait_s=min(wait_s, 180),
-                )
-                await b.close()
 
         for cdp_url, proj_url in candidates:
             try:
@@ -308,7 +319,10 @@ def generate_single_image(
                     tw, th = (1080, 1920) if aspect == "9:16" else (VIDEO_WIDTH, VIDEO_HEIGHT)
                     fit_aspect_jpeg(out_path, out_path, tw, th)
                     return out_path
-            except Exception:
+            except Exception as exc:
+                err_low = str(exc).lower()
+                if any(tok in err_low for tok in ("configuracao direta", "fazer login", "deslogada", "has been closed", "target page")):
+                    _UNAVAILABLE_CDP_URLS.add(cdp_url)
                 continue
     except Exception:
         pass
