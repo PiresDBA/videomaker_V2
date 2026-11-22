@@ -121,7 +121,7 @@ def get_avatar_clips(character: str) -> dict[str, Any]:
 
 # Limites rigidos de roteiro, ritmo e YouTube Shorts
 SCRIPT_MIN_WORDS = 450
-SCRIPT_MAX_WORDS = 550
+SCRIPT_MAX_WORDS = 570
 SCRIPT_TARGET_MINUTES = (3, 4)
 CTA_TAIL_SECONDS = 10.0
 
@@ -189,10 +189,14 @@ CHIRP3_MONTHLY_CHAR_LIMIT = 950_000  # Trava de seguranca abaixo da franquia gra
 # Casting emocional multi-voz (Gemini 3.8/2.5 Flash TTS + Google Cloud Chirp 3 HD travado)
 GEMINI_TTS_MODELS = ("gemini-3.8-flash-tts", "gemini-2.5-flash-preview-tts")
 
+# Ritmo por personagem (Regra 16): Luna mais acelerada, Frida mais calma, narrador no meio.
+# Faixa permitida pelo usuario: 1.05 a 1.12.
+CHIRP3_SPEAKING_RATE = {"narrador": 1.10, "frida": 1.05, "luna": 1.12, "secundario": 1.10}
+
 SPEAKER_VOICE_PROFILES = {
     "narrador": {
-        "gemini_voice": "Zephyr",
-        "chirp3_voice": "pt-BR-Chirp3-HD-Zephyr",
+        "gemini_voice": "Puck",
+        "chirp3_voice": "pt-BR-Chirp3-HD-Puck",
         "gemini_alt_voices": (),
         "profile": "narrador",
         "emotion": "Narradora feminina jovem de 16 anos, amiga, muito alegre, sorridente, risonha e saltitante: conte a história como uma piada super divertida com sorriso na voz do início ao fim (nunca séria ou jornalística)",
@@ -224,8 +228,8 @@ SPEAKER_VOICE_PROFILES = {
         "subtitle_ass_color": "&H00F5E04C",
     },
     "secundario": {
-        "gemini_voice": "Puck",
-        "chirp3_voice": "pt-BR-Chirp3-HD-Puck",
+        "gemini_voice": "Fenrir",
+        "chirp3_voice": "pt-BR-Chirp3-HD-Fenrir",
         "gemini_alt_voices": (),
         "profile": "narrador",
         "emotion": "Voz divertida, expressiva e teatral de personagem coadjuvante de desenho animado",

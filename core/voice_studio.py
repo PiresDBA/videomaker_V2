@@ -26,6 +26,7 @@ import numpy as np
 from config import (
     CHIRP3_CREDENTIALS_DEFAULT,
     CHIRP3_MONTHLY_CHAR_LIMIT,
+    CHIRP3_SPEAKING_RATE,
     CHIRP3_OAUTH_CLIENT_DEFAULT,
     CHIRP3_OAUTH_TOKEN_DEFAULT,
     CHIRP3_USAGE_STATE_FILE,
@@ -723,8 +724,10 @@ def synthesize_all_scenes(
                 # REGRA DE OURO: trava absoluta de voz por personagem (proibido alternar para outra voz)
                 v_choice = locked_voice
                 if prov == "chirp3_hd":
+                    base_rate = float(CHIRP3_SPEAKING_RATE.get(speaker, 1.10))
+                    rate = min(1.12, base_rate + (0.02 if attempt >= 2 else 0.0))
                     used_voice, emo_mode = _synthesize_chirp3_hd(
-                        tts_text, speaker, mp3_path, speaking_rate=(1.06 if attempt >= 2 else 1.0)
+                        tts_text, speaker, mp3_path, speaking_rate=rate
                     )
                 else:
                     try:
@@ -734,8 +737,10 @@ def synthesize_all_scenes(
                         )
                     except Exception:
                         if prov == "auto" and has_chirp3_auth_configured():
+                            base_rate = float(CHIRP3_SPEAKING_RATE.get(speaker, 1.10))
+                            rate = min(1.12, base_rate + (0.02 if attempt >= 2 else 0.0))
                             used_voice, emo_mode = _synthesize_chirp3_hd(
-                                tts_text, speaker, mp3_path, speaking_rate=(1.06 if attempt >= 2 else 1.0)
+                                tts_text, speaker, mp3_path, speaking_rate=rate
                             )
                         else:
                             raise

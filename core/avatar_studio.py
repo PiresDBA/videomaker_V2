@@ -328,8 +328,9 @@ def render_avatar_pip_clip(
                 _pick_next_hab_clip(prefer_peak=(lv == 2))
             else:
                 idx_hab += 1
-                # Antes de atingir o fim do clipe falando (~8s), dissolve suavemente para outro clipe!
-                if idx_hab >= len(cur_vid["frames"]) - 6:
+                # Inicia dissolve ANTES do fim do clipe, com folga para o crossfade inteiro (18 frames p/ Luna).
+                # Se faltam menos que crossfade_len frames, troca agora para nao estourar o blend no ar.
+                if idx_hab >= len(cur_vid["frames"]) - max(6, crossfade_len + 2):
                     _pick_next_hab_clip(prefer_peak=(lv == 2))
             raw_sq = cur_vid["frames"][idx_hab % len(cur_vid["frames"])]
             was_talking = True

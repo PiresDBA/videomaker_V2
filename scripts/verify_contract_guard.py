@@ -84,8 +84,8 @@ def check_contract() -> list[str]:
         errors.append("CONTRATO VIOLADO: _normalize_sfx_to_wav removido de core/audio_fx.py.")
     if "cartoon boing" not in afx_txt or "slide whistle" not in afx_txt:
         errors.append("CONTRATO VIOLADO: core/audio_fx.py deve manter sonoplastia estilo Cartoon (cartoon boing, slide whistle, etc.).")
-    if '"gemini_voice": "Zephyr"' not in cfg_txt:
-        errors.append("CONTRATO VIOLADO: config.py deve manter Narradora jovem alegre 'Zephyr' no SPEAKER_VOICE_PROFILES.")
+    if '"gemini_voice": "Puck"' not in cfg_txt or '"chirp3_voice": "pt-BR-Chirp3-HD-Puck"' not in cfg_txt:
+        errors.append("CONTRATO VIOLADO: config.py deve manter Narradora alegre/brincalhona 'Puck' no SPEAKER_VOICE_PROFILES (escolhida pelo usuario em 2026-11-22).")
 
     fa_txt = (ROOT / "core" / "flow_accounts.py").read_text(encoding="utf-8", errors="replace")
     if "def ensure_story_characters_created" not in fa_txt or "story_props" not in fa_txt:
@@ -165,10 +165,13 @@ def check_contract() -> list[str]:
         errors.append("HOOK VIOLADO: pipeline_v2.py --tts-provider deve ter default='chirp3_hd' (cota 1M/mes; Gemini free tier=10 req/dia).")
     if 'provider: str = "chirp3_hd"' not in vs_txt:
         errors.append("HOOK VIOLADO: synthesize_all_scenes deve ter provider='chirp3_hd' como default.")
+    # HOOK CRITICO: Gemini-TTS (gemini-2.5-flash-tts / modelName no Cloud TTS) E PROIBIDO — cobrado por token.
+    if '"modelName": "gemini-' in vs_txt or 'gemini-2.5-flash-tts' in vs_txt and 'GEMINI_TTS_MODELS' not in vs_txt:
+        errors.append("HOOK CRITICO VIOLADO: Gemini-TTS cobrado por token e proibido; usar apenas Chirp 3 HD (cota 1M).")
     # HOOK 2: vozes travadas Zephyr/Sulafat/Leda + secundario (Puck) — personagens secundarios podem usar OUTRAS vozes.
-    for voice_sym in ('"gemini_voice": "Zephyr"', '"gemini_voice": "Sulafat"', '"gemini_voice": "Leda"',
-                      '"chirp3_voice": "pt-BR-Chirp3-HD-Zephyr"', '"chirp3_voice": "pt-BR-Chirp3-HD-Sulafat"',
-                      '"chirp3_voice": "pt-BR-Chirp3-HD-Leda"', '"secundario"', '"pt-BR-Chirp3-HD-Puck"'):
+    for voice_sym in ('"gemini_voice": "Puck"', '"gemini_voice": "Sulafat"', '"gemini_voice": "Leda"',
+                      '"chirp3_voice": "pt-BR-Chirp3-HD-Puck"', '"chirp3_voice": "pt-BR-Chirp3-HD-Sulafat"',
+                      '"chirp3_voice": "pt-BR-Chirp3-HD-Leda"', '"secundario"', '"pt-BR-Chirp3-HD-Fenrir"'):
         if voice_sym not in cfg_txt:
             errors.append(f"HOOK VIOLADO: config.py deve manter '{voice_sym}' (vozes fixas + secundario).")
     # HOOK 3: pre-varredura de recuperacao total das 5 contas Flow antes de gerar (evita gerar o que ja existe).
@@ -179,6 +182,17 @@ def check_contract() -> list[str]:
     for sa_sym in ("def build_narration_track", "def master_with_soundcraft"):
         if sa_sym not in va_txt and sa_sym not in afx_txt:
             errors.append(f"HOOK VIOLADO: '{sa_sym}' ausente (mixing de narracao/audio obrigatorio).")
+    # HOOK 6: sonoplastia cartoon sinc (Pica-Pau/Pernalonga) + texto infantil divertido + BGM original.
+    for cartoon_sym in ("cartoon boing", "cartoon giggle", "cartoon fanfare", "slide whistle"):
+        if cartoon_sym not in afx_txt:
+            errors.append(f"HOOK VIOLADO: audio_fx.py deve manter foley cartoon '{cartoon_sym}' (estilo Pica-Pau/Pernalonga).")
+    if "def _infer_semantic_foleys" not in afx_txt:
+        errors.append("HOOK VIOLADO: _infer_semantic_foleys ausente (foleys sematicos por cena).")
+    if 'gerenciador_efeitos_sonoros' not in afx_txt or 'obter_efeito_sonoro' not in afx_txt:
+        errors.append("HOOK VIOLADO: SFX deve passar por vendor/gerenciador_efeitos_sonoros.py (obter_efeito_sonoro).")
+    # HOOK CRITICO DE TEXTO: risada e SENTIMENTO, nunca escrita (hahaha soa robotizado no TTS).
+    if 'hahaha+|ha\\s+ha\\s+ha+' not in vs_txt:
+        errors.append("HOOK VIOLADO: normalize_phonetics_pt deve remover 'hahaha' do texto antes do TTS (risada e sentimento, nunca escrita).")
 
     # 4. Compilacao Python de todos os modulos principais
     for py_path in [ROOT / "config.py", ROOT / "pipeline_v2.py", *sorted((ROOT / "core").glob("*.py")), Path(__file__)]:
