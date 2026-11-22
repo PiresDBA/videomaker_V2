@@ -1078,38 +1078,60 @@ class FlowStageWatchdog:
                 _write_watchdog_state(st)
 
     def acquire(self) -> "FlowStageWatchdog":
+        # 1. Registra imediatamente nossa entrada na fila FIFO antes de inspecionar processos externos
         st = _read_watchdog_state()
-        tracked_pids = {self.pid, self.ppid}
-        for q in st.get("queue") or []:
-            if isinstance(q, dict) and q.get("pid"):
-                tracked_pids.add(int(q["pid"]))
-        owner = st.get("active_owner")
-        if isinstance(owner, dict) and owner.get("pid"):
-            tracked_pids.add(int(owner["pid"]))
-
-        # Snapshot apenas processos pipeline_v2 pre-existentes (iniciados antes deste processo)
-        preexisting = _detect_untracked_pipeline_processes(exclude_pids=tracked_pids)
-        preexisting_pids = {p: cmd for p, cmd in preexisting}
-
-        # Garante nossa entrada na fila FIFO
         queue = [
             q for q in (st.get("queue") or [])
             if isinstance(q, dict) and _is_pid_alive(int(q.get("pid") or 0))
         ]
         if not any(int(q.get("pid") or 0) == self.pid for q in queue):
-            queue.append({"pid": self.pid, "slug": self.slug, "stage": self.stage, "enqueued_at": round(time.time(), 2)})
+            queue.append({
+                "pid": self.pid,
+                "ppid": self.ppid,
+                "slug": self.slug,
+                "stage": self.stage,
+                "enqueued_at": round(time.time(), 2),
+            })
         st["queue"] = queue
         _write_watchdog_state(st)
+
+        tracked_pids = {self.pid, self.ppid}
+        for q in queue:
+            if isinstance(q, dict):
+                if q.get("pid"):
+                    tracked_pids.add(int(q["pid"]))
+                if q.get("ppid"):
+                    tracked_pids.add(int(q["ppid"]))
+        owner = st.get("active_owner")
+        if isinstance(owner, dict):
+            if owner.get("pid"):
+                tracked_pids.add(int(owner["pid"]))
+            if owner.get("ppid"):
+                tracked_pids.add(int(owner["ppid"]))
+
+        # Snapshot apenas processos pipeline_v2 legados pre-existentes (fora da fila Watchdog)
+        preexisting = _detect_untracked_pipeline_processes(exclude_pids=tracked_pids)
+        preexisting_pids = {p: cmd for p, cmd in preexisting}
 
         atexit.register(self.release)
         wait_logged = False
         while True:
-            # Remove PIDs pre-existentes que ja terminaram
+            st = _read_watchdog_state()
+            state_dirty = False
+
+            # Qualquer PID/PPID que entrou na fila Watchdog nao e processo legado nao-rastreado
+            for q in st.get("queue") or []:
+                if isinstance(q, dict):
+                    preexisting_pids.pop(int(q.get("pid") or 0), None)
+                    preexisting_pids.pop(int(q.get("ppid") or 0), None)
+            owner = st.get("active_owner")
+            if isinstance(owner, dict):
+                preexisting_pids.pop(int(owner.get("pid") or 0), None)
+                preexisting_pids.pop(int(owner.get("ppid") or 0), None)
+
             alive_pre = {p: cmd for p, cmd in preexisting_pids.items() if _is_pid_alive(p)}
             preexisting_pids = alive_pre
 
-            st = _read_watchdog_state()
-            owner = st.get("active_owner")
             if owner and self._is_owner_stale(owner):
                 dead_pid = owner.get("pid")
                 dead_slug = owner.get("slug")
@@ -1119,13 +1141,24 @@ class FlowStageWatchdog:
                 )
                 owner = None
                 st["active_owner"] = None
+                state_dirty = True
 
+            raw_queue = st.get("queue") or []
             queue = [
-                q for q in (st.get("queue") or [])
+                q for q in raw_queue
                 if isinstance(q, dict) and _is_pid_alive(int(q.get("pid") or 0))
             ]
+            if len(queue) != len(raw_queue):
+                state_dirty = True
             if not any(int(q.get("pid") or 0) == self.pid for q in queue):
-                queue.append({"pid": self.pid, "slug": self.slug, "stage": self.stage, "enqueued_at": round(time.time(), 2)})
+                queue.append({
+                    "pid": self.pid,
+                    "ppid": self.ppid,
+                    "slug": self.slug,
+                    "stage": self.stage,
+                    "enqueued_at": round(time.time(), 2),
+                })
+                state_dirty = True
             st["queue"] = queue
 
             first_in_queue = int(queue[0].get("pid") or 0) == self.pid if queue else True
@@ -1140,6 +1173,7 @@ class FlowStageWatchdog:
                 now = round(time.time(), 2)
                 st["active_owner"] = {
                     "pid": self.pid,
+                    "ppid": self.ppid,
                     "slug": self.slug,
                     "stage": self.stage,
                     "started_at": now,
@@ -1170,7 +1204,8 @@ class FlowStageWatchdog:
                         flush=True,
                     )
                 wait_logged = True
-            _write_watchdog_state(st)
+            if state_dirty:
+                _write_watchdog_state(st)
             time.sleep(4.0)
 
     def release(self) -> None:
