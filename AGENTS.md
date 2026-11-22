@@ -23,4 +23,5 @@ Leia [CONTRATO_MOTOR_V2.md](CONTRATO_MOTOR_V2.md) antes de qualquer alteração 
    - `ensure_direct_mode` deve sair de `/character` ou `/edit/` antes de buscar a pílula inferior; `configure_flow_mode` deve clicar em `button[role="radio"]` e fechar overlays com `_dismiss_open_overlays`.
    - Filtrar `secondary_characters` por cena (`_scene_matching_secondary_chars`), isentar `cartoon prop object` em `enforce_youthful_puppy_prompt` e bloquear vídeos verticais (`9:16`) em episódios `16:9`.
    - `FlowStageWatchdog` (`core/flow_accounts.py` + `pipeline_v2.py`) serializa o acesso ao Google Flow entre múltiplos processos com fila FIFO, heartbeat e aviso automático de término (`finished_and_notified`).
+   - Proibido re-checar `cur_pre` pós-upload em `generate_flow_image` (`skip_if_busy` somente pré-anexo); `_retry_failed_flow_tile` aborta imediatamente em `"atividade incomum"` e `scene_auditor.py` libera texto cenográfico natural em objetos (ex.: `"DOG"` em relevo).
 

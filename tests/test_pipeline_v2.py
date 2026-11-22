@@ -1200,6 +1200,67 @@ class TestVideomakerV2Unified(unittest.TestCase):
                 self.assertEqual(st_after["last_finished"]["slug"], "episodio-atual")
                 self.assertEqual(st_after["last_finished"]["status"], "finished_and_notified")
 
+    def test_unusual_activity_fast_abort_and_scenic_dog_text_allowed(self):
+        import asyncio as _asyncio
+        import json as _json
+        from unittest import mock
+        import numpy as np
+        import core.flow_continuity as fc
+        import core.scene_auditor as sa
+
+        class _FakeTile:
+            async def count(self):
+                return 1
+
+            async def evaluate(self, js):
+                return {"hasImg": False, "hasVidReady": False, "inProgress": False, "hasRetryBtn": True, "hasErrTxt": True, "hasUnusualActivity": True}
+
+        class _FakeLoc:
+            @property
+            def first(self):
+                return _FakeTile()
+
+        class _FakePage:
+            def locator(self, sel):
+                return _FakeLoc()
+
+        with self.assertRaises(RuntimeError) as ctx:
+            _asyncio.run(fc._retry_failed_flow_tile(_FakePage(), retries_done=0, max_retries=3))
+        self.assertIn("atividade incomum", str(ctx.exception).lower())
+
+        with tempfile.TemporaryDirectory() as td:
+            img = Path(td) / "sc_14_p1.jpg"
+            rng = np.random.default_rng(77)
+            Image.fromarray(rng.integers(40, 220, (360, 640, 3), dtype=np.uint8)).save(img, quality=92)
+
+            class _RespDog:
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *a):
+                    return False
+
+                def read(self):
+                    return _json.dumps({
+                        "candidates": [{"content": {"parts": [{"text": _json.dumps({
+                            "matches_narration": True,
+                            "matches_location": True,
+                            "matches_characters": True,
+                            "matches_story_props": True,
+                            "has_collage_or_split": False,
+                            "has_visible_text": True,
+                            "reason": "A cena está ótima, apenas contém a palavra 'DOG' gravada no biscoito.",
+                            "fix_prompt_hint": "",
+                        })}]}}]
+                    }).encode("utf-8")
+
+            sc14 = {"scene_id": "sc_14", "act": 2, "speaker": "frida", "text": "Suba na ponte!", "location": "Ponte de Biscoito", "visual_action": "Frida e Luna na ponte", "characters": ["Frida", "Luna"]}
+            with mock.patch.object(sa, "_get_google_keys", return_value=["DUMMY_TEST_KEY"]), \
+                 mock.patch("urllib.request.urlopen", return_value=_RespDog()):
+                res = sa.audit_scene_visual_with_vision([img], sc14, is_video_keyframes=False)
+            self.assertTrue(res["ok"], res)
+            self.assertFalse(res["has_visible_text"])
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():

@@ -377,11 +377,14 @@ async def _retry_failed_flow_tile(page, retries_done: int, max_retries: int = 3)
                     b.txt === 'refresh' || b.txt === 'replay' || b.txt.includes('tentar') || b.txt.includes('refaz')
                 );
                 const hasErrTxt = txt.includes('algo deu errado') || txt.includes('falha') || txt.includes('não foi possível') || txt.includes('erro');
-                return { hasImg, hasVidReady, inProgress, hasRetryBtn, hasErrTxt };
+                const hasUnusualActivity = txt.includes('atividade incomum') || txt.includes('unusual activity');
+                return { hasImg, hasVidReady, inProgress, hasRetryBtn, hasErrTxt, hasUnusualActivity };
             }"""
         )
     except Exception:
         return False
+    if info.get("hasUnusualActivity"):
+        raise RuntimeError("Conta Flow bloqueada temporariamente (atividade incomum); alternando para outra conta.")
     if info.get("inProgress") or info.get("hasImg") or info.get("hasVidReady"):
         return False
     if not (info.get("hasRetryBtn") or info.get("hasErrTxt")):
@@ -458,11 +461,7 @@ async def generate_flow_image(
         if vid_ref and await attach_reference_from_plus(page, "Vídeos", vid_ref, exact=False):
             attached.append(f"vid:{vid_ref[:30]}")
 
-    if skip_if_busy:
-        cur_pre = await _snapshot_top_tiles(page, limit=3)
-        if any(re.search(r"\b\d+%", t.get("txt") or "") for t in cur_pre):
-            raise RuntimeError("Conta Flow ocupada com outra geracao em andamento; alternando para outra conta.")
-    else:
+    if not skip_if_busy:
         await _wait_for_inflight_flow_generation(page, max_wait_s=min(wait_s, 180))
     before = await _snapshot_top_tiles(page)
     before_srcs = {im["src"] for t in before for im in t["imgs"] if im["src"]}

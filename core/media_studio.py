@@ -334,7 +334,7 @@ def generate_single_image(
                 except Exception as exc:
                     err_low = str(exc).lower()
                     print(f"  [FlowImg] {cdp_url} falhou: {str(exc).splitlines()[0]}", flush=True)
-                    if any(tok in err_low for tok in ("configuracao direta", "fazer login", "deslogada", "has been closed", "target page")):
+                    if any(tok in err_low for tok in ("configuracao direta", "fazer login", "deslogada", "has been closed", "target page", "atividade incomum", "unusual activity")):
                         _UNAVAILABLE_CDP_URLS.add(cdp_url)
                     continue
     except Exception:

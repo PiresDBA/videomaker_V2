@@ -131,9 +131,11 @@ def check_contract() -> list[str]:
         errors.append("CONTRATO VIOLADO: core/flow_continuity.py deve manter _inject_at_character_mentions e _wait_for_inflight_flow_generation.")
     if "Fallback: selecionando 1a midia" in fc_txt:
         errors.append("CONTRATO VIOLADO: proibido fallback cego da 1a midia de 'Envios' em core/flow_continuity.py.")
-    for fc_sym in ("max_elements = 3", "def _dismiss_open_overlays", 'button[role="radio"]', "cartoon prop object"):
+    for fc_sym in ("max_elements = 3", "def _dismiss_open_overlays", 'button[role="radio"]', "cartoon prop object", "hasUnusualActivity"):
         if fc_sym not in fc_txt:
             errors.append(f"CONTRATO VIOLADO: trava anti-regressao '{fc_sym}' ausente em core/flow_continuity.py.")
+    if "cur_pre = await _snapshot_top_tiles" in fc_txt:
+        errors.append("CONTRATO VIOLADO: proibido re-checar cur_pre pos-upload em generate_flow_image (falso positivo de conta ocupada).")
     for sa_sym in ("def _scene_matching_secondary_chars", "_archive", "proporcao vertical invalida"):
         if sa_sym not in sa_txt:
             errors.append(f"CONTRATO VIOLADO: trava anti-regressao '{sa_sym}' ausente em core/scene_auditor.py.")
