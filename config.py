@@ -191,11 +191,11 @@ GEMINI_TTS_MODELS = ("gemini-3.8-flash-tts", "gemini-2.5-flash-preview-tts")
 
 SPEAKER_VOICE_PROFILES = {
     "narrador": {
-        "gemini_voice": "Kore",
-        "chirp3_voice": "pt-BR-Chirp3-HD-Kore",
+        "gemini_voice": "Zephyr",
+        "chirp3_voice": "pt-BR-Chirp3-HD-Zephyr",
         "gemini_alt_voices": (),
         "profile": "narrador",
-        "emotion": "Narradora feminina jovem, amiga, muito alegre, sorridente e saltitante: narre com entusiasmo contagiante e sorriso na voz do início ao fim (nunca séria ou jornalística)",
+        "emotion": "Narradora feminina jovem de 16 anos, amiga, muito alegre, sorridente, risonha e saltitante: conte a história como uma piada super divertida com sorriso na voz do início ao fim (nunca séria ou jornalística)",
         "edge_voice": "pt-BR-ThalitaNeural",
         "edge_rate": "+6%",
         "edge_pitch": "+4Hz",

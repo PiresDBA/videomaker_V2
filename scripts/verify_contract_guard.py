@@ -82,6 +82,10 @@ def check_contract() -> list[str]:
     afx_txt = (ROOT / "core" / "audio_fx.py").read_text(encoding="utf-8", errors="replace")
     if "def _normalize_sfx_to_wav" not in afx_txt:
         errors.append("CONTRATO VIOLADO: _normalize_sfx_to_wav removido de core/audio_fx.py.")
+    if "cartoon boing" not in afx_txt or "slide whistle" not in afx_txt:
+        errors.append("CONTRATO VIOLADO: core/audio_fx.py deve manter sonoplastia estilo Cartoon (cartoon boing, slide whistle, etc.).")
+    if '"gemini_voice": "Zephyr"' not in cfg_txt:
+        errors.append("CONTRATO VIOLADO: config.py deve manter Narradora jovem alegre 'Zephyr' no SPEAKER_VOICE_PROFILES.")
 
     fa_txt = (ROOT / "core" / "flow_accounts.py").read_text(encoding="utf-8", errors="replace")
     if "def ensure_story_characters_created" not in fa_txt or "story_props" not in fa_txt:

@@ -19,37 +19,51 @@ sys.path.insert(0, str(VENDOR_DIR))
 from gerenciador_efeitos_sonoros import obter_efeito_sonoro  # noqa: E402
 
 EARSHOT_DEFAULTS = {
-    "whoosh": ("whoosh_fast/crisp", None),
-    "whip": ("whoosh_fast/whip", None),
+    "whoosh": ("swish/soft", None),
+    "whip": ("swish/soft", None),
     "swipe": ("swipe/paper", None),
     "swish": ("swish/soft", None),
-    "pop": ("ui_pop/soft", None),
+    "pop": ("ui_pop/boop", None),
     "boop": ("ui_pop/boop", None),
     "bloop": ("drip/bloop", None),
     "celesta": ("mallet/celesta", None),
     "glock": ("mallet/glock", None),
-    "spark": ("logo_sting/spark", None),
-    "bloom": ("logo_sting/soft_bloom", None),
-    "hit": ("cut_hit/punch", None),
-    "riser": ("riser/swell", None),
-    "knock": ("knock/plastic", None),
-    "shutter": ("shutter/quick", None),
+    "spark": ("mallet/celesta", None),
+    "bloom": ("mallet/glock", None),
+    "hit": ("drip/bloop", None),
+    "riser": ("mallet/celesta", None),
+    "knock": ("ui_pop/boop", None),
+    "shutter": ("ui_pop/soft", None),
 }
 
-# Regras semanticas de foley automatico para animacoes infantis (funciona nos 30+ videos!)
+# Regras semanticas de foley estilo desenho animado classico (Pica-Pau / Tom & Jerry / Snoopy)
 SEMANTIC_FOLEY_RULES: tuple[tuple[str, str, str, float], ...] = (
-    (r"gato|pingo|cat|miado|garras|cochilo|dorminhoco", "cat meow", "freesound", 0.34),
+    (r"gato|pingo|cat|miado|garras|cochilo|dorminhoco", "cartoon cat meow", "freesound", 0.32),
     (r"patinho|rubber\s+duck", "rubber duck squeak", "freesound", 0.34),
-    (r"pombo|pigeon|voou|flight|asa", "pigeon wings", "freesound", 0.32),
-    (r"passarinh|bird|bico|canta", "bird chirp", "freesound", 0.30),
-    (r"z[ií]per|zipper|mochila|backpack|trava", "zipper", "freesound", 0.33),
-    (r"biscoit|ossinh|crocant|biscuit|lanche", "crunchy bite", "freesound", 0.33),
-    (r"carros?\s+vermelh|cars?\s+pass|rua|street|bombeir", "car pass by", "freesound", 0.28),
-    (r"latid|latiu|bark", "small dog bark", "freesound", 0.33),
-    (r"espirr|sneeze|nuvem|poeira\s+m[aá]gica|brilhou|sparkles|estrel", "logo_sting/spark", "earshot", 0.32),
-    (r"disparou|correu|pulo|saltou|trott|jump", "whoosh_fast/whip", "earshot", 0.28),
-    (r"sol|p[oô]r\s+do\s+sol|sunset|aprendeu|abra[cç]|carinho|amig", "logo_sting/soft_bloom", "earshot", 0.25),
-    (r"piada|bobo|surpres|choque|boca\s+aberta", "drip/bloop", "earshot", 0.24),
+    (r"pombo|pigeon|voou|flight|asa", "cartoon bird whistle", "freesound", 0.30),
+    (r"passarinh|bird|bico|canta", "cartoon bird chirp", "freesound", 0.30),
+    (r"z[ií]per|zipper|mochila|backpack|trava", "slide whistle up", "freesound", 0.31),
+    (r"biscoit|ossinh|crocant|biscuit|lanche|bacon|petisc", "cartoon crunch bite", "freesound", 0.32),
+    (r"cheir|farej|focinho|nariz", "cartoon sniff", "freesound", 0.30),
+    (r"carros?\s+vermelh|cars?\s+pass|rua|street|bombeir", "cartoon horn honk", "freesound", 0.28),
+    (r"latid|latiu|bark", "small dog bark", "freesound", 0.32),
+    (r"espirr|sneeze", "cartoon sneeze", "freesound", 0.33),
+    (r"nuvem|poeira\s+m[aá]gica|brilhou|sparkles|estrel", "mallet/celesta", "earshot", 0.30),
+    (r"trof[eé]u|medalha|campe[aã]o|vit[oó]ria|p[oó]dio|vencer", "cartoon fanfare", "freesound", 0.31),
+    (r"tomb|cambalhot|piruet|girou|rolou|esborrach|caiu", "cartoon spin", "freesound", 0.32),
+    (r"almofad|caminha|colch[aã]o|fof[ao]|mergulh|afund", "cartoon bounce", "freesound", 0.31),
+    (r"disparou|correu|velocid|frenetic|disputa|largada", "cartoon run", "freesound", 0.30),
+    (r"pulo|saltou|trott|jump|obst[aá]cul", "cartoon boing", "freesound", 0.31),
+    (r"bolha|sab[aã]o|estour|onda\s+de\s+choque", "cartoon bubble pop", "freesound", 0.32),
+    (r"t[uú]nel|escorreg|desvi|trope[cç]", "slide whistle", "freesound", 0.30),
+    (r"meia|orelha|enrosc|bagun[cç]", "cartoon spring", "freesound", 0.30),
+    (r"apito|largada|ju[ií]z|jurad", "cartoon whistle", "freesound", 0.30),
+    (r"ops|eita|susto|arregalad|surpres|choque|boca\s+aberta", "xylophone cartoon", "freesound", 0.29),
+    (r"desist|chatead|trist|perdeu|ops", "sad trombone", "freesound", 0.28),
+    (r"cornet|buzin|palha[cç]|maluc", "comedy horn", "freesound", 0.29),
+    (r"sol|p[oô]r\s+do\s+sol|sunset|aprendeu|abra[cç]|carinho|amig|beij", "mallet/glock", "earshot", 0.26),
+    (r"piada|bobo|rir|rindo|risad|engra[cç]|divert", "cartoon giggle", "freesound", 0.28),
+    (r"aben[cç]|acenar|tchau|beijos|like|inscrev", "cartoon kiss", "freesound", 0.27),
 )
 
 
@@ -227,10 +241,10 @@ def build_sfx_stem(
 
         act = clip.get("act", 1)
         if last_act is not None and act != last_act:
-            path_trans, _ = resolve_sfx_file("whoosh_fast/crisp")
+            path_trans, _ = resolve_sfx_file("slide whistle")
             if path_trans:
                 ts_t = _snap_to_nearest_pause(max(0.0, float(clip["start"]) - 0.10), pauses)
-                events.append((ts_t, path_trans, 0.30))
+                events.append((ts_t, path_trans, 0.28))
         last_act = act
 
         # Micro-pop quando alterna Frida <-> Luna para marcar o bate-bola com leveza
@@ -251,14 +265,14 @@ def build_sfx_stem(
 
         hay_step = f"{clip.get('text', '')} {clip.get('visual_action', '')}".lower()
         if re.search(r"disparou|correu|foi\s+at[eé]|caminhou|march|trott|walking", hay_step, re.I):
-            p_w, _ = resolve_sfx_file("knock/wood")
-            p_p, _ = resolve_sfx_file("ui_pop/soft")
+            p_w, _ = resolve_sfx_file("mallet/glock")
+            p_p, _ = resolve_sfx_file("ui_pop/boop")
             for k in range(4):
                 step_p = p_w if k % 2 == 0 else p_p
                 if step_p:
-                    t_st = float(clip["start"]) + 0.18 + k * 0.15
+                    t_st = float(clip["start"]) + 0.18 + k * 0.13
                     if t_st < float(clip["end"]) - 0.1:
-                        events.append((t_st, step_p, 0.20))
+                        events.append((t_st, step_p, 0.19))
 
     # Camada suave de ambiencia (passarinhos/brisa CC0) se a maioria for parque/natureza
     all_loc = " ".join(str(c.get("location") or "") for c in visual_clips).lower()
