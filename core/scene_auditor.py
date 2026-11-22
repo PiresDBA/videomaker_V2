@@ -303,7 +303,11 @@ def audit_scene_visual_with_vision(
         "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel, NEVER random brown/black dog).\n"
         + extra_animals_rule
         + (f"- Secondary Characters: {sec_desc}\n" if sec_desc else "")
-        + (f"Story Key Objects (treated as FIXED characters, MUST keep exact same color, material and shape across ALL scenes): {props_desc}\n" if props_desc else "")
+        + (
+            f"Story Key Objects (treated as FIXED characters, MUST keep exact same color, material and shape across ALL scenes): {props_desc}\n"
+            if props_desc
+            else "Story Key Objects: None required in this scene (always set matches_story_props=true; incidental background set dressing like championship trophies, flags, or garden props is allowed when the main characters and action match the narration).\n"
+        )
         + (
             f"VIDEO KEYFRAMES AUDIT: The first {len(valid_frames)} attached images are sequential temporal snapshots "
             "(start, middle, end) extracted from ONE continuous 8-second video. It is EXPECTED that you received multiple sequential images. "
@@ -369,11 +373,13 @@ def audit_scene_visual_with_vision(
                     if is_video and text_flag and any(tok in reason_low for tok in ("não viola", "nao viola", "cenográfico esperado", "cenografico esperado")):
                         text_flag = False
                         res["has_visible_text"] = False
+                    props_ok = bool(res.get("matches_story_props", True)) if props_desc else True
+                    res["matches_story_props"] = props_ok
                     ok = (
                         bool(res.get("matches_narration", True))
                         and bool(res.get("matches_location", True))
                         and bool(res.get("matches_characters", True))
-                        and bool(res.get("matches_story_props", True))
+                        and props_ok
                         and not collage_flag
                         and not text_flag
                     )
