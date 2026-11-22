@@ -529,14 +529,39 @@ async def generate_flow_image(
 
 
 async def _wait_for_inflight_flow_generation(page, max_wait_s: int = 180) -> bool:
-    """Aguarda qualquer geracao em andamento no grid do Flow concluir antes de enviar novo prompt."""
+    """Aguarda qualquer geracao em andamento no grid do Flow concluir; destrava tile zumbi congelado (ex: 0%)."""
     t0 = time.time()
     logged = False
+    last_sig: tuple[str, ...] = ()
+    last_change = t0
+    reloaded = False
     while time.time() - t0 < max_wait_s:
         cur = await _snapshot_top_tiles(page, limit=3)
-        busy = any(re.search(r"\b\d+%", t.get("txt") or "") for t in cur)
-        if not busy:
+        busy_sigs = tuple(
+            f"{m.group(0)}:{t.get('aria', '')[:30]}"
+            for t in cur
+            for m in [re.search(r"\b\d+%", t.get("txt") or "")]
+            if m
+        )
+        if not busy_sigs:
             return True
+        now = time.time()
+        if busy_sigs != last_sig:
+            last_sig = busy_sigs
+            last_change = now
+        elif not reloaded and (now - last_change) >= 28.0:
+            print(
+                f"  [Flow] Tile congelado em {busy_sigs} por >=28s (zumbi); recarregando pagina para destravar...",
+                flush=True,
+            )
+            reloaded = True
+            try:
+                await page.reload(wait_until="domcontentloaded", timeout=30000)
+                await page.wait_for_timeout(2500)
+            except Exception:
+                pass
+            last_change = time.time()
+            continue
         if not logged:
             print(
                 "  [Flow] Geracao em andamento detectada no grid; aguardando concluir antes de enviar novo prompt...",

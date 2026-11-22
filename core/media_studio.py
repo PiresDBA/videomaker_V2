@@ -278,7 +278,14 @@ def generate_single_image(
 
         async def _run_direct(cdp_url: str, proj_url: str, skip_busy: bool = True) -> None:
             async with async_playwright() as pw:
-                b = await pw.chromium.connect_over_cdp(cdp_url, timeout=10000)
+                try:
+                    b = await pw.chromium.connect_over_cdp(cdp_url, timeout=10000)
+                except Exception as cdp_exc:
+                    if "econnrefused" in str(cdp_exc).lower():
+                        await asyncio.sleep(1.5)
+                        b = await pw.chromium.connect_over_cdp(cdp_url, timeout=10000)
+                    else:
+                        raise
                 try:
                     ctx = b.contexts[0]
                     pg = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
