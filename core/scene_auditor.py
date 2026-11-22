@@ -281,6 +281,7 @@ def audit_scene_visual_with_vision(
         tok in hay_crowd
         for tok in (
             "vários cães", "varios caes", "outros cães", "outros caes",
+            "todos os cães", "todos os caes", "cães brincando", "caes brincando",
             "competidores", "corrida", "campeonato", "multiple dogs", "crowd",
         )
     )
@@ -299,8 +300,8 @@ def audit_scene_visual_with_vision(
         f"Expected Characters in Scene: {chars_txt}\n"
         + (f"Sub-clip Shot Variant: {clip_variant} (may be a tighter reaction or reverse angle of the same scene)\n" if clip_variant else "")
         + "Character & Breed Design Rules (STRICT):\n"
-        "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace; NEVER Golden Retriever, NEVER black-and-white spotted, NEVER adult/old dog). Note: if a tiny pendant/charm on the collar is hidden by fur, angle, or distance, STILL set matches_characters=true as long as Frida's breed, coat, and pearl necklace match.\n"
-        "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and golden chain necklace (NEVER Cocker Spaniel, NEVER random brown/black dog). Note: tiny heart charms hidden by angle/distance are acceptable (matches_characters=true).\n"
+        "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace; NEVER Golden Retriever, NEVER black-and-white spotted, NEVER adult/old dog). Note: NEVER reject over collar/pendant details (whether the charm is a paw, flower, plain pearls, or hidden by fur/angle, ALWAYS set matches_characters=true as long as Frida's breed and coat match).\n"
+        "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and golden chain necklace (NEVER Cocker Spaniel, NEVER random brown/black dog). Note: NEVER reject over tiny necklace/chain/charm variations (hidden or slightly different charm is ALWAYS matches_characters=true).\n"
         + extra_animals_rule
         + (f"- Secondary Characters: {sec_desc}\n" if sec_desc else "")
         + (
