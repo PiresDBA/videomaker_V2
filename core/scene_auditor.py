@@ -313,6 +313,7 @@ def audit_scene_visual_with_vision(
             f"VIDEO KEYFRAMES AUDIT: The first {len(valid_frames)} attached images are sequential temporal snapshots "
             "(start, middle, end) extracted from ONE continuous 8-second video. It is EXPECTED that you received multiple sequential images. "
             "NEVER reject or claim the sequence is a collage of frames; ALWAYS set has_collage_or_split to false for sequential video snapshots. "
+            "VIDEO LENIENCY RULE (Veo videos are expensive): NEVER reject a video over small collar/pendant/charm details, minor scenic plaque text, or distant background dogs — approve (true) whenever the main characters' breeds, colors, setting, and action fit the narration. "
             "Also, 8-second AI video clips often show subtle, gentle character/camera motion between 3 snapshots; NEVER reject a video just because the motion between snapshots looks subtle or calm, as long as the characters, breeds, location, and mood fit the narration (only reject if it clearly contradicts the script or shows wrong breeds/missing key characters). "
             f"Also, in a video close-up focused on the main speaking character ({scene.get('speaker', 'narrador')}) performing the core action (e.g. winking or waving to camera), set matches_characters=true even if a silent companion is off-frame.\n"
             if is_video
