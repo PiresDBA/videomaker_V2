@@ -298,8 +298,12 @@ def audit_scene_visual_with_vision(
         + "Reject (false) if: the visual contradicts or ignores what the narration is saying, shows wrong dog breeds/colors, "
           "changes the key story object's appearance/color, "
         + ("" if is_video else "has comic-strip/split-screen panels inside the frame, ")
-        + "or has visible watermark/text.\n"
-        "Respond ONLY in JSON with keys: "
+        + (
+            "or has intrusive watermark/subtitles/speech-bubble text (set has_visible_text=false for minor incidental prop plaque labels if the video animation and characters match the narration).\n"
+            if is_video
+            else "or has visible watermark/text.\n"
+        )
+        + "Respond ONLY in JSON with keys: "
         '{"matches_narration": bool, "matches_location": bool, "matches_characters": bool, '
         '"matches_story_props": bool, "has_collage_or_split": bool, "has_visible_text": bool, '
         '"reason": "short summary in Portuguese", "fix_prompt_hint": "short English prompt fix if any check is false, else empty"}'
@@ -337,13 +341,18 @@ def audit_scene_visual_with_vision(
                     # Para video, frames individuais ja passaram por detect_split_collage(); evita falso positivo do modelo ao ver 3 keyframes.
                     collage_flag = False if is_video else bool(res.get("has_collage_or_split", False))
                     res["has_collage_or_split"] = collage_flag
+                    reason_low = str(res.get("reason") or "").lower()
+                    text_flag = bool(res.get("has_visible_text", False))
+                    if is_video and text_flag and any(tok in reason_low for tok in ("não viola", "nao viola", "cenográfico esperado", "cenografico esperado")):
+                        text_flag = False
+                        res["has_visible_text"] = False
                     ok = (
                         bool(res.get("matches_narration", True))
                         and bool(res.get("matches_location", True))
                         and bool(res.get("matches_characters", True))
                         and bool(res.get("matches_story_props", True))
                         and not collage_flag
-                        and not bool(res.get("has_visible_text", False))
+                        and not text_flag
                     )
                     res["checked"] = True
                     res["ok"] = ok
