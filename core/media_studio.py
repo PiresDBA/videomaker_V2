@@ -283,8 +283,9 @@ def generate_single_image(
                         raise RuntimeError(f"Conta Flow {cdp_url} deslogada; pulando.")
                     if script_data and ensured_accounts is not None and cdp_url not in ensured_accounts:
                         try:
+                            from core.flow_accounts import normalize_project_url
                             present = await ensure_story_characters_created(
-                                pg, script_data, proj_url, portrait_dir=sec_portrait_dir
+                                pg, script_data, normalize_project_url(pg.url) or proj_url, portrait_dir=sec_portrait_dir
                             )
                             needed = tuple(characters or ("Frida", "Luna"))
                             if all(present.get(c, False) for c in needed):
@@ -593,6 +594,10 @@ def generate_single_veo_video(
                 "offline", "deslogada", "nao encontrado no flow",
                 "creditos insuficientes", "quota", "esgotaram",
                 "nenhuma conta", "configurada",
+                "erro transitorio de ui/sessao", "locator.click",
+                "intercepts pointer events", "botao de configuracao direta",
+                "video deve usar veo", "imagem no flow deveria usar",
+                "nao confirmada no painel",
             )
         )
         if pre_dispatch:

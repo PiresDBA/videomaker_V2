@@ -494,7 +494,7 @@ async def generate_video_with_failover(
                         await ensure_story_characters_created(
                             page,
                             script_data or {},
-                            acc.get("project_url") or page.url,
+                            normalize_project_url(page.url) or acc.get("project_url") or page.url,
                             portrait_dir=sec_portrait_dir,
                         )
                         present = await check_characters_present(page, required=characters)
@@ -615,7 +615,7 @@ async def create_character_in_flow(
     """Cria nativamente o personagem (Frida/Luna) na rota /character da conta Flow."""
     if not portrait_path.exists():
         return False
-    base_proj = normalize_project_url(project_url or page.url)
+    base_proj = normalize_project_url(page.url) or normalize_project_url(project_url)
     if not base_proj:
         return False
 

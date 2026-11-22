@@ -25,10 +25,10 @@ FLOW_BABY_PUPPY_STYLE_PREFIX = FLOW_YOUTHFUL_PUPPY_STYLE_PREFIX
 
 
 def enforce_youthful_puppy_prompt(prompt: str) -> str:
-    """Garante no prompt do Flow o padrão criança/pré-adolescente (até 1 ano, fiel ao avatar 3D Disney/Pixar), exceto em flashbacks explícitos de bebê."""
+    """Garante no prompt do Flow o padrão criança/pré-adolescente (até 1 ano, fiel ao avatar 3D Disney/Pixar), exceto em flashbacks explícitos de bebê ou retrato isolado de objeto."""
     txt = (prompt or "").strip()
     low = txt.lower()
-    if any(tok in low for tok in ("quando eram bebês", "newborn baby", "flashback bebê", "as newborn babies")):
+    if any(tok in low for tok in ("quando eram bebês", "newborn baby", "flashback bebê", "as newborn babies", "cartoon prop object", "object_only")):
         return txt
     if "1 year old max" in low and "kid/tween" in low:
         return txt
@@ -118,25 +118,43 @@ async def configure_flow_mode(
     video_submode: str = "Elementos",
 ) -> str:
     """Configura Imagem (Nano Banana 2.1, x1, 0 creditos) ou Video (Veo 3.1 Lite, x1, 10 creditos)."""
-    # Fecha qualquer overlay pendente (ex.: menu dropdown aberto de chamada anterior)
-    for _ in range(2):
-        await page.keyboard.press("Escape")
-        await page.wait_for_timeout(200)
+    await _dismiss_open_overlays(page)
     pill = await ensure_direct_mode(page)
     await pill.click()
     await page.wait_for_timeout(700)
 
     settings_pane = page.locator('.cdk-overlay-pane:has-text("x1"), .cdk-overlay-pane:has-text("créditos")')
+    if not await settings_pane.count():
+        await _dismiss_open_overlays(page)
+        pill = await ensure_direct_mode(page)
+        await pill.click()
+        await page.wait_for_timeout(750)
     pane = settings_pane.last if await settings_pane.count() else page.locator(".cdk-overlay-pane").last
     targets = [kind, aspect, count]
     if kind == "Vídeo" and video_submode:
         targets.insert(1, video_submode)
 
     for lbl in targets:
-        btn = pane.locator(f'button:has-text("{lbl}"), mat-button-toggle:has-text("{lbl}")').first
+        btn = pane.locator(f'button[role="radio"]:has-text("{lbl}"), button:has-text("{lbl}")').first
+        if not await btn.count():
+            btn = pane.locator(f'mat-button-toggle:has-text("{lbl}")').first
         if await btn.count():
             await btn.click()
-            await page.wait_for_timeout(320)
+            await page.wait_for_timeout(380)
+            if lbl == kind:
+                pane_now = await pane.inner_text()
+                need_retry = (
+                    kind == "Vídeo"
+                    and ("0 créditos" in pane_now or ("Veo" not in pane_now and "Elementos" not in pane_now and "10 créditos" not in pane_now))
+                ) or (
+                    kind == "Imagem"
+                    and ("0 créditos" not in pane_now and "Nano" not in pane_now)
+                )
+                if need_retry:
+                    retry_btn = pane.locator(f'button[role="radio"]:has-text("{kind}"), button:has-text("{kind}")').first
+                    if await retry_btn.count():
+                        await retry_btn.click(force=True)
+                        await page.wait_for_timeout(600)
 
     pane_txt = await pane.inner_text()
     if model_hint not in pane_txt:
@@ -195,8 +213,22 @@ async def clear_attached_chips(page) -> None:
             break
 
 
+async def _dismiss_open_overlays(page) -> None:
+    """Fecha popovers/backdrops pendentes do Angular CDK antes de interagir com a UI do Flow."""
+    for _ in range(3):
+        try:
+            has_ov = await page.locator(".cdk-overlay-pane, .cdk-overlay-backdrop-showing").count()
+            if not has_ov:
+                break
+            await page.keyboard.press("Escape")
+            await page.wait_for_timeout(250)
+        except Exception:
+            break
+
+
 async def attach_reference_from_plus(page, tab_name: str, match_label: str, exact: bool = False) -> bool:
     """Anexa Personagem, Imagem ou Video no prompt via '+' -> Incluir no comando."""
+    await _dismiss_open_overlays(page)
     add_btn = page.locator('button[aria-label="Adicionar elementos à caixa de comando"]').first
     await add_btn.click()
     await page.wait_for_timeout(850)
@@ -285,10 +317,10 @@ async def attach_reference_from_plus(page, tab_name: str, match_label: str, exac
     if await inc.count() and await inc.is_visible():
         await inc.click()
         await page.wait_for_timeout(650)
+        await _dismiss_open_overlays(page)
         return True
 
-    await page.keyboard.press("Escape")
-    await page.wait_for_timeout(300)
+    await _dismiss_open_overlays(page)
     return False
 
 
@@ -425,11 +457,13 @@ async def generate_flow_image(
 
     prompt = enforce_baby_puppy_prompt(prompt)
     prompt = _inject_at_character_mentions(prompt, [a for a in attached if a.startswith("char:")])
+    await _dismiss_open_overlays(page)
     ed = page.locator('[contenteditable="true"]').last
     await ed.click()
     await ed.fill(prompt)
     await page.wait_for_timeout(450)
 
+    await _dismiss_open_overlays(page)
     await page.locator('button[aria-label="Iniciar geração"]').first.click()
     t0 = time.time()
     winner = None
@@ -549,6 +583,7 @@ async def generate_flow_video(
 
     prompt = enforce_baby_puppy_prompt(prompt)
     prompt = _inject_at_character_mentions(prompt, [a for a in attached if a.startswith("char:")])
+    await _dismiss_open_overlays(page)
     ed = page.locator('[contenteditable="true"]').last
     await ed.click()
     await ed.fill(prompt)
@@ -566,6 +601,7 @@ async def generate_flow_video(
 
     page.on("response", on_resp)
     try:
+        await _dismiss_open_overlays(page)
         await page.locator('button[aria-label="Iniciar geração"]').first.click()
         t0 = time.time()
         ready_tile = None
