@@ -86,6 +86,8 @@ def check_contract() -> list[str]:
     fa_txt = (ROOT / "core" / "flow_accounts.py").read_text(encoding="utf-8", errors="replace")
     if "def ensure_story_characters_created" not in fa_txt or "story_props" not in fa_txt:
         errors.append("CONTRATO VIOLADO: ensure_story_characters_created em core/flow_accounts.py deve registrar secondary_characters e story_props.")
+    if "class FlowStageWatchdog" not in fa_txt or "finished_and_notified" not in fa_txt:
+        errors.append("CONTRATO VIOLADO: FlowStageWatchdog (fila FIFO + heartbeat + aviso de termino) ausente em core/flow_accounts.py.")
 
     # 3b. Verifica REGRA DE OURO: PROIBIDO Edge TTS em producao + trava gratuita Chirp 3 HD
     vs_txt = (ROOT / "core" / "voice_studio.py").read_text(encoding="utf-8", errors="replace")

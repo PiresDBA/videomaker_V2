@@ -1169,6 +1169,37 @@ class TestVideomakerV2Unified(unittest.TestCase):
             self.assertTrue(out_seg.exists() and out_seg.stat().st_size > 10_000)
             self.assertAlmostEqual(probe_duration(out_seg), 4.5, delta=0.45)
 
+    def test_flow_stage_watchdog_queue_and_handoff(self):
+        from unittest import mock
+        import core.flow_accounts as fa
+
+        with tempfile.TemporaryDirectory() as td:
+            wfile = Path(td) / "flow_watchdog_queue.json"
+            with mock.patch.object(fa, "FLOW_WATCHDOG_FILE", wfile), \
+                 mock.patch.object(fa, "_detect_untracked_pipeline_processes", return_value=[]):
+                # Simula lock antigo de PID morto -> deve ser limpo automaticamente
+                fa._write_watchdog_state({
+                    "active_owner": {
+                        "pid": 99999999,
+                        "slug": "processo-morto",
+                        "stage": "flow_media",
+                        "started_at": 100.0,
+                        "heartbeat_ts": 100.0,
+                        "status": "running",
+                    },
+                    "queue": [],
+                    "last_finished": None,
+                })
+                with fa.FlowStageWatchdog(slug="episodio-atual", stage="flow_media", heartbeat_interval_s=0.2) as wd:
+                    st_live = fa._read_watchdog_state()
+                    self.assertIsNotNone(st_live["active_owner"])
+                    self.assertEqual(st_live["active_owner"]["slug"], "episodio-atual")
+                    self.assertEqual(st_live["active_owner"]["pid"], wd.pid)
+                st_after = fa._read_watchdog_state()
+                self.assertIsNone(st_after["active_owner"])
+                self.assertEqual(st_after["last_finished"]["slug"], "episodio-atual")
+                self.assertEqual(st_after["last_finished"]["status"], "finished_and_notified")
+
     def test_legacy_scanner_on_real_project(self):
         leg = Path(r"E:\videos\e-se-os-cachorros-pudessem-falar-por-um-dia")
         if leg.exists():

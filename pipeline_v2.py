@@ -22,7 +22,7 @@ from config import (
 import core.pacing_planner as _pacing_mod
 import core.self_audit as _audit_mod
 from core.avatar_studio import build_luna_avatar_pack
-from core.flow_accounts import cdp_is_alive, load_accounts_config
+from core.flow_accounts import FlowStageWatchdog, cdp_is_alive, load_accounts_config
 from core.flow_continuity import FLOW_YOUTHFUL_PUPPY_STYLE_PREFIX
 from core.legacy_auditor import batch_scan_legacy_root, import_and_upgrade_legacy
 from core.media_studio import (
@@ -271,12 +271,21 @@ def run_pipeline(args: argparse.Namespace) -> int:
             if base_sid in valid_scene_ids and base_sid not in existing_base_sids:
                 existing_base_sids.append(base_sid)
         if flow_cdp_alive:
+            archived_only_sids: set[str] = set()
+            if not args.force and (videos_dir / "_archive").exists():
+                for ap in (videos_dir / "_archive").glob("*.mp4"):
+                    if ap.stat().st_size >= 50_000:
+                        m_arch = re.match(r"^(sc_\d+)_", ap.name)
+                        if m_arch and m_arch.group(1) not in existing_base_sids:
+                            archived_only_sids.add(m_arch.group(1))
             # Aproveita TODAS as cenas distintas que ja tem Veo no disco (>= target_veo quando houver >10)
             for bsid in existing_base_sids:
                 veo_scene_ids.add(bsid)
             for s in select_veo_scenes(script_data, visual_clips, target_count=max(target_veo, len(script_data.get("scenes", [])))):
                 if len(veo_scene_ids) >= target_veo:
                     break
+                if s["scene_id"] in archived_only_sids:
+                    continue
                 veo_scene_ids.add(s["scene_id"])
         elif len(existing_base_sids) >= target_veo:
             veo_scene_ids.update(existing_base_sids)
@@ -287,47 +296,48 @@ def run_pipeline(args: argparse.Namespace) -> int:
             )
 
     if not args.skip_images:
-        if not getattr(args, "skip_scene_audit", False):
-            sc_audit = generate_and_audit_scenes(
-                proj_dir=proj_dir,
-                script_data=script_data,
-                visual_clips=visual_clips,
-                prompts_manifest=final_prompts,
-                images_dir=images_dir,
-                videos_dir=(videos_dir if veo_scene_ids else None),
-                auto_fix=True,
-                max_retries=3,
-                force_audit_cached=True,
-                force=args.force,
-                veo_scene_ids=veo_scene_ids,
-                generate_veo_inline=bool(veo_scene_ids),
-                veo_max_retries=2,
-                max_new_veo_per_scene=1,
-                strict_vision=True,
-            )
-            print(
-                f"Auditoria Cena-a-Cena (Imagens + Veo): APPROVED={sc_audit['approved']} | "
-                f"Veo={sc_audit['veo_videos_count']}/{len(veo_scene_ids)} | "
-                f"Regeneradas={len(sc_audit['regenerated_clips'])} | Falhas={len(sc_audit['failed_clips'])}",
-                flush=True,
-            )
-            if not sc_audit["approved"]:
-                print("  [SCENE-AUDIT-FAIL] Falhas impeditivas:", sc_audit["failed_clips"], sc_audit.get("voice_errors", []), flush=True)
-                return 2
-        else:
-            generate_images_for_plan(final_prompts, images_dir, force=args.force, script_data=script_data)
-            if veo_scene_ids:
-                print(f"Gerando ate {len(veo_scene_ids)} videos 8s (Veo 3.1 Lite) no pool Flow...", flush=True)
-                veo_map = generate_veo_videos_for_episode(
+        with FlowStageWatchdog(slug=slug, stage="flow_media"):
+            if not getattr(args, "skip_scene_audit", False):
+                sc_audit = generate_and_audit_scenes(
+                    proj_dir=proj_dir,
                     script_data=script_data,
                     visual_clips=visual_clips,
+                    prompts_manifest=final_prompts,
                     images_dir=images_dir,
-                    videos_dir=videos_dir,
-                    target_count=target_veo,
+                    videos_dir=(videos_dir if veo_scene_ids else None),
+                    auto_fix=True,
+                    max_retries=3,
+                    force_audit_cached=True,
                     force=args.force,
-                    proj_dir=proj_dir,
+                    veo_scene_ids=veo_scene_ids,
+                    generate_veo_inline=bool(veo_scene_ids),
+                    veo_max_retries=2,
+                    max_new_veo_per_scene=1,
+                    strict_vision=True,
                 )
-                print(f"Veo 3.1 Lite concluidos: {len(veo_map)}/{target_veo}", flush=True)
+                print(
+                    f"Auditoria Cena-a-Cena (Imagens + Veo): APPROVED={sc_audit['approved']} | "
+                    f"Veo={sc_audit['veo_videos_count']}/{len(veo_scene_ids)} | "
+                    f"Regeneradas={len(sc_audit['regenerated_clips'])} | Falhas={len(sc_audit['failed_clips'])}",
+                    flush=True,
+                )
+                if not sc_audit["approved"]:
+                    print("  [SCENE-AUDIT-FAIL] Falhas impeditivas:", sc_audit["failed_clips"], sc_audit.get("voice_errors", []), flush=True)
+                    return 2
+            else:
+                generate_images_for_plan(final_prompts, images_dir, force=args.force, script_data=script_data)
+                if veo_scene_ids:
+                    print(f"Gerando ate {len(veo_scene_ids)} videos 8s (Veo 3.1 Lite) no pool Flow...", flush=True)
+                    veo_map = generate_veo_videos_for_episode(
+                        script_data=script_data,
+                        visual_clips=visual_clips,
+                        images_dir=images_dir,
+                        videos_dir=videos_dir,
+                        target_count=target_veo,
+                        force=args.force,
+                        proj_dir=proj_dir,
+                    )
+                    print(f"Veo 3.1 Lite concluidos: {len(veo_map)}/{target_veo}", flush=True)
     if args.stage == "images":
         return 0
 

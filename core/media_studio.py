@@ -89,10 +89,16 @@ def build_image_prompt(
         if ch.lower() in sec_map and sec_map[ch.lower()].get("description"):
             sec_notes.append(f"@{ch} ({ch}): {sanitize_image_prompt(sec_map[ch.lower()]['description'])}")
 
+    explicit_props = {str(x).strip().lower() for x in (scene.get("props") or []) if str(x).strip()}
+    hay_prop = f"{scene.get('text', '')} {scene.get('visual_action', '')} {scene.get('location', '')}".lower()
     prop_notes = []
     for pr in (story_props or []):
         if isinstance(pr, dict) and pr.get("name") and pr.get("description"):
-            prop_notes.append(f"{pr['name']}: {sanitize_image_prompt(pr['description'])}")
+            pname = str(pr["name"]).strip().lower()
+            ptoks = [t for t in re.findall(r"[a-z0-9áéíóúâêôãõç]{4,}", pname)]
+            dtoks = [t for t in re.findall(r"[a-z0-9áéíóúâêôãõç]{4,}", str(pr["description"]).lower()) if t not in ("round", "velvet", "with", "small", "giant", "glossy", "bright")]
+            if pname in explicit_props or pname in hay_prop or any(t in hay_prop for t in ptoks) or any(t in hay_prop for t in dtoks[:4]):
+                prop_notes.append(f"{pr['name']}: {sanitize_image_prompt(pr['description'])}")
 
     bible_parts = []
     if "frida" in chars_lower:

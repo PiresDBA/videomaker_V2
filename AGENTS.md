@@ -22,4 +22,5 @@ Leia [CONTRATO_MOTOR_V2.md](CONTRATO_MOTOR_V2.md) antes de qualquer alteração 
    - Proibido fallback cego do 1º item de `Envios` em `attach_reference_from_plus`; respeitar `max_elements = 3` no Veo (keyframe primeiro + até 2 personagens).
    - `ensure_direct_mode` deve sair de `/character` ou `/edit/` antes de buscar a pílula inferior; `configure_flow_mode` deve clicar em `button[role="radio"]` e fechar overlays com `_dismiss_open_overlays`.
    - Filtrar `secondary_characters` por cena (`_scene_matching_secondary_chars`), isentar `cartoon prop object` em `enforce_youthful_puppy_prompt` e bloquear vídeos verticais (`9:16`) em episódios `16:9`.
+   - `FlowStageWatchdog` (`core/flow_accounts.py` + `pipeline_v2.py`) serializa o acesso ao Google Flow entre múltiplos processos com fila FIFO, heartbeat e aviso automático de término (`finished_and_notified`).
 

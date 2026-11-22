@@ -336,9 +336,9 @@ async def upload_media_to_flow(page, media_path: Path) -> bool:
             await page.keyboard.press("Escape")
             return False
 
-        await page.wait_for_timeout(1200)
+        await page.wait_for_timeout(1500)
         await _accept_usage_rights_modal(page)
-        await page.wait_for_timeout(1200)
+        await page.wait_for_timeout(2500)
         for _ in range(20):
             try:
                 body_txt = await page.locator("body").inner_text()
@@ -507,8 +507,16 @@ async def generate_video_with_failover(
                 if acc["id"] == "acc_1" and keyframe_aria_on_acc1:
                     ref_imgs.append(keyframe_aria_on_acc1)
                 elif keyframe_path and keyframe_path.exists():
-                    if await upload_media_to_flow(page, keyframe_path):
-                        ref_imgs.append(keyframe_path.name)
+                    import hashlib
+                    import shutil
+                    kf_hash = hashlib.sha1(keyframe_path.read_bytes()).hexdigest()[:6]
+                    kf_unique = keyframe_path.parent / f"kf_{kf_hash}_{keyframe_path.name}"
+                    try:
+                        shutil.copy2(keyframe_path, kf_unique)
+                        if await upload_media_to_flow(page, kf_unique):
+                            ref_imgs.append(kf_unique.name)
+                    finally:
+                        kf_unique.unlink(missing_ok=True)
 
                 if any(mc.lower() in ("frida", "luna") for mc in missing_chars):
                     sheet = BASE_DIR / "assets" / "reference" / "frida_luna_reference.jpg"
@@ -921,3 +929,286 @@ async def interactive_learn_accounts_wizard(account_ids: list[str] | None = None
         except Exception as exc:
             print(f"[ERRO AO APRENDER {acc['id']}] {exc} (continuando para a proxima conta)", flush=True)
     return results
+
+
+# ==============================================================================
+# FLOW STAGE WATCHDOG — Fila FIFO + Heartbeat + Aviso Automatico de Termino
+# Impede que 2 processos pipeline_v2 disputem a mesma aba Chrome CDP do Flow
+# ==============================================================================
+import atexit
+import ctypes
+import os
+import threading
+
+FLOW_WATCHDOG_FILE = BASE_DIR / ".chrome-flow-accounts" / "flow_watchdog_queue.json"
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Verifica se um PID do sistema operacional ainda esta vivo (sub-milissegundo no Windows)."""
+    if not pid or pid <= 0:
+        return False
+    if os.name == "nt":
+        try:
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            STILL_ACTIVE = 259
+            handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+            if not handle:
+                return False
+            try:
+                exit_code = ctypes.c_ulong()
+                if ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                    return int(exit_code.value) == STILL_ACTIVE
+                return False
+            finally:
+                ctypes.windll.kernel32.CloseHandle(handle)
+        except Exception:
+            return False
+    else:
+        try:
+            os.kill(int(pid), 0)
+            return True
+        except OSError:
+            return False
+
+
+def _detect_untracked_pipeline_processes(exclude_pids: set[int]) -> list[tuple[int, str]]:
+    """Detecta processos pipeline_v2.py ja em execucao na maquina que iniciaram antes do Watchdog."""
+    if os.name != "nt":
+        return []
+    try:
+        cmd = [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            (
+                "Get-CimInstance Win32_Process -Filter \"Name = 'python.exe'\" "
+                "| Where-Object { $_.CommandLine -match 'pipeline_v2\\.py' } "
+                "| Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress"
+            ),
+        ]
+        out = subprocess.check_output(cmd, text=True, encoding="utf-8", errors="replace", timeout=8).strip()
+        if not out:
+            return []
+        rows = json.loads(out)
+        if isinstance(rows, dict):
+            rows = [rows]
+        found: list[tuple[int, str]] = []
+        for r in rows or []:
+            pid = int(r.get("ProcessId") or 0)
+            cmdline = str(r.get("CommandLine") or "")
+            if pid <= 0 or pid in exclude_pids:
+                continue
+            if any(flag in cmdline for flag in ("--flow-accounts-status", "--batch-scan", "--stage publish", "--stage audit")):
+                continue
+            found.append((pid, cmdline))
+        return found
+    except Exception:
+        return []
+
+
+def _read_watchdog_state() -> dict[str, Any]:
+    if not FLOW_WATCHDOG_FILE.exists():
+        return {"active_owner": None, "queue": [], "last_finished": None}
+    for _ in range(5):
+        try:
+            data = json.loads(FLOW_WATCHDOG_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
+        except Exception:
+            time.sleep(0.08)
+    return {"active_owner": None, "queue": [], "last_finished": None}
+
+
+def _write_watchdog_state(state: dict[str, Any]) -> None:
+    FLOW_WATCHDOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = FLOW_WATCHDOG_FILE.with_suffix(f".tmp.{os.getpid()}")
+    payload = json.dumps(state, ensure_ascii=False, indent=2)
+    for _ in range(6):
+        try:
+            tmp.write_text(payload, encoding="utf-8")
+            os.replace(str(tmp), str(FLOW_WATCHDOG_FILE))
+            return
+        except Exception:
+            time.sleep(0.08)
+    try:
+        FLOW_WATCHDOG_FILE.write_text(payload, encoding="utf-8")
+    except Exception:
+        pass
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+class FlowStageWatchdog:
+    """
+    Watchdog multi-processo com fila FIFO, heartbeat continuo e sinalizacao automatica de termino.
+    Quem esta usando o Google Flow mantem heartbeat ativo e, ao concluir a etapa de midia (ou encerrar),
+    grava sinalizacao explicita ('finished_and_notified') para o proximo processo continuar imediatamente.
+    """
+
+    def __init__(self, slug: str, stage: str = "flow_media", heartbeat_interval_s: float = 4.0, stale_timeout_s: float = 60.0) -> None:
+        self.slug = str(slug or "episodio")
+        self.stage = str(stage or "flow_media")
+        self.pid = os.getpid()
+        self.ppid = os.getppid()
+        self.heartbeat_interval_s = heartbeat_interval_s
+        self.stale_timeout_s = stale_timeout_s
+        self._stop_evt = threading.Event()
+        self._hb_thread: threading.Thread | None = None
+        self._acquired = False
+
+    def _is_owner_stale(self, owner: dict[str, Any] | None) -> bool:
+        if not owner or not isinstance(owner, dict):
+            return True
+        opid = int(owner.get("pid") or 0)
+        if opid == self.pid:
+            return False
+        if not _is_pid_alive(opid):
+            return True
+        hb = float(owner.get("heartbeat_ts") or owner.get("started_at") or 0.0)
+        if hb > 0 and (time.time() - hb) > self.stale_timeout_s and not _is_pid_alive(opid):
+            return True
+        return False
+
+    def _heartbeat_worker(self) -> None:
+        while not self._stop_evt.wait(self.heartbeat_interval_s):
+            st = _read_watchdog_state()
+            owner = st.get("active_owner")
+            if isinstance(owner, dict) and int(owner.get("pid") or 0) == self.pid:
+                owner["heartbeat_ts"] = round(time.time(), 2)
+                _write_watchdog_state(st)
+
+    def acquire(self) -> "FlowStageWatchdog":
+        st = _read_watchdog_state()
+        tracked_pids = {self.pid, self.ppid}
+        for q in st.get("queue") or []:
+            if isinstance(q, dict) and q.get("pid"):
+                tracked_pids.add(int(q["pid"]))
+        owner = st.get("active_owner")
+        if isinstance(owner, dict) and owner.get("pid"):
+            tracked_pids.add(int(owner["pid"]))
+
+        # Snapshot apenas processos pipeline_v2 pre-existentes (iniciados antes deste processo)
+        preexisting = _detect_untracked_pipeline_processes(exclude_pids=tracked_pids)
+        preexisting_pids = {p: cmd for p, cmd in preexisting}
+
+        # Garante nossa entrada na fila FIFO
+        queue = [
+            q for q in (st.get("queue") or [])
+            if isinstance(q, dict) and _is_pid_alive(int(q.get("pid") or 0))
+        ]
+        if not any(int(q.get("pid") or 0) == self.pid for q in queue):
+            queue.append({"pid": self.pid, "slug": self.slug, "stage": self.stage, "enqueued_at": round(time.time(), 2)})
+        st["queue"] = queue
+        _write_watchdog_state(st)
+
+        atexit.register(self.release)
+        wait_logged = False
+        while True:
+            # Remove PIDs pre-existentes que ja terminaram
+            alive_pre = {p: cmd for p, cmd in preexisting_pids.items() if _is_pid_alive(p)}
+            preexisting_pids = alive_pre
+
+            st = _read_watchdog_state()
+            owner = st.get("active_owner")
+            if owner and self._is_owner_stale(owner):
+                dead_pid = owner.get("pid")
+                dead_slug = owner.get("slug")
+                print(
+                    f"[FlowWatchdog] Processo anterior '{dead_slug}' (PID {dead_pid}) encerrou; limpando lock para avancar fila.",
+                    flush=True,
+                )
+                owner = None
+                st["active_owner"] = None
+
+            queue = [
+                q for q in (st.get("queue") or [])
+                if isinstance(q, dict) and _is_pid_alive(int(q.get("pid") or 0))
+            ]
+            if not any(int(q.get("pid") or 0) == self.pid for q in queue):
+                queue.append({"pid": self.pid, "slug": self.slug, "stage": self.stage, "enqueued_at": round(time.time(), 2)})
+            st["queue"] = queue
+
+            first_in_queue = int(queue[0].get("pid") or 0) == self.pid if queue else True
+            if owner is None and not alive_pre and first_in_queue:
+                last_fin = st.get("last_finished")
+                if wait_logged and isinstance(last_fin, dict):
+                    print(
+                        f"[FlowWatchdog] Recebido aviso de termino de '{last_fin.get('slug')}' (PID {last_fin.get('pid')}). "
+                        f"Iniciando '{self.slug}' (PID {self.pid})!",
+                        flush=True,
+                    )
+                now = round(time.time(), 2)
+                st["active_owner"] = {
+                    "pid": self.pid,
+                    "slug": self.slug,
+                    "stage": self.stage,
+                    "started_at": now,
+                    "heartbeat_ts": now,
+                    "status": "running",
+                }
+                st["queue"] = [q for q in queue if int(q.get("pid") or 0) != self.pid]
+                _write_watchdog_state(st)
+                self._acquired = True
+                self._stop_evt.clear()
+                self._hb_thread = threading.Thread(target=self._heartbeat_worker, name=f"FlowWatchdog-{self.pid}", daemon=True)
+                self._hb_thread.start()
+                print(f"[FlowWatchdog] Lock Google Flow ativo para '{self.slug}' (PID {self.pid}).", flush=True)
+                return self
+
+            if not wait_logged:
+                if owner:
+                    print(
+                        f"[FlowWatchdog] Google Flow em uso por '{owner.get('slug')}' (PID {owner.get('pid')}). "
+                        f"'{self.slug}' (PID {self.pid}) aguardando aviso de termino na fila...",
+                        flush=True,
+                    )
+                elif alive_pre:
+                    pids_str = ", ".join(str(p) for p in alive_pre.keys())
+                    print(
+                        f"[FlowWatchdog] Processo(s) pipeline_v2 anterior(es) em execucao (PID {pids_str}). "
+                        f"'{self.slug}' (PID {self.pid}) aguardando termino automatico para assumir o Google Flow...",
+                        flush=True,
+                    )
+                wait_logged = True
+            _write_watchdog_state(st)
+            time.sleep(4.0)
+
+    def release(self) -> None:
+        self._stop_evt.set()
+        try:
+            st = _read_watchdog_state()
+            changed = False
+            owner = st.get("active_owner")
+            if isinstance(owner, dict) and int(owner.get("pid") or 0) == self.pid:
+                st["active_owner"] = None
+                st["last_finished"] = {
+                    "pid": self.pid,
+                    "slug": self.slug,
+                    "stage": self.stage,
+                    "finished_at": round(time.time(), 2),
+                    "status": "finished_and_notified",
+                }
+                changed = True
+            old_q = st.get("queue") or []
+            new_q = [q for q in old_q if not (isinstance(q, dict) and int(q.get("pid") or 0) == self.pid)]
+            if len(new_q) != len(old_q):
+                st["queue"] = new_q
+                changed = True
+            if changed:
+                _write_watchdog_state(st)
+                if self._acquired:
+                    print(
+                        f"[FlowWatchdog] Sinalizado TERMINO de '{self.slug}' (PID {self.pid}) no Google Flow; "
+                        "proximo processo da fila liberado para continuar!",
+                        flush=True,
+                    )
+        except Exception:
+            pass
+        self._acquired = False
+
+    def __enter__(self) -> "FlowStageWatchdog":
+        return self.acquire()
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.release()
+
