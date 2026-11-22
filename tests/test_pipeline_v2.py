@@ -378,9 +378,9 @@ class TestVideomakerV2Unified(unittest.TestCase):
         from core.media_studio import select_veo_scenes
         from core.scene_auditor import audit_voice_consistency
 
-        # 1. Trava de vozes (Kore/Sulafat/Leda sem troca)
+        # 1. Trava de vozes (Zephyr/Sulafat/Leda sem troca)
         ok_timings = [
-            {"scene_id": "sc_01", "speaker": "narrador", "voice": "gemini-3.8-flash-tts:Kore"},
+            {"scene_id": "sc_01", "speaker": "narrador", "voice": "gemini-3.8-flash-tts:Zephyr"},
             {"scene_id": "sc_02", "speaker": "frida", "voice": "gemini-3.8-flash-tts:Sulafat"},
             {"scene_id": "sc_03", "speaker": "luna", "voice": "gemini-3.8-flash-tts:Leda"},
         ]
@@ -667,15 +667,15 @@ class TestVideomakerV2Unified(unittest.TestCase):
                  mock.patch.object(vs, "resolve_chirp3_oauth_paths", return_value=(None, oauth_tok, "ingles-514519")), \
                  mock.patch("urllib.request.urlopen", side_effect=_fake_urlopen):
                 used_n, _ = vs._synthesize_chirp3_hd("Narracao teste", "narrador", out_nar, state_file=usage_file, token_path=oauth_tok)
-            self.assertEqual(used_n, "chirp3_hd:pt-BR-Chirp3-HD-Kore")
+            self.assertEqual(used_n, "chirp3_hd:pt-BR-Chirp3-HD-Zephyr")
             self.assertEqual(captured["headers"]["authorization"], "Bearer tok_user_oauth")
             self.assertEqual(captured["headers"]["x-goog-user-project"], "ingles-514519")
-            self.assertEqual(captured["payload"]["voice"]["name"], "pt-BR-Chirp3-HD-Kore")
+            self.assertEqual(captured["payload"]["voice"]["name"], "pt-BR-Chirp3-HD-Zephyr")
 
         # audit_voice_consistency aceita Chirp 3 HD travado e reprova troca de voz
         self.assertEqual(
             audit_voice_consistency([
-                {"scene_id": "sc_01", "speaker": "narrador", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Kore"},
+                {"scene_id": "sc_01", "speaker": "narrador", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Zephyr"},
                 {"scene_id": "sc_02", "speaker": "frida", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Sulafat"},
                 {"scene_id": "sc_03", "speaker": "luna", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Leda"},
             ]),

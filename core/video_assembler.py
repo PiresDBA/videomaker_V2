@@ -554,20 +554,22 @@ def mix_audio_master(
     lufs = max(-24.0, min(-9.0, float(target_lufs)))
     if bgm_wav and bgm_wav.exists():
         fc = (
-            "[0:a]aformat=sample_rates=44100:channel_layouts=stereo,asplit=2[nar][nar_sc];"
+            "[0:a]aformat=sample_rates=44100:channel_layouts=stereo,asplit=3[nar][nar_sc][nar_sfx];"
             f"[1:a]aloop=loop=-1:size=2e9,atrim=0:{total_dur:.3f},asetpts=PTS-STARTPTS,"
             f"aformat=sample_rates=44100:channel_layouts=stereo,volume={bv:.2f}[bgm];"
             "[bgm][nar_sc]sidechaincompress=threshold=0.03:ratio=6:attack=25:release=600[bgm_duck];"
             "[2:a]aformat=sample_rates=44100:channel_layouts=stereo[sfx];"
-            "[nar][bgm_duck][sfx]amix=inputs=3:duration=first:normalize=0,"
+            "[sfx][nar_sfx]sidechaincompress=threshold=0.025:ratio=8:attack=15:release=350[sfx_duck];"
+            "[nar][bgm_duck][sfx_duck]amix=inputs=3:duration=first:normalize=0,"
             f"loudnorm=I={lufs:.1f}:TP=-1.5:LRA=11[out]"
         )
         cmd = [FFMPEG_EXE, "-y", "-v", "error", "-i", str(narration_wav), "-i", str(bgm_wav), "-i", str(sfx_wav)]
     else:
         fc = (
-            "[0:a]aformat=sample_rates=44100:channel_layouts=stereo[nar];"
+            "[0:a]aformat=sample_rates=44100:channel_layouts=stereo,asplit=2[nar][nar_sfx];"
             "[1:a]aformat=sample_rates=44100:channel_layouts=stereo[sfx];"
-            "[nar][sfx]amix=inputs=2:duration=first:normalize=0,"
+            "[sfx][nar_sfx]sidechaincompress=threshold=0.025:ratio=8:attack=15:release=350[sfx_duck];"
+            "[nar][sfx_duck]amix=inputs=2:duration=first:normalize=0,"
             f"loudnorm=I={lufs:.1f}:TP=-1.5:LRA=11[out]"
         )
         cmd = [FFMPEG_EXE, "-y", "-v", "error", "-i", str(narration_wav), "-i", str(sfx_wav)]
@@ -672,6 +674,94 @@ def export_short_9_16(
     )
 
 
+def _concat_segments_with_smooth_xfade(
+    rendered_segments: list[Path],
+    visual_clips: list[dict[str, Any]],
+    out_mp4: Path,
+    work_dir: Path,
+    allow_nvenc: bool = True,
+) -> Path:
+    """Concatena segmentos aplicando dissolve suave (xfade) nas transicoes video<->imagem e entre cenas, sem alterar a duracao total."""
+    if len(rendered_segments) <= 1:
+        if rendered_segments:
+            import shutil
+            shutil.copy2(rendered_segments[0], out_mp4)
+        return out_mp4
+
+    def _merge_batch(items: list[tuple[Path, float, float]], batch_out: Path) -> tuple[Path, float]:
+        if len(items) == 1:
+            import shutil
+            shutil.copy2(items[0][0], batch_out)
+            return batch_out, items[0][1]
+        cmd = [FFMPEG_EXE, "-y", "-v", "error"]
+        for seg_p, _d, _f in items:
+            cmd += ["-i", str(seg_p)]
+        filters: list[str] = []
+        for idx, (_p, d, f) in enumerate(items):
+            if idx < len(items) - 1 and f > 0.04:
+                filters.append(
+                    f"[{idx}:v]fps={VIDEO_FPS},format=yuv420p,setpts=PTS-STARTPTS,"
+                    f"tpad=stop_mode=clone:stop_duration={f:.3f}[s{idx}]"
+                )
+            else:
+                filters.append(f"[{idx}:v]fps={VIDEO_FPS},format=yuv420p,setpts=PTS-STARTPTS[s{idx}]")
+
+        prev = "[s0]"
+        cum_dur = items[0][1]
+        for idx in range(1, len(items)):
+            f = items[idx - 1][2]
+            nxt_dur = items[idx][1]
+            out_lbl = "[vout]" if idx == len(items) - 1 else f"[x{idx}]"
+            if f > 0.04:
+                filters.append(f"{prev}[s{idx}]xfade=transition=fade:duration={f:.3f}:offset={cum_dur:.3f}{out_lbl}")
+            else:
+                filters.append(f"{prev}[s{idx}]concat=n=2:v=1:a=0{out_lbl}")
+            cum_dur += nxt_dur
+            prev = out_lbl
+
+        _run_h264_ffmpeg(
+            cmd,
+            ["-filter_complex", ";".join(filters), "-map", "[vout]", str(batch_out)],
+            quality="master",
+            allow_nvenc=allow_nvenc,
+        )
+        return batch_out, cum_dur
+
+    # Prepara (caminho, duracao_real, fade_apos_este_clipe)
+    entries: list[tuple[Path, float, float]] = []
+    for i, seg_p in enumerate(rendered_segments):
+        d = max(0.25, probe_duration(seg_p))
+        fade_after = 0.0
+        if i < len(rendered_segments) - 1:
+            d_next = max(0.25, probe_duration(rendered_segments[i + 1]))
+            c_cur = visual_clips[i] if i < len(visual_clips) else {}
+            c_nxt = visual_clips[i + 1] if (i + 1) < len(visual_clips) else {}
+            scene_change = c_cur.get("scene_id") != c_nxt.get("scene_id")
+            raw_f = 0.45 if scene_change else 0.25
+            fade_after = round(min(raw_f, d * 0.30, d_next * 0.30), 3)
+            if fade_after < 0.08:
+                fade_after = 0.0
+        entries.append((seg_p, d, fade_after))
+
+    # Reduz em lotes de 8 mantendo exatamente o fade_after do ultimo item de cada lote para o proximo lote
+    batch_size = 8
+    if len(entries) <= batch_size:
+        _merge_batch(entries, out_mp4)
+        return out_mp4
+
+    stage_items: list[tuple[Path, float, float]] = []
+    for b_idx in range(0, len(entries), batch_size):
+        chunk = entries[b_idx : b_idx + batch_size]
+        tail_fade = chunk[-1][2]
+        chunk_for_merge = [(p, d, f if j < len(chunk) - 1 else 0.0) for j, (p, d, f) in enumerate(chunk)]
+        b_out = work_dir / f"_xfade_batch_{b_idx // batch_size:02d}.mp4"
+        _, b_dur = _merge_batch(chunk_for_merge, b_out)
+        stage_items.append((b_out, b_dur, tail_fade))
+
+    _merge_batch(stage_items, out_mp4)
+    return out_mp4
+
+
 def assemble_video(
     visual_clips: list[dict[str, Any]],
     images_dir: Path,
@@ -763,13 +853,12 @@ def assemble_video(
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as clip_ex:
         rendered_segments = list(clip_ex.map(_render_subclip, visual_clips))
 
-    concat_txt = work_dir / "concat_video.txt"
-    concat_txt.write_text("\n".join("file '%s'" % p.as_posix() for p in rendered_segments) + "\n", encoding="utf-8")
     base_video = work_dir / "base_video_16x9.mp4"
-    _run_h264_ffmpeg(
-        [FFMPEG_EXE, "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(concat_txt)],
-        [str(base_video)],
-        quality="master",
+    _concat_segments_with_smooth_xfade(
+        rendered_segments,
+        visual_clips,
+        base_video,
+        work_dir=work_dir,
         allow_nvenc=allow_gpu,
     )
 

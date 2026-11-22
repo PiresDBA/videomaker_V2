@@ -39,8 +39,8 @@ async def _harvest_account_tiles(
     acc: dict[str, Any],
     cfg: dict[str, Any],
     out_acc_dir: Path,
-    max_videos: int = 35,
-    max_images: int = 40,
+    max_videos: int = 0,
+    max_images: int = 0,
     include_images: bool = True,
 ) -> list[dict[str, Any]]:
     from playwright.async_api import async_playwright
@@ -61,24 +61,44 @@ async def _harvest_account_tiles(
             ctx = b.contexts[0]
             page = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
             await page.set_viewport_size({"width": 1600, "height": 920})
-            await ensure_flow_project(page, acc, cfg)
+            await page.goto("https://flow.google.com/", wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2500)
             if await check_needs_google_login(page):
                 print(f"[RecoverFlow] {acc['id']} deslogada; pulando.", flush=True)
                 return []
             email = await detect_logged_email(page)
 
-            if "/edit/" in (page.url or "") and acc.get("project_url"):
-                await page.goto(acc["project_url"], wait_until="domcontentloaded", timeout=30000)
-                await page.wait_for_timeout(1500)
-            dash = page.locator('mat-nav-list button:has-text("dashboard")').first
-            if await dash.count():
-                try:
-                    await dash.click(timeout=3000)
-                    await page.wait_for_timeout(700)
-                except Exception:
-                    pass
+            # Descobre TODOS os projetos da conta na pagina inicial do Flow
+            project_urls: list[str] = []
+            seen_projs: set[str] = set()
+            try:
+                for _ in range(4):
+                    await page.mouse.wheel(0, 1200)
+                    await page.wait_for_timeout(500)
+                links = await page.evaluate(
+                    "() => Array.from(document.querySelectorAll('a[href*=\"/project/\"]')).map(a => a.getAttribute('href') || '')"
+                )
+                for href in links or []:
+                    if not href:
+                        continue
+                    full_u = href if href.startswith("http") else f"https://flow.google.com{href}"
+                    m_proj = re.search(r"(https://flow\.google\.com(?:/u/\d+)?/project/[0-9a-fA-F-]+)", full_u)
+                    norm_u = m_proj.group(1) if m_proj else full_u.split("?")[0].rstrip("/")
+                    if "/project/" in norm_u and norm_u not in seen_projs:
+                        seen_projs.add(norm_u)
+                        project_urls.append(norm_u)
+            except Exception:
+                pass
+            cfg_proj = (acc.get("project_url") or "").strip().split("?")[0].rstrip("/")
+            if cfg_proj and cfg_proj not in seen_projs:
+                seen_projs.add(cfg_proj)
+                project_urls.append(cfg_proj)
+            if not project_urls:
+                fallback_u = await ensure_flow_project(page, acc, cfg)
+                if fallback_u:
+                    project_urls.append(fallback_u)
+            print(f"[RecoverFlow] {acc['id']} ({email}): {len(project_urls)} projeto(s) encontrado(s).", flush=True)
 
-            # 1) Clica no filtro "Vídeos" antes de ler o grid (evita imagens empurrarem videos Veo para baixo)
             async def _click_grid_filter(label: str) -> bool:
                 labels = (label, "Videos") if label == "Vídeos" else (label,)
                 for lbl in labels:
@@ -102,10 +122,20 @@ async def _harvest_account_tiles(
                                 pass
                 return False
 
-            async def _collect_tiles(scrolls: int = 5) -> list[dict[str, Any]]:
-                for _ in range(scrolls):
-                    await page.mouse.wheel(0, 1400)
-                    await page.wait_for_timeout(650)
+            async def _collect_tiles(max_scrolls: int = 40) -> list[dict[str, Any]]:
+                prev_cnt = -1
+                stable = 0
+                for _ in range(max_scrolls):
+                    await page.mouse.wheel(0, 1600)
+                    await page.wait_for_timeout(600)
+                    cur_cnt = await page.locator("flow-grid-tile-container").count()
+                    if cur_cnt == prev_cnt:
+                        stable += 1
+                        if stable >= 2:
+                            break
+                    else:
+                        stable = 0
+                        prev_cnt = cur_cnt
                 await page.evaluate("() => window.scrollTo(0, 0)")
                 await page.wait_for_timeout(800)
                 return await page.evaluate(
@@ -123,172 +153,183 @@ async def _harvest_account_tiles(
 
             vid_count = 0
             img_count = 0
-
-            try:
-                await page.wait_for_selector("flow-grid-tile-container", timeout=10000)
-            except Exception:
-                pass
-            # Fase A: Filtro Vídeos (prioridade maxima para recuperar todos os Veo)
-            vid_filtered = await _click_grid_filter("Vídeos")
-            if not vid_filtered and acc.get("project_url"):
+            for proj_idx, proj_url in enumerate(project_urls, 1):
+                if max_videos > 0 and vid_count >= max_videos and (not include_images or (max_images > 0 and img_count >= max_images)):
+                    break
+                proj_short = proj_url.rstrip("/").split("/")[-1][:8]
                 try:
-                    await page.goto(acc["project_url"], wait_until="domcontentloaded", timeout=30000)
-                    await page.wait_for_timeout(2500)
-                    vid_filtered = await _click_grid_filter("Vídeos")
+                    await page.goto(proj_url, wait_until="domcontentloaded", timeout=30000)
+                    await page.wait_for_timeout(2000)
+                except Exception:
+                    continue
+                dash = page.locator('mat-nav-list button:has-text("dashboard")').first
+                if await dash.count():
+                    try:
+                        await dash.click(timeout=3000)
+                        await page.wait_for_timeout(700)
+                    except Exception:
+                        pass
+                try:
+                    await page.wait_for_selector("flow-grid-tile-container", timeout=8000)
                 except Exception:
                     pass
-            video_tiles = await _collect_tiles(scrolls=6)
-            print(f"[RecoverFlow] {acc['id']} ({email}) [filtro Vídeos={vid_filtered}]: {len(video_tiles)} tiles.", flush=True)
 
-            for t in video_tiles:
-                if vid_count >= max_videos:
-                    break
-                txt = t.get("txt") or ""
-                aria = t.get("aria") or ""
-                is_video = vid_filtered or ("play_circle" in txt) or bool(t.get("vids"))
-                if not is_video or re.search(r"\b\d+%", txt):
-                    continue
-                key_seed = aria or "|".join(im["src"] for im in t.get("imgs", [])) or f"{acc['id']}_v_{t['idx']}"
-                short_hash = hashlib.sha1(key_seed.encode("utf-8", errors="ignore")).hexdigest()[:10]
-                out_mp4 = vids_dir / f"{acc['id']}_vid_{t['idx']:02d}_{short_hash}.mp4"
-                if not (out_mp4.exists() and out_mp4.stat().st_size > 80_000):
-                    tile_loc = page.locator("flow-grid-tile-container").nth(int(t["idx"]))
-                    downloaded = False
-                    # Tentativa 1: menu "Mais opções" no tile
-                    try:
-                        await tile_loc.scroll_into_view_if_needed()
-                        await tile_loc.hover()
-                        await page.wait_for_timeout(650)
-                        mb = tile_loc.locator('button[aria-label="Mais opções"]').first
-                        if await mb.count():
-                            await mb.click(timeout=4000, force=True)
-                            await page.wait_for_timeout(650)
-                            dl_item = page.locator(
-                                '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Fazer o download")'
-                            ).first
-                            if await dl_item.count():
-                                await dl_item.hover()
-                                await page.wait_for_timeout(650)
-                                sub_dl = page.locator(
-                                    '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("720p"), '
-                                    '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Original")'
-                                ).last
-                                async with page.expect_download(timeout=45000) as dinfo:
-                                    if await sub_dl.count():
-                                        await sub_dl.click(timeout=4000)
-                                    else:
-                                        await dl_item.click(timeout=4000)
-                                dl_obj = await dinfo.value
-                                await dl_obj.save_as(str(out_mp4))
-                                downloaded = out_mp4.exists() and out_mp4.stat().st_size > 80_000
-                    except Exception:
-                        await page.keyboard.press("Escape")
+                # Fase A: Filtro Vídeos (prioridade maxima para recuperar todos os Veo)
+                vid_filtered = await _click_grid_filter("Vídeos")
+                video_tiles = await _collect_tiles(max_scrolls=40)
+                print(
+                    f"[RecoverFlow] {acc['id']} proj {proj_idx}/{len(project_urls)} ({proj_short}) "
+                    f"[filtro Vídeos={vid_filtered}]: {len(video_tiles)} tiles.",
+                    flush=True,
+                )
 
-                    # Tentativa 2: url ja presente ou clicar para abrir o tile do video e hidratar <video src>
-                    if not downloaded:
-                        vid_urls = list(t.get("vids") or [])
-                        if not vid_urls:
-                            proj_grid_url = page.url or ""
-                            try:
-                                await tile_loc.scroll_into_view_if_needed()
-                                await tile_loc.click(timeout=4000, force=True)
-                                await page.wait_for_timeout(1800)
-                                dl_btn = page.locator(
-                                    'button[aria-label="Baixar mídia"], button[aria-label*="download" i], button[aria-label*="Baixar" i], button:has-text("Fazer o download")'
-                                ).first
-                                if await dl_btn.count() and await dl_btn.is_visible():
-                                    try:
-                                        async with page.expect_download(timeout=25000) as dinfo:
-                                            await dl_btn.click(timeout=4000)
-                                            await page.wait_for_timeout(600)
-                                            sub_pop = page.locator(
-                                                '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("720p"), '
-                                                '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Original")'
-                                            ).last
-                                            if await sub_pop.count():
-                                                await sub_pop.click(timeout=4000)
-                                        dl_obj = await dinfo.value
-                                        await dl_obj.save_as(str(out_mp4))
-                                        downloaded = out_mp4.exists() and out_mp4.stat().st_size > 80_000
-                                    except Exception:
-                                        pass
-                                if not downloaded:
-                                    vid_urls = await page.evaluate(
-                                        "() => Array.from(document.querySelectorAll('video')).map(v => v.currentSrc || v.src || '').filter(u => u && u.startsWith('http'))"
-                                    )
-                            except Exception:
-                                pass
-                            finally:
-                                await page.keyboard.press("Escape")
-                                if "/edit/" in (page.url or "") and proj_grid_url:
-                                    try:
-                                        await page.goto(proj_grid_url, wait_until="domcontentloaded", timeout=20000)
-                                    except Exception:
-                                        await page.go_back()
-                                    try:
-                                        await page.wait_for_selector("flow-grid-tile-container", timeout=8000)
-                                    except Exception:
-                                        pass
-                                await page.wait_for_timeout(600)
-                        if not downloaded and vid_urls:
-                            try:
-                                resp = await page.context.request.get(vid_urls[-1], timeout=90000)
-                                if resp.ok:
-                                    out_mp4.write_bytes(await resp.body())
-                            except Exception:
-                                pass
-                if out_mp4.exists() and out_mp4.stat().st_size > 80_000:
-                    vid_count += 1
-                    harvested.append({
-                        "kind": "video",
-                        "account_id": acc["id"],
-                        "email": email,
-                        "tile_idx": t["idx"],
-                        "aria": aria[:240],
-                        "path": str(out_mp4),
-                        "bytes": out_mp4.stat().st_size,
-                    })
-                else:
-                    out_mp4.unlink(missing_ok=True)
-
-            # Fase B: Filtro Imagens (ou volta para Todas) para recuperar imagens limpas
-            if include_images:
-                await _click_grid_filter("Imagens")
-                img_tiles = await _collect_tiles(scrolls=3)
-                for t in img_tiles:
-                    if img_count >= max_images:
+                for t in video_tiles:
+                    if max_videos > 0 and vid_count >= max_videos:
                         break
                     txt = t.get("txt") or ""
                     aria = t.get("aria") or ""
-                    if ("play_circle" in txt) or bool(t.get("vids")):
+                    is_video = vid_filtered or ("play_circle" in txt) or bool(t.get("vids"))
+                    if not is_video or re.search(r"\b\d+%", txt):
                         continue
-                    big_imgs = [im for im in t.get("imgs", []) if im["src"].startswith("http") and im["w"] >= 800]
-                    if not big_imgs:
-                        continue
-                    key_seed = aria or big_imgs[0]["src"]
+                    key_seed = aria or "|".join(im["src"] for im in t.get("imgs", [])) or f"{acc['id']}_{proj_short}_v_{t['idx']}"
                     short_hash = hashlib.sha1(key_seed.encode("utf-8", errors="ignore")).hexdigest()[:10]
-                    out_jpg = imgs_dir / f"{acc['id']}_img_{t['idx']:02d}_{short_hash}.jpg"
-                    if not (out_jpg.exists() and out_jpg.stat().st_size > 15_000):
+                    out_mp4 = vids_dir / f"{acc['id']}_{proj_short}_vid_{t['idx']:02d}_{short_hash}.mp4"
+                    if not (out_mp4.exists() and out_mp4.stat().st_size > 80_000):
+                        tile_loc = page.locator("flow-grid-tile-container").nth(int(t["idx"]))
+                        downloaded = False
                         try:
-                            resp = await page.context.request.get(big_imgs[0]["src"], timeout=45000)
-                            if resp.ok:
-                                data = await resp.body()
-                                im = Image.open(io.BytesIO(data)).convert("RGB")
-                                if im.width >= im.height:
-                                    fit_aspect_jpeg(_save_tmp_bytes(out_jpg, data), out_jpg)
+                            await tile_loc.scroll_into_view_if_needed()
+                            await tile_loc.hover()
+                            await page.wait_for_timeout(650)
+                            mb = tile_loc.locator('button[aria-label="Mais opções"]').first
+                            if await mb.count():
+                                await mb.click(timeout=4000, force=True)
+                                await page.wait_for_timeout(650)
+                                dl_item = page.locator(
+                                    '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Fazer o download")'
+                                ).first
+                                if await dl_item.count():
+                                    await dl_item.hover()
+                                    await page.wait_for_timeout(650)
+                                    sub_dl = page.locator(
+                                        '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("720p"), '
+                                        '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Original")'
+                                    ).last
+                                    async with page.expect_download(timeout=45000) as dinfo:
+                                        if await sub_dl.count():
+                                            await sub_dl.click(timeout=4000)
+                                        else:
+                                            await dl_item.click(timeout=4000)
+                                    dl_obj = await dinfo.value
+                                    await dl_obj.save_as(str(out_mp4))
+                                    downloaded = out_mp4.exists() and out_mp4.stat().st_size > 80_000
                         except Exception:
-                            out_jpg.unlink(missing_ok=True)
-                    if out_jpg.exists() and out_jpg.stat().st_size > 15_000 and detect_split_collage(out_jpg) == 1:
-                        img_count += 1
+                            await page.keyboard.press("Escape")
+
+                        if not downloaded:
+                            vid_urls = list(t.get("vids") or [])
+                            if not vid_urls:
+                                proj_grid_url = page.url or ""
+                                try:
+                                    await tile_loc.scroll_into_view_if_needed()
+                                    await tile_loc.click(timeout=4000, force=True)
+                                    await page.wait_for_timeout(1800)
+                                    dl_btn = page.locator(
+                                        'button[aria-label="Baixar mídia"], button[aria-label*="download" i], button[aria-label*="Baixar" i], button:has-text("Fazer o download")'
+                                    ).first
+                                    if await dl_btn.count() and await dl_btn.is_visible():
+                                        try:
+                                            async with page.expect_download(timeout=25000) as dinfo:
+                                                await dl_btn.click(timeout=4000)
+                                                await page.wait_for_timeout(600)
+                                                sub_pop = page.locator(
+                                                    '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("720p"), '
+                                                    '.cdk-overlay-pane :is(button,[role="menuitem"]):has-text("Original")'
+                                                ).last
+                                                if await sub_pop.count():
+                                                    await sub_pop.click(timeout=4000)
+                                            dl_obj = await dinfo.value
+                                            await dl_obj.save_as(str(out_mp4))
+                                            downloaded = out_mp4.exists() and out_mp4.stat().st_size > 80_000
+                                        except Exception:
+                                            pass
+                                    if not downloaded:
+                                        vid_urls = await page.evaluate(
+                                            "() => Array.from(document.querySelectorAll('video')).map(v => v.currentSrc || v.src || '').filter(u => u && u.startsWith('http'))"
+                                        )
+                                except Exception:
+                                    pass
+                                finally:
+                                    await page.keyboard.press("Escape")
+                                    if "/edit/" in (page.url or "") and proj_grid_url:
+                                        try:
+                                            await page.goto(proj_grid_url, wait_until="domcontentloaded", timeout=20000)
+                                        except Exception:
+                                            await page.go_back()
+                                        try:
+                                            await page.wait_for_selector("flow-grid-tile-container", timeout=8000)
+                                        except Exception:
+                                            pass
+                                    await page.wait_for_timeout(600)
+                            if not downloaded and vid_urls:
+                                try:
+                                    resp = await page.context.request.get(vid_urls[-1], timeout=90000)
+                                    if resp.ok:
+                                        out_mp4.write_bytes(await resp.body())
+                                except Exception:
+                                    pass
+                    if out_mp4.exists() and out_mp4.stat().st_size > 80_000:
+                        vid_count += 1
                         harvested.append({
-                            "kind": "image",
+                            "kind": "video",
                             "account_id": acc["id"],
                             "email": email,
                             "tile_idx": t["idx"],
                             "aria": aria[:240],
-                            "path": str(out_jpg),
-                            "bytes": out_jpg.stat().st_size,
+                            "path": str(out_mp4),
+                            "bytes": out_mp4.stat().st_size,
                         })
+                    else:
+                        out_mp4.unlink(missing_ok=True)
+
+                # Fase B: Filtro Imagens (ou volta para Todas) para recuperar imagens limpas
+                if include_images:
+                    await _click_grid_filter("Imagens")
+                    img_tiles = await _collect_tiles(max_scrolls=40)
+                    for t in img_tiles:
+                        if max_images > 0 and img_count >= max_images:
+                            break
+                        txt = t.get("txt") or ""
+                        aria = t.get("aria") or ""
+                        if ("play_circle" in txt) or bool(t.get("vids")):
+                            continue
+                        big_imgs = [im for im in t.get("imgs", []) if im["src"].startswith("http") and im["w"] >= 800]
+                        if not big_imgs:
+                            continue
+                        key_seed = aria or big_imgs[0]["src"]
+                        short_hash = hashlib.sha1(key_seed.encode("utf-8", errors="ignore")).hexdigest()[:10]
+                        out_jpg = imgs_dir / f"{acc['id']}_{proj_short}_img_{t['idx']:02d}_{short_hash}.jpg"
+                        if not (out_jpg.exists() and out_jpg.stat().st_size > 15_000):
+                            try:
+                                resp = await page.context.request.get(big_imgs[0]["src"], timeout=45000)
+                                if resp.ok:
+                                    data = await resp.body()
+                                    im = Image.open(io.BytesIO(data)).convert("RGB")
+                                    if im.width >= im.height:
+                                        fit_aspect_jpeg(_save_tmp_bytes(out_jpg, data), out_jpg)
+                            except Exception:
+                                out_jpg.unlink(missing_ok=True)
+                        if out_jpg.exists() and out_jpg.stat().st_size > 15_000 and detect_split_collage(out_jpg) == 1:
+                            img_count += 1
+                            harvested.append({
+                                "kind": "image",
+                                "account_id": acc["id"],
+                                "email": email,
+                                "tile_idx": t["idx"],
+                                "aria": aria[:240],
+                                "path": str(out_jpg),
+                                "bytes": out_jpg.stat().st_size,
+                            })
         finally:
             await b.close()
     return harvested
@@ -351,10 +392,11 @@ def _vision_match_scene(
             if len(frames) > 1
             else ""
         )
-        + (f"- Story Objects (MUST match exact color/style): {props_desc}\n" if props_desc else "")
-        + ("The LAST image attached is the reference anchor portrait for the story's key object/prop.\n" if anchor_prop_image and anchor_prop_image.exists() else "")
+        + (f"- Story Objects (apply ONLY to scenes where that object appears/is mentioned; do NOT reject other scenes for not showing it): {props_desc}\n" if props_desc else "")
+        + ("The LAST image attached is the reference anchor portrait for the story's key object/prop (relevant only to scenes featuring that prop).\n" if anchor_prop_image and anchor_prop_image.exists() else "")
+        + "- YOUTUBE ENDING / CTA EXCEPTION: For the FINAL closing/CTA scene (e.g. the last scene mentioning 'inscreva-se', 'curta', 'compartilhe', 'subscribe', 'próximo vídeo'), intentional 'SUBSCRIBE' / 'INSCREVA-SE' text, YouTube logo, and like/play/bell icons ARE INTENTIONAL AND ALLOWED (set approved=true if characters & ending mood fit).\n"
         + f"\nCandidate Scenes:\n{scenes_summary}\n\n"
-        "Identify if this media cleanly matches ONE of the candidate scenes AND passes all breed/object/quality rules (no collage, no text/watermark).\n"
+        "Identify if this media cleanly matches ONE of the candidate scenes AND passes all breed/object/quality rules (no collage, no unwanted watermark/text except the allowed ending CTA/subscribe overlays on the final scene).\n"
         "Respond ONLY in JSON (confidence MUST be a float strictly on a 0.0 to 1.0 scale, e.g. 0.95 — NOT 0 to 10 or 0 to 100): "
         '{"approved": bool, "best_scene_id": "sc_XX or empty", "confidence": 0.95, "reason": "short summary in PT"}'
     )
@@ -404,11 +446,11 @@ async def recover_and_audit(
     legacy_dir: Path | None = None,
     apply_reuse: bool = True,
     local_only: bool = False,
-    launch_closed: bool = False,
+    launch_closed: bool = True,
     min_confidence: float = 0.75,
     accounts_filter: set[str] | None = None,
     videos_only: bool = False,
-    max_videos: int = 35,
+    max_videos: int = 0,
     skip_cached_work: bool = False,
 ) -> dict[str, Any]:
     script_data = normalize_script_records(
@@ -571,7 +613,7 @@ def main() -> int:
     ap.add_argument("--min-confidence", type=float, default=0.75, help="Confianca minima (0.0-1.0) para reaproveitar")
     ap.add_argument("--accounts", default="", help="Lista separada por virgula de contas Flow (ex: acc_5)")
     ap.add_argument("--videos-only", action="store_true", help="Coleta/audita apenas videos (pula aba Imagens)")
-    ap.add_argument("--max-videos", type=int, default=35, help="Limite de tiles de video coletados por conta")
+    ap.add_argument("--max-videos", type=int, default=0, help="Limite de tiles de video coletados por conta (0 = ilimitado)")
     ap.add_argument("--skip-cached-work", action="store_true", help="Audita somente itens coletados nesta execucao")
     args = ap.parse_args()
 

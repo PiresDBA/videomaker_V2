@@ -321,7 +321,8 @@ def audit_scene_visual_with_vision(
         )
         + ("The LAST image attached is the reference anchor portrait for the story's key object/prop. REJECT (matches_story_props=false) if the key object in the scene changed color (e.g. changed color, material, or shape compared to the attached anchor portrait), changed design, or vanished when expected.\n"
            if anchor_prop_image and anchor_prop_image.exists() else "")
-        + "NOTE ON TEXT & PROPS: Natural embossed or scenic words on props — such as 'DOG' embossed on a dog biscuit/cookie bridge, trophy plaques, race/park signs, or cartoon 'Z'/'ZZZ' sleep symbols — are valid scenic details, NOT forbidden text (ALWAYS set has_visible_text=false for them).\n"
+        + "NOTE ON TEXT & PROPS: Natural embossed or scenic words on props — such as 'DOG' embossed on a dog biscuit/cookie bridge, trophy plaques, race/park signs, or cartoon 'Z'/'ZZZ' sleep symbols — are valid scenic details, NOT forbidden text (ALWAYS set has_visible_text=false for them). "
+          "Also, in the FINAL closing/CTA scene (mentioning 'inscreva-se', 'curta', 'compartilhe', 'subscribe', 'próximo vídeo'), intentional 'SUBSCRIBE' / 'INSCREVA-SE' overlays, YouTube logo, and like/bell icons ARE ALLOWED (set has_visible_text=false).\n"
         + "Reject (false) if: the visual contradicts or ignores what the narration is saying, shows wrong dog breeds/colors, "
           "changes the key story object's appearance/color, "
         + ("" if is_video else "has comic-strip/split-screen panels inside the frame, ")

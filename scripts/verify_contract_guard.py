@@ -147,6 +147,10 @@ def check_contract() -> list[str]:
         errors.append("CONTRATO VIOLADO: proibido apagar video Veo pago com v_mp4.unlink em core/scene_auditor.py (usar _archive).")
     if "def _resolve_scene_videos" not in va_txt or "def render_multi_video_montage_subclip" not in va_txt:
         errors.append("CONTRATO VIOLADO: _resolve_scene_videos / render_multi_video_montage_subclip ausente em core/video_assembler.py.")
+    if "def _concat_segments_with_smooth_xfade" not in va_txt:
+        errors.append("CONTRATO VIOLADO: _concat_segments_with_smooth_xfade ausente em core/video_assembler.py (transicao suave obrigatoria).")
+    if "def _find_pause_slot_for_window" not in afx_txt:
+        errors.append("CONTRATO VIOLADO: _find_pause_slot_for_window ausente em core/audio_fx.py (SFX apenas nas pausas da narracao).")
     if "is_video_scene" not in va_txt:
         errors.append("CONTRATO VIOLADO: core/video_assembler.py deve reduzir card_sz quando is_video_scene=True.")
     av_txt = (ROOT / "core" / "avatar_studio.py").read_text(encoding="utf-8", errors="replace")
@@ -154,6 +158,27 @@ def check_contract() -> list[str]:
         errors.append("CONTRATO VIOLADO: core/avatar_studio.py nao pode cortar patinha da Luna com (0.18, 0.82); manter y_bot >= 0.95.")
     if 're.sub(r"@+", ""' not in vs_txt:
         errors.append("CONTRATO VIOLADO: normalize_phonetics_pt em core/voice_studio.py deve remover '@' antes do TTS.")
+
+    # 3d. HOOKS DE TRAVAMENTO — travam as melhorias desta sessao (anti-regressao automatica)
+    # HOOK 1: provedor padrao Chirp 3 HD (cota 1M chars/mes) — Gemini free tier tem so 10 req/dia.
+    if 'default="chirp3_hd"' not in pipe_txt:
+        errors.append("HOOK VIOLADO: pipeline_v2.py --tts-provider deve ter default='chirp3_hd' (cota 1M/mes; Gemini free tier=10 req/dia).")
+    if 'provider: str = "chirp3_hd"' not in vs_txt:
+        errors.append("HOOK VIOLADO: synthesize_all_scenes deve ter provider='chirp3_hd' como default.")
+    # HOOK 2: vozes travadas Zephyr/Sulafat/Leda + secundario (Puck) — personagens secundarios podem usar OUTRAS vozes.
+    for voice_sym in ('"gemini_voice": "Zephyr"', '"gemini_voice": "Sulafat"', '"gemini_voice": "Leda"',
+                      '"chirp3_voice": "pt-BR-Chirp3-HD-Zephyr"', '"chirp3_voice": "pt-BR-Chirp3-HD-Sulafat"',
+                      '"chirp3_voice": "pt-BR-Chirp3-HD-Leda"', '"secundario"', '"pt-BR-Chirp3-HD-Puck"'):
+        if voice_sym not in cfg_txt:
+            errors.append(f"HOOK VIOLADO: config.py deve manter '{voice_sym}' (vozes fixas + secundario).")
+    # HOOK 3: pre-varredura de recuperacao total das 5 contas Flow antes de gerar (evita gerar o que ja existe).
+    if 'recover_and_audit(' not in pipe_txt or 'max_videos=0' not in pipe_txt:
+        errors.append("HOOK VIOLADO: pipeline_v2.py deve pre-varrer as 5 contas Flow (recover_and_audit, max_videos=0).")
+    # HOOK 4: junta de audio limpa sem sobreposicao (ferramentas work/ + roteiro de 25 cenas em sequencia).
+    # HOOK 5: deteccao de Short mudo (-91 dB) antes de publicar — SELF-AUDIT nao pode aprovar audio silencioso.
+    for sa_sym in ("def build_narration_track", "def master_with_soundcraft"):
+        if sa_sym not in va_txt and sa_sym not in afx_txt:
+            errors.append(f"HOOK VIOLADO: '{sa_sym}' ausente (mixing de narracao/audio obrigatorio).")
 
     # 4. Compilacao Python de todos os modulos principais
     for py_path in [ROOT / "config.py", ROOT / "pipeline_v2.py", *sorted((ROOT / "core").glob("*.py")), Path(__file__)]:

@@ -626,7 +626,7 @@ C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --save
       <div class="story-card">
         <h3>🔊 Voz, Música &amp; Volume</h3>
         <div class="flag-grid">
-          <div class="flag-chip"><code>--tts-provider</code> <code>gemini_emotion</code> | <code>chirp3_hd</code> | <code>auto</code></div>
+          <div class="flag-chip"><code>--tts-provider</code> <code>chirp3_hd</code> (padrão, 1M/mês) | <code>gemini_emotion</code> | <code>auto</code></div>
           <div class="flag-chip"><code>--auth-chirp3</code> Login OAuth2 (950k/mês grátis)</div>
           <div class="flag-chip"><code>--bgm</code> Música .wav própria</div>
           <div class="flag-chip"><code>--sfx-volume 0.35</code> Teto SFX</div>
@@ -674,7 +674,7 @@ C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --save
       <div class="story-card" style="background:#dcfce7;">
         <h3><span>🛡️ Escudo Verde — SEMPRE FAZER!</span> <span class="sticker st-green">Super Poder</span></h3>
         <ul class="rule-list">
-          <li>🎤 <b>Vozes 100% Travadas:</b> Kore (Narradora), Sulafat (Frida), Leda (Luna) — Gemini TTS ou Chirp 3 HD (trava 950k/mês) + Whisper QA.</li>
+          <li>🎤 <b>Vozes 100% Travadas:</b> Zephyr (Narradora), Sulafat (Frida), Leda (Luna) — Chirp 3 HD padrão (trava 950k/mês) + Whisper QA. Secundários: voz Puck.</li>
           <li>🎬 <b>Sincronia + 10x Veo + Auditoria Cena-a-Cena:</b> Vision QA <i>fail-closed</i> (comparando áudio Whisper × imagem/vídeo), regeneração automática, <code>@Personagens</code> e <b>objetos-chave (<code>story_props</code>) cadastrados como personagens no Flow</b>.</li>
           <li>🐶 <b>Raças &amp; Idade Canônicas:</b> Frida Buldogue caramelo, Luna Salsicha chocolate, até 1 aninho (<code>1 year old max</code>).</li>
           <li>👨‍👩‍👧‍👦 <b>YouTube Todo Público:</b> <code>"selfDeclaredMadeForKids": False</code>.</li>
@@ -695,11 +695,52 @@ C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --save
     </div>
   </section>
 
-  <!-- CAPÍTULO 7: CHECKLIST -->
+  <!-- CAPÍTULO 7: HOOKS DE TRAVAMENTO -->
+  <section class="comic-panel" style="background: #faf5ff;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#7c3aed;">7</span>
+      <h2>Capítulo 7: 🪝 Ganchos de Travamento (HOOKS — Ninguém Pode Quebrar!)</h2>
+    </div>
+    <div class="grid-2">
+      <div class="story-card" style="background:#ede9fe;">
+        <h3><span>🎙️ HOOK 1 — Voz Padrão &amp; Cota</span> <span class="sticker st-purp">Regra 14</span></h3>
+        <ul class="rule-list">
+          <li>O padrão é <code>chirp3_hd</code> (Cloud TTS, <b>1 milhão de caracteres/mês</b>) — nunca <code>gemini_emotion</code> como padrão.</li>
+          <li>O Gemini free-tier dá só <b>10 requisições/dia</b> — estoura com 25 cenas e cai num modelo que fala o texto da emoção em voz alta.</li>
+          <li><code>verify_contract_guard.py</code> barra qualquer mudança de <code>default="chirp3_hd"</code>.</li>
+        </ul>
+      </div>
+      <div class="story-card" style="background:#dbeafe;">
+        <h3><span>🐶 HOOK 2 — Só 3 Vozes Travadas</span> <span class="sticker st-blue">Regra 14</span></h3>
+        <ul class="rule-list">
+          <li>Travadas: <b>Zephyr</b> (narradora), <b>Sulafat</b> (Frida), <b>Leda</b> (Luna).</li>
+          <li>Personagens secundários (cachorrinho, passarinho) usam <code>speaker: "secundario"</code> → voz <b>Puck</b> — outras vozes são permitidas e esperadas.</li>
+          <li>O guard exige as 3 vozes fixas + o perfil <code>secundario</code> no <code>config.py</code>.</li>
+        </ul>
+      </div>
+      <div class="story-card" style="background:#dcfce7;">
+        <h3><span>🎬 HOOK 3 — Trocar Só o Som</span> <span class="sticker st-green">Regra 15</span></h3>
+        <ul class="rule-list">
+          <li>Apagar áudio antigo com <code>-c:v copy -an</code> (vídeo intacto, zero áudio).</li>
+          <li>Falas coladas <b>em sequência</b>, sem sobreposição, com <code>loudnorm -14 LUFS</code>. Nunca <code>amix</code> em tempos antigos (vira "2 áudios").</li>
+        </ul>
+      </div>
+      <div class="story-card" style="background:#fee2e2;">
+        <h3><span>🔇 HOOK 4 — Short Mudo é Reprovação</span> <span class="sticker st-red">Regra 15</span></h3>
+        <ul class="rule-list">
+          <li>Antes de publicar, medir volume de cada Short com <code>ffmpeg -af volumedetect</code>.</li>
+          <li><code>mean_volume ≈ -91 dB</code> = silêncio digital = <b>Short mudo reprovado</b>, mesmo tendo faixa de áudio.</li>
+          <li>Não publicar Short com som antigo/duro nem mudo — refazer a junta primeiro.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPÍTULO 8: CHECKLIST -->
   <section class="comic-panel" style="background: #f0fdf4;">
     <div class="panel-header">
-      <span class="chapter-star" style="background:#14b8a6;">7</span>
-      <h2>Capítulo 7: Jogo das 6 Estrelas (Marque Conforme Avança!)</h2>
+      <span class="chapter-star" style="background:#14b8a6;">8</span>
+      <h2>Capítulo 8: Jogo das 6 Estrelas (Marque Conforme Avança!)</h2>
     </div>
     <div class="checklist" id="missionList">
       <label class="chk-item"><input type="checkbox" onchange="updateProgress()"> <span>⭐ 1. Abri conversa em <b>E:\videos\videomaker_v2</b></span></label>

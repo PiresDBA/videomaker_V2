@@ -296,6 +296,31 @@ def run_pipeline(args: argparse.Namespace) -> int:
             )
 
     if not args.skip_images:
+        recovery_rep_path = artifacts_dir / "flow_recovery_report.json"
+        if flow_cdp_alive and (args.force or not recovery_rep_path.exists()):
+            try:
+                import asyncio as _asyncio
+                from scripts.recover_flow_media import recover_and_audit
+
+                print(
+                    "[FlowRecover] Varrendo TODAS as 5 contas Flow (todos os projetos, sem limite) "
+                    "para reaproveitar videos e imagens antes de gerar novos...",
+                    flush=True,
+                )
+                with FlowStageWatchdog(slug=slug, stage="flow_recover"):
+                    _asyncio.run(
+                        recover_and_audit(
+                            proj_dir=proj_dir,
+                            legacy_dir=(Path(args.legacy_dir) if args.legacy_dir else None),
+                            apply_reuse=True,
+                            launch_closed=True,
+                            videos_only=False,
+                            max_videos=0,
+                        )
+                    )
+            except Exception as rec_exc:
+                print(f"  [FlowRecover] Aviso na pre-varredura das contas Flow: {rec_exc}", flush=True)
+
         if not getattr(args, "skip_scene_audit", False) and FlowStageWatchdog.is_busy_by_other():
             print(
                 f"[FlowMultiAccount] Conta de video em uso por outro processo; adiantando geracao e auditoria de IMAGENS "
@@ -483,7 +508,7 @@ def main() -> int:
     ap.add_argument("--batch-scan", default="", help="Escaneia e audita todas as pastas de video dentro de um diretorio")
     ap.add_argument("--stage", choices=("all", "avatar-only", "script", "tts", "pacing", "images", "shorts", "audit", "publish"), default="all")
     ap.add_argument("--build-avatar", choices=("luna",), default="", help="Gera o pacote de avatar Luna dentro do programa")
-    ap.add_argument("--tts-provider", choices=("gemini_emotion", "chirp3_hd", "auto"), default="gemini_emotion", help="Vozes emocionais Gemini TTS ou Cloud Chirp 3 HD travado (Regra de Ouro: Edge TTS proibido)")
+    ap.add_argument("--tts-provider", choices=("gemini_emotion", "chirp3_hd", "auto"), default="chirp3_hd", help="Vozes emocionais Cloud Chirp 3 HD (padrao, cota 1M chars/mes) ou Gemini TTS; Edge TTS proibido (Regra de Ouro)")
     ap.add_argument("--auth-chirp3", action="store_true", help="Autentica OAuth 2.0 para Google Cloud Chirp 3 HD e testa as vozes Kore/Sulafat/Leda")
     ap.add_argument("--short-engine", choices=("auto", "split_70_30", "split_60_40", "motion_hud", "remotion"), default="auto")
     ap.add_argument("--min-words", type=int, default=SCRIPT_MIN_WORDS, help="Minimo de palavras no roteiro")

@@ -202,6 +202,36 @@ def _infer_semantic_foleys(clip: dict[str, Any]) -> list[tuple[str, float]]:
     return hits
 
 
+def _find_pause_slot_for_window(
+    win_start: float,
+    win_end: float,
+    pauses: list[dict[str, float]],
+    min_slot_s: float = 0.24,
+    prefer_end: bool = True,
+) -> tuple[float, float] | None:
+    """Encontra uma janela real de pausa dentro de [win_start, win_end] para tocar SFX sem atropelar a fala."""
+    cands = [
+        p for p in pauses
+        if p["end"] > win_start + 0.05 and p["start"] < win_end + 0.35
+    ]
+    if not cands:
+        return None
+    best: tuple[float, float, float] | None = None
+    for p in cands:
+        s = max(win_start, p["start"] + 0.03)
+        e = min(win_end + 0.30, p["end"] - 0.03)
+        avail = e - s
+        if avail < min_slot_s:
+            continue
+        # Prefere pausas maiores e, quando prefer_end=True, pausas logo apos a frase (ex: fim da cena)
+        score = avail + (0.45 if (prefer_end and s >= win_start + (win_end - win_start) * 0.55) else 0.0)
+        if best is None or score > best[0]:
+            best = (score, s, avail)
+    if best is None:
+        return None
+    return round(best[1], 3), round(min(1.6, best[2]), 3)
+
+
 def build_sfx_stem(
     visual_clips: list[dict[str, Any]],
     total_duration: float,
@@ -209,70 +239,69 @@ def build_sfx_stem(
     sfx_volume: float = 0.35,
     narration_wav: Path | None = None,
 ) -> Path:
-    """Constroi sonoplastia infantil rica em camadas (foley semantico + micro-pops + cortes com som)."""
-    pauses = detect_pauses_in_wav(narration_wav) if narration_wav else []
-    events: list[tuple[float, Path, float]] = []
-    seen_scenes: set[str] = set()
-    last_act: int | None = None
-    last_spk: str | None = None
+    """Constroi sonoplastia infantil posicionada ESTRITAMENTE nas pausas reais da narracao (nunca atropela a fala)."""
+    pauses = detect_pauses_in_wav(narration_wav, min_pause_s=0.22, rms_thr=0.015) if narration_wav else []
+    # Cada evento: (timestamp_s, wav_path, volume, max_dur_s)
+    events: list[tuple[float, Path, float, float]] = []
 
+    # Agrupa sub-clips por cena para colocar no maximo 1 SFX limpo na pausa real daquela cena
+    scenes_meta: list[dict[str, Any]] = []
+    by_sid: dict[str, dict[str, Any]] = {}
     for clip in visual_clips:
         sid = clip["scene_id"]
-        is_first_sub = sid not in seen_scenes
-        seen_scenes.add(sid)
+        if sid not in by_sid:
+            by_sid[sid] = {
+                "scene_id": sid,
+                "start": float(clip["start"]),
+                "end": float(clip["end"]),
+                "audio_end": float(clip.get("scene_audio_start", clip["start"])) + float(clip.get("scene_audio_dur", clip["duration"])),
+                "act": clip.get("act", 1),
+                "speaker": clip.get("speaker", "narrador"),
+                "text": clip.get("text", ""),
+                "visual_action": clip.get("visual_action", ""),
+                "sfx": clip.get("sfx"),
+            }
+            scenes_meta.append(by_sid[sid])
+        else:
+            by_sid[sid]["end"] = max(by_sid[sid]["end"], float(clip["end"]))
 
-        if not is_first_sub:
-            # Sub-corte visual (> 5s dividido): swish suave + foley semantico na segunda metade da cena
-            path_sw, _ = resolve_sfx_file("swish/soft")
-            if path_sw:
-                events.append((max(0.0, float(clip["start"]) - 0.05), path_sw, 0.16))
-            sub_hits = _infer_semantic_foleys(clip)
-            if sub_hits:
-                h_sub, v_sub = sub_hits[0]
-                p_sub, _ = resolve_sfx_file(h_sub)
-                if p_sub:
-                    ts_sub = _snap_to_nearest_pause(
-                        float(clip["start"]) + min(float(clip["duration"]) * 0.35, 1.4),
-                        pauses,
-                        max_shift_s=0.35,
-                    )
-                    events.append((ts_sub, p_sub, min(sfx_volume, max(0.24, v_sub))))
-            continue
+    last_act: int | None = None
+    for idx_sc, sc in enumerate(scenes_meta):
+        sc_start = sc["start"]
+        sc_end = sc["end"]
+        next_start = scenes_meta[idx_sc + 1]["start"] if idx_sc + 1 < len(scenes_meta) else total_duration
 
-        act = clip.get("act", 1)
+        # Garante que a janela entre o fim do audio da cena e o inicio da proxima cena conste como pausa valida
+        local_pauses = list(pauses)
+        gap_s = sc["audio_end"]
+        gap_e = next_start
+        if gap_e - gap_s >= 0.24:
+            local_pauses.append({"start": gap_s, "end": gap_e, "dur": gap_e - gap_s})
+
+        act = sc.get("act", 1)
         if last_act is not None and act != last_act:
             path_trans, _ = resolve_sfx_file("slide whistle")
             if path_trans:
-                ts_t = _snap_to_nearest_pause(max(0.0, float(clip["start"]) - 0.10), pauses)
-                events.append((ts_t, path_trans, 0.28))
+                slot_act = _find_pause_slot_for_window(max(0.0, sc_start - 0.8), sc_start + 0.15, local_pauses, min_slot_s=0.22, prefer_end=False)
+                if slot_act:
+                    events.append((slot_act[0], path_trans, min(sfx_volume, 0.26), slot_act[1]))
         last_act = act
 
-        # Micro-pop quando alterna Frida <-> Luna para marcar o bate-bola com leveza
-        spk = str(clip.get("speaker") or "narrador").lower()
-        if last_spk and spk != last_spk and spk in ("frida", "luna"):
-            pop_id = "ui_pop/boop" if spk == "luna" else "ui_pop/soft"
-            path_spk, _ = resolve_sfx_file(pop_id)
-            if path_spk:
-                events.append((max(0.0, float(clip["start"])), path_spk, 0.22))
-        last_spk = spk
+        # Escolhe apenas 1 foley semantico relevante e encaixa dentro da pausa real (pos-fala ou respiracao)
+        hits = _infer_semantic_foleys(sc)
+        if not hits:
+            continue
+        hint, base_vol = hits[0]
+        path_sfx, _ = resolve_sfx_file(hint)
+        if not path_sfx:
+            continue
 
-        for idx_hit, (hint, base_vol) in enumerate(_infer_semantic_foleys(clip)):
-            path_sfx, _ = resolve_sfx_file(hint)
-            if path_sfx:
-                raw_ts = float(clip["start"]) + (0.06 if idx_hit == 0 else min(1.8, float(clip["duration"]) * 0.48))
-                ts_s = _snap_to_nearest_pause(raw_ts, pauses, max_shift_s=0.30)
-                events.append((ts_s, path_sfx, min(sfx_volume, base_vol)))
-
-        hay_step = f"{clip.get('text', '')} {clip.get('visual_action', '')}".lower()
-        if re.search(r"disparou|correu|foi\s+at[eé]|caminhou|march|trott|walking", hay_step, re.I):
-            p_w, _ = resolve_sfx_file("mallet/glock")
-            p_p, _ = resolve_sfx_file("ui_pop/boop")
-            for k in range(4):
-                step_p = p_w if k % 2 == 0 else p_p
-                if step_p:
-                    t_st = float(clip["start"]) + 0.18 + k * 0.13
-                    if t_st < float(clip["end"]) - 0.1:
-                        events.append((t_st, step_p, 0.19))
+        slot = _find_pause_slot_for_window(sc_start, max(sc_end, next_start), local_pauses, min_slot_s=0.25, prefer_end=True)
+        if slot is not None:
+            events.append((slot[0], path_sfx, min(sfx_volume, base_vol), slot[1]))
+        elif not local_pauses:
+            # Fallback apenas se nao houver narration_wav (ex: teste unitario sintetico sem WAV)
+            events.append((round(max(0.0, sc_end - 0.35), 3), path_sfx, min(sfx_volume, base_vol), 0.8))
 
     # Camada suave de ambiencia (passarinhos/brisa CC0) se a maioria for parque/natureza
     all_loc = " ".join(str(c.get("location") or "") for c in visual_clips).lower()
@@ -300,11 +329,11 @@ def build_sfx_stem(
 
     if amb_path and amb_path.exists():
         cmd += ["-stream_loop", "-1", "-t", f"{total_duration:.3f}", "-i", str(amb_path)]
-        filters.append(f"[{in_idx}:a]aformat=sample_rates=44100:channel_layouts=stereo,highpass=f=220,volume=0.07[amb]")
+        filters.append(f"[{in_idx}:a]aformat=sample_rates=44100:channel_layouts=stereo,highpass=f=220,volume=0.05[amb]")
         labels.append("[amb]")
         in_idx += 1
 
-    for ts, p, vol in events:
+    for ts, p, vol, max_dur in events:
         if p not in norm_cache:
             try:
                 norm_cache[p] = _normalize_sfx_to_wav(p)
@@ -314,8 +343,12 @@ def build_sfx_stem(
         cmd += ["-i", str(p_use)]
         delay_ms = max(0, int(round(ts * 1000)))
         safe_v = min(0.35, max(0.06, float(vol)))
+        trim_d = max(0.22, min(1.8, float(max_dur)))
+        fade_st = max(0.05, trim_d - 0.16)
         filters.append(
             f"[{in_idx}:a]aformat=sample_rates=44100:channel_layouts=stereo,"
+            f"atrim=0:{trim_d:.3f},asetpts=PTS-STARTPTS,"
+            f"afade=t=out:st={fade_st:.3f}:d=0.16,"
             f"volume={safe_v:.2f},adelay={delay_ms}|{delay_ms}[s{in_idx}]"
         )
         labels.append(f"[s{in_idx}]")

@@ -643,7 +643,7 @@ def _to_wav_norm(src_audio: Path, wav_path: Path) -> float:
 def synthesize_all_scenes(
     script_data: dict[str, Any],
     audio_dir: Path,
-    provider: str = "gemini_emotion",
+    provider: str = "chirp3_hd",
     enable_whisper_qa: bool = True,
     enable_prosody_gate: bool = True,
     allow_flat_fallback: bool = False,
