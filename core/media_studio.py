@@ -316,6 +316,16 @@ def generate_single_image(
                                 ref_names.append(rp.name)
                         except Exception:
                             pass
+                    async def _ensure_missing_char(char_name: str) -> bool:
+                        from core.flow_accounts import normalize_project_url
+                        present_now = await ensure_story_characters_created(
+                            pg,
+                            script_data or {"secondary_characters": [], "story_props": []},
+                            normalize_project_url(pg.url) or proj_url,
+                            portrait_dir=sec_portrait_dir,
+                        )
+                        return bool(present_now.get(char_name, False))
+
                     await generate_flow_image(
                         pg,
                         sanitize_image_prompt(prompt),
@@ -324,6 +334,7 @@ def generate_single_image(
                         ref_images=tuple(ref_names),
                         wait_s=min(wait_s, 180),
                         skip_if_busy=skip_busy,
+                        on_missing_character=_ensure_missing_char,
                     )
                 finally:
                     await b.close()

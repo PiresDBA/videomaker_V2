@@ -226,7 +226,13 @@ async def _dismiss_open_overlays(page) -> None:
             break
 
 
-async def attach_reference_from_plus(page, tab_name: str, match_label: str, exact: bool = False) -> bool:
+async def attach_reference_from_plus(
+    page,
+    tab_name: str,
+    match_label: str,
+    exact: bool = False,
+    on_missing_character: Any = None,
+) -> bool:
     """Anexa Personagem, Imagem ou Video no prompt via '+' -> Incluir no comando."""
     await _dismiss_open_overlays(page)
     add_btn = page.locator('button[aria-label="Adicionar elementos à caixa de comando"]').first
@@ -310,6 +316,15 @@ async def attach_reference_from_plus(page, tab_name: str, match_label: str, exac
         print(f"  [Flow] AVISO: '{match_label}' nao encontrado na aba '{tab_name}'", flush=True)
         await page.keyboard.press("Escape")
         await page.wait_for_timeout(300)
+        if tab_name == "Personagens" and on_missing_character is not None:
+            try:
+                print(f"  [Flow] Criando personagem ausente '{match_label}' automaticamente antes de anexar...", flush=True)
+                if await on_missing_character(match_label):
+                    return await attach_reference_from_plus(
+                        page, tab_name, match_label, exact=exact, on_missing_character=None
+                    )
+            except Exception as exc:
+                print(f"  [Flow] AVISO ao criar '{match_label}' sob demanda: {exc}", flush=True)
         return False
 
     await target_opt.click()
@@ -440,6 +455,7 @@ async def generate_flow_image(
     ref_videos: tuple[str, ...] = (),
     wait_s: int = 120,
     skip_if_busy: bool = False,
+    on_missing_character: Any = None,
 ) -> dict[str, Any]:
     """Gera 1 imagem 16:9 via Nano Banana 2.1 (0 creditos) e salva RGB JPEG 1920x1080."""
     if skip_if_busy:
@@ -452,7 +468,9 @@ async def generate_flow_image(
 
     attached: list[str] = []
     for ch in characters:
-        if await attach_reference_from_plus(page, "Personagens", ch, exact=True):
+        if await attach_reference_from_plus(
+            page, "Personagens", ch, exact=True, on_missing_character=on_missing_character
+        ):
             attached.append(f"char:{ch}")
     for im_ref in ref_images:
         if im_ref and await attach_reference_from_plus(page, "Imagens", im_ref, exact=False):
@@ -581,6 +599,7 @@ async def generate_flow_video(
     ref_videos: tuple[str, ...] = (),
     video_submode: str = "Elementos",
     wait_s: int = 360,
+    on_missing_character: Any = None,
 ) -> dict[str, Any]:
     """Gera 1 video 8s 16:9 via Veo 3.1 - Lite (x1, 10 creditos) com continuidade de personagens/cenas."""
     summary = await configure_flow_mode(
@@ -599,7 +618,9 @@ async def generate_flow_video(
     for ch in characters:
         if len(attached) >= max_elements:
             break
-        if await attach_reference_from_plus(page, "Personagens", ch, exact=True):
+        if await attach_reference_from_plus(
+            page, "Personagens", ch, exact=True, on_missing_character=on_missing_character
+        ):
             attached.append(f"char:{ch}")
     for im_ref in (ref_images[1:] if characters else ()):
         if len(attached) >= max_elements:
