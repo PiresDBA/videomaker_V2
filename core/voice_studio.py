@@ -69,8 +69,9 @@ _CHIRP3_CREDS_CACHE: dict[str, Any] = {}
 
 
 def normalize_phonetics_pt(text: str) -> str:
-    """Aplica correcoes foneticas em portugues para evitar distorcoes do TTS."""
-    out = " ".join((text or "").split())
+    """Aplica correcoes foneticas em portugues para evitar distorcoes do TTS e remove '@' de marcacoes visuais."""
+    out = re.sub(r"@+", "", text or "")
+    out = " ".join(out.split())
     out = re.sub(r"(?i)\b(?:hahaha+|ha\s+ha\s+ha+|kkkk+|rsrs+)\b[!.]*", " ", out)
     for pat, repl in PHONETIC_PT_RULES:
         out = re.sub(pat, repl, out, flags=re.I)

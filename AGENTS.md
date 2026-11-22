@@ -25,4 +25,5 @@ Leia [CONTRATO_MOTOR_V2.md](CONTRATO_MOTOR_V2.md) antes de qualquer alteração 
    - `FlowStageWatchdog` (`core/flow_accounts.py` + `pipeline_v2.py`) serializa o acesso ao Google Flow entre múltiplos processos com fila FIFO, heartbeat e aviso automático de término (`finished_and_notified`).
    - Proibido re-checar `cur_pre` pós-upload em `generate_flow_image` (`skip_if_busy` somente pré-anexo); `_retry_failed_flow_tile` aborta imediatamente em `"atividade incomum"` e `scene_auditor.py` libera texto cenográfico natural em objetos (ex.: `"DOG"` em relevo).
    - `_wait_for_inflight_flow_generation` recarrega a página se `N%` ficar congelado por `>= 28s` (tile zumbi), e `connect_over_cdp` faz retry curto em `ECONNREFUSED`.
+   - `normalize_phonetics_pt` remove todo `@` antes do TTS; `_plan_avatar_overlays` reduz PiP em cenas de vídeo Veo (`is_video_scene`, `card_sz <= 132`); Luna mantém `y_bot >= 0.95` (sem cortar patinhas) e `crossfade_len >= 18`.
 

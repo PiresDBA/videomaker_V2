@@ -160,7 +160,7 @@ def _index_character_bank(character: str) -> dict[str, Any] | None:
     if not rep_path or not hab_paths:
         return None
 
-    y_top, y_bot = (0.18, 0.82) if key == "luna" else (0.25, 0.98)
+    y_top, y_bot = (0.22, 0.96) if key == "luna" else (0.25, 0.98)
     rep_frames, target_luma = _load_aligned_frames(rep_path, y_top, y_bot)
     if not rep_frames:
         return None
@@ -294,8 +294,8 @@ def render_avatar_pip_clip(
     idx_hab = rng.choice(cur_vid["peak_starts"])
     was_talking = False
 
-    # Crossfade gradual (9 frames ~ 0.30s) sempre que trocar reposo <-> falando ou mudar de clipe
-    crossfade_len = 9
+    # Crossfade gradual reforçado para Luna (18 frames ~ 0.60s) e 10 frames para Frida (~0.33s)
+    crossfade_len = 18 if char == "luna" else 10
     blend_rem = 0
     prev_sq: np.ndarray | None = None
 

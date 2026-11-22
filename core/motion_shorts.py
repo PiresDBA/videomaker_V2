@@ -740,8 +740,8 @@ def _render_split_bottom_stage(
     vw = cv2.VideoWriter(str(tmp_raw), fourcc, float(fps), (w, h))
 
     seed_base = abs(hash(f"{variant}_{int(round(st * 10))}")) % (2 ** 31)
-    frida_player = _SmoothAvatarPlayer(frida_bank, seed=seed_base + 11, crossfade_len=9)
-    luna_player = _SmoothAvatarPlayer(luna_bank, seed=seed_base + 29, crossfade_len=9)
+    frida_player = _SmoothAvatarPlayer(frida_bank, seed=seed_base + 11, crossfade_len=10)
+    luna_player = _SmoothAvatarPlayer(luna_bank, seed=seed_base + 29, crossfade_len=18)
 
     prof_f = AVATAR_PROFILES["frida"]
     prof_l = AVATAR_PROFILES["luna"]

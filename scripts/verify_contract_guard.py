@@ -143,6 +143,13 @@ def check_contract() -> list[str]:
         errors.append("CONTRATO VIOLADO: proibido apagar video Veo pago com v_mp4.unlink em core/scene_auditor.py (usar _archive).")
     if "def _resolve_scene_videos" not in va_txt or "def render_multi_video_montage_subclip" not in va_txt:
         errors.append("CONTRATO VIOLADO: _resolve_scene_videos / render_multi_video_montage_subclip ausente em core/video_assembler.py.")
+    if "is_video_scene" not in va_txt:
+        errors.append("CONTRATO VIOLADO: core/video_assembler.py deve reduzir card_sz quando is_video_scene=True.")
+    av_txt = (ROOT / "core" / "avatar_studio.py").read_text(encoding="utf-8", errors="replace")
+    if "0.18, 0.82" in av_txt:
+        errors.append("CONTRATO VIOLADO: core/avatar_studio.py nao pode cortar patinha da Luna com (0.18, 0.82); manter y_bot >= 0.95.")
+    if 're.sub(r"@+", ""' not in vs_txt:
+        errors.append("CONTRATO VIOLADO: normalize_phonetics_pt em core/voice_studio.py deve remover '@' antes do TTS.")
 
     # 4. Compilacao Python de todos os modulos principais
     for py_path in [ROOT / "config.py", ROOT / "pipeline_v2.py", *sorted((ROOT / "core").glob("*.py")), Path(__file__)]:

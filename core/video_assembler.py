@@ -619,9 +619,14 @@ def _plan_avatar_overlays(
             continue
 
         used_corners: list[str] = []
+        is_video_scene = bool(_resolve_scene_videos(sid, images_dir))
         for char, active in targets:
             mov = avatar_dir / f"{sid}_{char}.mov"
-            card_sz = 285 if active else 235
+            if is_video_scene:
+                # Em cenas de video Veo animado, PiP bem discreto para nao concorrer com o video
+                card_sz = 132 if active else 112
+            else:
+                card_sz = 285 if active else 235
             chosen = next((cn for cn in corners if cn not in used_corners), corners[0])
             used_corners.append(chosen)
             x_expr, y_expr = _CORNER_POS[chosen]
