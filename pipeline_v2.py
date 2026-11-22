@@ -264,15 +264,23 @@ def run_pipeline(args: argparse.Namespace) -> int:
             [p for p in videos_dir.glob("*.mp4") if p.stat().st_size > 50_000],
             key=lambda p: p.name,
         ) if videos_dir.exists() else []
+        valid_scene_ids = {s["scene_id"] for s in script_data.get("scenes", []) if s.get("scene_id")}
+        existing_base_sids: list[str] = []
+        for ep in existing_veo:
+            base_sid = re.sub(r"_(?:v|p)\d+$", "", ep.stem)
+            if base_sid in valid_scene_ids and base_sid not in existing_base_sids:
+                existing_base_sids.append(base_sid)
         if flow_cdp_alive:
-            for ep in existing_veo:
-                if len(veo_scene_ids) < target_veo:
-                    veo_scene_ids.add(ep.stem)
+            # Aproveita TODAS as cenas distintas que ja tem Veo no disco (>= target_veo quando houver >10)
+            for bsid in existing_base_sids:
+                veo_scene_ids.add(bsid)
             for s in select_veo_scenes(script_data, visual_clips, target_count=max(target_veo, len(script_data.get("scenes", [])))):
                 if len(veo_scene_ids) >= target_veo:
                     break
                 veo_scene_ids.add(s["scene_id"])
-        elif not args.skip_images and len(existing_veo) < target_veo:
+        elif len(existing_base_sids) >= target_veo:
+            veo_scene_ids.update(existing_base_sids)
+        elif not args.skip_images and len(existing_base_sids) < target_veo:
             raise RuntimeError(
                 f"Nenhuma conta Google Flow CDP ativa para gerar os {target_veo} videos Veo 3.1 Lite obrigatorios "
                 f"(use --skip-veo apenas se quiser modo somente imagem)."
