@@ -498,10 +498,17 @@ def generate_single_veo_video(
     ledger = _load_veo_ledger(ledger_path)
     entries = ledger.setdefault("scenes", {}).setdefault(sid, [])
     prior_count = sum(1 for e in entries if isinstance(e, dict) and e.get("status") in ("dispatched", "downloaded"))
-    if (not allow_extra_veo) and prior_count >= max(1, int(max_per_scene)):
+    archived_count = (
+        len([p for p in (videos_dir / "_archive").glob(f"{sid}_*.mp4") if p.stat().st_size >= 50_000])
+        if (videos_dir / "_archive").exists()
+        else 0
+    )
+    extra_disk_count = len([p for p in videos_dir.glob(f"{sid}_v*.mp4") if p.stat().st_size >= 50_000])
+    effective_prior = max(prior_count, archived_count + extra_disk_count)
+    if (not allow_extra_veo) and effective_prior >= max(1, int(max_per_scene)):
         raise RuntimeError(
             f"[TRAVA-VEO-CENA] Cena {sid} ja atingiu o limite de {max_per_scene} geracao(oes) Veo paga(s) "
-            f"no ledger ({ledger_path.name}); bloqueado para impedir loop de creditos."
+            f"(ledger={prior_count}, disco/arquivo={archived_count + extra_disk_count}); bloqueado para impedir loop de creditos."
         )
 
     sec_chars = script_data.get("secondary_characters") or []
