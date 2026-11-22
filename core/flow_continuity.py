@@ -59,7 +59,13 @@ async def _find_bottom_pill(page):
 
 
 async def ensure_direct_mode(page) -> Any:
-    """Garante tab 'Tudo' (dashboard) e sai do modo Agente ('spark') para o painel direto."""
+    """Garante tab 'Tudo' (dashboard) no canvas do projeto e sai do modo Agente ('spark') para o painel direto."""
+    if "/character" in (page.url or "") or "/edit/" in (page.url or ""):
+        m_proj = re.match(r"(https://flow\.google\.com(?:/u/\d+)?/project/[^/?#]+)", page.url or "")
+        if m_proj:
+            await page.goto(m_proj.group(1), wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2000)
+
     async def _try_enter_direct():
         close_btn = page.locator('button:has-text("right_panel_close")').first
         if await close_btn.count() and await close_btn.is_visible():
@@ -113,13 +119,15 @@ async def configure_flow_mode(
 ) -> str:
     """Configura Imagem (Nano Banana 2.1, x1, 0 creditos) ou Video (Veo 3.1 Lite, x1, 10 creditos)."""
     # Fecha qualquer overlay pendente (ex.: menu dropdown aberto de chamada anterior)
-    await page.keyboard.press("Escape")
-    await page.wait_for_timeout(200)
+    for _ in range(2):
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(200)
     pill = await ensure_direct_mode(page)
     await pill.click()
     await page.wait_for_timeout(700)
 
-    pane = page.locator(".cdk-overlay-pane").first
+    settings_pane = page.locator('.cdk-overlay-pane:has-text("x1"), .cdk-overlay-pane:has-text("créditos")')
+    pane = settings_pane.last if await settings_pane.count() else page.locator(".cdk-overlay-pane").last
     targets = [kind, aspect, count]
     if kind == "Vídeo" and video_submode:
         targets.insert(1, video_submode)
@@ -145,8 +153,10 @@ async def configure_flow_mode(
                 await m.click()
                 await page.wait_for_timeout(450)
 
-    # Rele o painel principal (.first, nao o dropdown fechado)
-    summary = (await page.locator(".cdk-overlay-pane").first.inner_text()).replace("\n", " | ")
+    # Rele especificamente o painel de configuracao (evita ler dropdown de modelo residual)
+    summary_pane = page.locator('.cdk-overlay-pane:has-text("x1"), .cdk-overlay-pane:has-text("créditos")')
+    summary_loc = summary_pane.last if await summary_pane.count() else pane
+    summary = (await summary_loc.inner_text()).replace("\n", " | ")
     if count not in summary:
         await page.keyboard.press("Escape")
         raise RuntimeError(f"Quantidade '{count}' nao confirmada no painel Flow: {summary}")

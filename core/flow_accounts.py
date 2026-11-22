@@ -364,6 +364,9 @@ async def check_characters_present(page, required: tuple[str, ...] = ("Frida", "
     try:
         await _ensure_project_canvas_url(page)
         await ensure_direct_mode(page)
+        for _ in range(2):
+            await page.keyboard.press("Escape")
+            await page.wait_for_timeout(200)
         add_btn = page.locator('button[aria-label="Adicionar elementos à caixa de comando"]').first
         if not await add_btn.count() or not await add_btn.is_visible():
             return {name: False for name in required}
@@ -374,7 +377,7 @@ async def check_characters_present(page, required: tuple[str, ...] = ("Frida", "
             await tab.click(timeout=5000)
             await page.wait_for_timeout(600)
         opts = await page.evaluate(
-            "() => Array.from(document.querySelectorAll('.cdk-overlay-pane [role=\"option\"]')).map(e => (e.innerText || '').trim().split('\\n')[0].trim())"
+            "() => Array.from(document.querySelectorAll('.cdk-overlay-pane [role=\"option\"]')).flatMap(e => (e.innerText || '').split('\\n').map(s => s.trim()).filter(Boolean))"
         )
         await page.keyboard.press("Escape")
         await page.wait_for_timeout(300)
@@ -658,11 +661,18 @@ async def create_character_in_flow(
                 await page.wait_for_timeout(1000)
 
         await _accept_usage_rights_modal(page)
-        name_inp = page.locator('input[aria-label="Nome do personagem"], input[placeholder*="Nome do personagem"]').first
-        if await name_inp.count():
-            await name_inp.click(timeout=4000)
-            await name_inp.fill(name)
-            await page.wait_for_timeout(300)
+        name_inp = page.locator('input[aria-label="Nome do personagem"], input[placeholder*="Nome"]').first
+        for _ in range(12):
+            if await name_inp.count() and await name_inp.is_visible():
+                break
+            await page.wait_for_timeout(1000)
+        if not (await name_inp.count() and await name_inp.is_visible()):
+            print(f"  [FlowChars] Aviso: campo de nome nao apareceu apos upload para '{name}'", flush=True)
+            return False
+
+        await name_inp.click(timeout=4000)
+        await name_inp.fill(name)
+        await page.wait_for_timeout(300)
 
         pers_inp = page.locator('textarea[aria-label="Personalidade do personagem"], textarea[placeholder*="Descreva"]').first
         if await pers_inp.count():
@@ -670,19 +680,20 @@ async def create_character_in_flow(
             await page.wait_for_timeout(300)
 
         done_btn = page.locator('button:has-text("Concluir")').first
-        if await done_btn.count():
-            for _ in range(12):
-                try:
-                    if not await done_btn.is_disabled():
-                        break
-                except Exception:
+        if not await done_btn.count():
+            print(f"  [FlowChars] Aviso: botao Concluir nao encontrado para '{name}'", flush=True)
+            return False
+        for _ in range(12):
+            try:
+                if not await done_btn.is_disabled():
                     break
-                await page.wait_for_timeout(1000)
-            await done_btn.click(timeout=6000)
-            await page.wait_for_timeout(3000)
-            print(f"  [FlowChars] Personagem '{name}' criado na conta!", flush=True)
-            return True
-        return False
+            except Exception:
+                break
+            await page.wait_for_timeout(1000)
+        await done_btn.click(timeout=6000)
+        await page.wait_for_timeout(3000)
+        print(f"  [FlowChars] Personagem '{name}' criado na conta!", flush=True)
+        return True
     except Exception as exc:
         print(f"  [FlowChars] Aviso ao criar '{name}': {exc}", flush=True)
         return False
