@@ -296,6 +296,31 @@ def run_pipeline(args: argparse.Namespace) -> int:
             )
 
     if not args.skip_images:
+        if not getattr(args, "skip_scene_audit", False) and FlowStageWatchdog.is_busy_by_other():
+            print(
+                f"[FlowMultiAccount] Conta de video em uso por outro processo; adiantando geracao e auditoria de IMAGENS "
+                f"(0 creditos, ilimitadas) para '{slug}' nas outras contas Flow livres (acc_4/acc_3/acc_2)...",
+                flush=True,
+            )
+            pre_visual_clips = [
+                c for c in visual_clips
+                if (c.get("scene_id") not in veo_scene_ids) or str(c.get("clip_id") or "").endswith("_p1")
+            ]
+            generate_and_audit_scenes(
+                proj_dir=proj_dir,
+                script_data=script_data,
+                visual_clips=pre_visual_clips,
+                prompts_manifest=final_prompts,
+                images_dir=images_dir,
+                videos_dir=None,
+                auto_fix=True,
+                max_retries=3,
+                force_audit_cached=True,
+                force=args.force,
+                veo_scene_ids=set(),
+                generate_veo_inline=False,
+                strict_vision=True,
+            )
         with FlowStageWatchdog(slug=slug, stage="flow_media"):
             if not getattr(args, "skip_scene_audit", False):
                 sc_audit = generate_and_audit_scenes(

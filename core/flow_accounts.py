@@ -89,17 +89,34 @@ def save_accounts_config(cfg: dict[str, Any]) -> None:
 
 def load_accounts_state() -> dict[str, Any]:
     today = _today_str()
+    now_ts = time.time()
     if FLOW_ACCOUNTS_STATE.exists():
         st = json.loads(FLOW_ACCOUNTS_STATE.read_text(encoding="utf-8"))
     else:
         st = {"date": today, "accounts": {}}
+    dirty = False
     if st.get("date") != today:
-        # Novo dia: cota diaria do Flow reinicia (50 creditos/conta/dia)
-        for acc_st in st.get("accounts", {}).values():
-            acc_st["credits_used_today"] = 0
-            acc_st["videos_used_today"] = 0
-            acc_st["exhausted_today"] = False
+        # Novo dia / ciclo de 24h: as 4 primeiras contas (acc_1..acc_4) renovam 50 creditos cada (200 creditos = 20 videos/dia)
+        for acc_id, acc_st in st.get("accounts", {}).items():
+            if acc_id != "acc_5":
+                acc_st["credits_used_today"] = 0
+                acc_st["videos_used_today"] = 0
+                acc_st["exhausted_today"] = False
+                acc_st.pop("exhausted_at", None)
         st["date"] = today
+        dirty = True
+    else:
+        # Tambem destrava automaticamente qualquer conta primaria (acc_1..acc_4) cujo exhausted_at ja completou 24h (86400s)
+        for acc_id, acc_st in st.get("accounts", {}).items():
+            if acc_id != "acc_5" and acc_st.get("exhausted_today"):
+                ex_at = float(acc_st.get("exhausted_at") or 0.0)
+                if ex_at > 0 and (now_ts - ex_at) >= 86400.0:
+                    acc_st["credits_used_today"] = 0
+                    acc_st["videos_used_today"] = 0
+                    acc_st["exhausted_today"] = False
+                    acc_st.pop("exhausted_at", None)
+                    dirty = True
+    if dirty:
         save_accounts_state(st)
     return st
 
@@ -153,6 +170,7 @@ def mark_account_usage(account_id: str, credits_delta: int = 10, exhausted: bool
         rec["videos_used_today"] = int(rec.get("videos_used_today", 0)) + 1
     if exhausted:
         rec["exhausted_today"] = True
+        rec["exhausted_at"] = round(time.time(), 2)
     if email:
         rec["email"] = email
     save_accounts_state(st)
@@ -160,22 +178,62 @@ def mark_account_usage(account_id: str, credits_delta: int = 10, exhausted: bool
 
 
 def get_next_available_accounts(ignore_soft_daily_cap: bool = False) -> list[dict[str, Any]]:
+    """
+    Para videos Veo 3.1 Lite (10 creditos/video):
+    - Prioriza SEMPRE as 4 primeiras contas diarias (acc_1..acc_4: 50 creditos/24h cada = 200 creditos = 20 videos/dia).
+    - A ultima conta (acc_5) fica estritamente por ULTIMO como reserva de ultima hipotese, so sendo consumida
+      quando as 4 primeiras contas ja esgotaram os 50 creditos do ciclo de 24h.
+    """
     cfg = load_accounts_config()
     st = load_accounts_state()
     max_cr = int(cfg.get("max_credits_per_account_per_day", 50))
     cost = int(cfg.get("credits_per_veo_lite_8s", 10))
-    candidates: list[dict[str, Any]] = []
-    for acc in cfg.get("accounts", []):
-        if not acc.get("enabled", True):
-            continue
+    primary_daily: list[dict[str, Any]] = []
+    last_resort_reserve: list[dict[str, Any]] = []
+    all_accs = [a for a in cfg.get("accounts", []) if a.get("enabled", True)]
+    last_acc_id = all_accs[-1]["id"] if len(all_accs) >= 5 else "acc_5"
+    for acc in all_accs:
         rec = st.get("accounts", {}).get(acc["id"], {})
         if rec.get("exhausted_today"):
             continue
         acc_max_cr = int(acc.get("max_credits") or max_cr)
         if (not ignore_soft_daily_cap) and (int(rec.get("credits_used_today", 0)) + cost > acc_max_cr):
             continue
-        candidates.append({**acc, "state": rec})
-    return candidates
+        item = {**acc, "state": rec}
+        if acc["id"] == last_acc_id:
+            last_resort_reserve.append(item)
+        else:
+            primary_daily.append(item)
+    return primary_daily + last_resort_reserve
+
+
+def get_image_candidate_accounts() -> list[dict[str, Any]]:
+    """
+    Para imagens Nano Banana 2.1 (0 creditos, ilimitadas):
+    1. Primeiro: contas entre as 4 primeiras (acc_1..acc_4) que ja esgotaram os 50 creditos de video do dia
+       (pois tem imagem ilimitada e nao disputam cota de video).
+    2. Segundo: demais contas entre as 4 primeiras (acc_1..acc_4).
+    3. Por ultimo: a ultima conta reserva (acc_5).
+    """
+    cfg = load_accounts_config()
+    st = load_accounts_state()
+    primary_exhausted: list[dict[str, Any]] = []
+    primary_with_video: list[dict[str, Any]] = []
+    reserve_last: list[dict[str, Any]] = []
+    all_accs = [a for a in cfg.get("accounts", []) if a.get("enabled", True)]
+    last_acc_id = all_accs[-1]["id"] if len(all_accs) >= 5 else "acc_5"
+    for acc in all_accs:
+        rec = st.get("accounts", {}).get(acc["id"], {})
+        item = {**acc, "state": rec}
+        if acc["id"] == last_acc_id:
+            reserve_last.append(item)
+        elif rec.get("exhausted_today"):
+            primary_exhausted.append(item)
+        else:
+            primary_with_video.append(item)
+    primary_exhausted.reverse()
+    return primary_exhausted + primary_with_video + reserve_last
+
 
 
 def is_quota_error_text(txt: str) -> bool:
@@ -473,103 +531,104 @@ async def generate_video_with_failover(
             print(f"[FlowFailover] CDP :{port} ({acc['id']}) offline; pulando para proxima conta.", flush=True)
             continue
 
-        async with async_playwright() as pw:
-            b = await pw.chromium.connect_over_cdp(f"http://127.0.0.1:{port}", timeout=10000)
-            try:
-                ctx = b.contexts[0]
-                page = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
-                await page.set_viewport_size({"width": 1600, "height": 920})
-                await ensure_flow_project(page, acc, cfg)
-
-                if await check_needs_google_login(page):
-                    print(f"[FlowFailover] {acc['id']} deslogada; tentando proxima conta.", flush=True)
-                    continue
-
-                email = await detect_logged_email(page)
-                # Verifica e garante Frida, Luna e personagens secundarios nesta conta antes do Veo
-                present = await check_characters_present(page, required=characters)
-                missing_chars = [c for c, ok in present.items() if not ok]
-                if missing_chars:
-                    try:
-                        await ensure_story_characters_created(
-                            page,
-                            script_data or {},
-                            normalize_project_url(page.url) or acc.get("project_url") or page.url,
-                            portrait_dir=sec_portrait_dir,
-                        )
-                        present = await check_characters_present(page, required=characters)
-                        missing_chars = [c for c, ok in present.items() if not ok]
-                    except Exception as char_exc:
-                        print(f"[FlowFailover] Aviso ao criar personagens em {acc['id']}: {char_exc}", flush=True)
-
-                # Anexa keyframe e eventuais retratos de fallback para personagens ausentes
-                ref_imgs: list[str] = []
-                if acc["id"] == "acc_1" and keyframe_aria_on_acc1:
-                    ref_imgs.append(keyframe_aria_on_acc1)
-                elif keyframe_path and keyframe_path.exists():
-                    import hashlib
-                    import shutil
-                    kf_hash = hashlib.sha1(keyframe_path.read_bytes()).hexdigest()[:6]
-                    kf_unique = keyframe_path.parent / f"kf_{kf_hash}_{keyframe_path.name}"
-                    try:
-                        shutil.copy2(keyframe_path, kf_unique)
-                        if await upload_media_to_flow(page, kf_unique):
-                            ref_imgs.append(kf_unique.name)
-                    finally:
-                        kf_unique.unlink(missing_ok=True)
-
-                if any(mc.lower() in ("frida", "luna") for mc in missing_chars):
-                    sheet = BASE_DIR / "assets" / "reference" / "frida_luna_reference.jpg"
-                    if sheet.exists() and await upload_media_to_flow(page, sheet):
-                        ref_imgs.append(sheet.name)
-                for mc in missing_chars:
-                    if mc.lower() in ("frida", "luna"):
-                        continue
-                    safe_slug = re.sub(r"[^a-z0-9]+", "_", mc.lower()).strip("_") or "personagem"
-                    sec_port = sec_portrait_dir / f"{safe_slug}_portrait.jpg"
-                    if sec_port.exists() and await upload_media_to_flow(page, sec_port):
-                        ref_imgs.append(sec_port.name)
-                if missing_chars:
-                    print(
-                        f"[FlowFailover] {acc['id']} sem personagens na aba ({missing_chars}); "
-                        f"retratos/folha + keyframe enviados para manter continuidade.",
-                        flush=True,
-                    )
-
+        with FlowAccountLock(port, slug=(proj_dir.name if proj_dir else "episodio"), kind="video", wait=True):
+            async with async_playwright() as pw:
+                b = await pw.chromium.connect_over_cdp(f"http://127.0.0.1:{port}", timeout=10000)
                 try:
-                    # Confere se UI ja mostra sem creditos antes de enviar
-                    res = await generate_flow_video(
-                        page,
-                        prompt=prompt,
-                        out_mp4=out_mp4,
-                        characters=tuple(c for c in characters if present.get(c, False)),
-                        ref_images=tuple(ref_imgs[:3]),
-                        video_submode="Elementos",
-                        wait_s=360,
-                    )
-                    usage = mark_account_usage(acc["id"], credits_delta=10, email=email)
-                    res["account_id"] = acc["id"]
-                    res["account_email"] = email
-                    res["credits_used_today"] = usage["credits_used_today"]
-                    return res
-                except Exception as exc:
-                    err_txt = str(exc)
-                    # Confere texto visivel na pagina por aviso de creditos esgotados
-                    body_low = ""
+                    ctx = b.contexts[0]
+                    page = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
+                    await page.set_viewport_size({"width": 1600, "height": 920})
+                    await ensure_flow_project(page, acc, cfg)
+
+                    if await check_needs_google_login(page):
+                        print(f"[FlowFailover] {acc['id']} deslogada; tentando proxima conta.", flush=True)
+                        continue
+
+                    email = await detect_logged_email(page)
+                    # Verifica e garante Frida, Luna e personagens secundarios nesta conta antes do Veo
+                    present = await check_characters_present(page, required=characters)
+                    missing_chars = [c for c, ok in present.items() if not ok]
+                    if missing_chars:
+                        try:
+                            await ensure_story_characters_created(
+                                page,
+                                script_data or {},
+                                normalize_project_url(page.url) or acc.get("project_url") or page.url,
+                                portrait_dir=sec_portrait_dir,
+                            )
+                            present = await check_characters_present(page, required=characters)
+                            missing_chars = [c for c, ok in present.items() if not ok]
+                        except Exception as char_exc:
+                            print(f"[FlowFailover] Aviso ao criar personagens em {acc['id']}: {char_exc}", flush=True)
+
+                    # Anexa keyframe e eventuais retratos de fallback para personagens ausentes
+                    ref_imgs: list[str] = []
+                    if acc["id"] == "acc_1" and keyframe_aria_on_acc1:
+                        ref_imgs.append(keyframe_aria_on_acc1)
+                    elif keyframe_path and keyframe_path.exists():
+                        import hashlib
+                        import shutil
+                        kf_hash = hashlib.sha1(keyframe_path.read_bytes()).hexdigest()[:6]
+                        kf_unique = keyframe_path.parent / f"kf_{kf_hash}_{keyframe_path.name}"
+                        try:
+                            shutil.copy2(keyframe_path, kf_unique)
+                            if await upload_media_to_flow(page, kf_unique):
+                                ref_imgs.append(kf_unique.name)
+                        finally:
+                            kf_unique.unlink(missing_ok=True)
+
+                    if any(mc.lower() in ("frida", "luna") for mc in missing_chars):
+                        sheet = BASE_DIR / "assets" / "reference" / "frida_luna_reference.jpg"
+                        if sheet.exists() and await upload_media_to_flow(page, sheet):
+                            ref_imgs.append(sheet.name)
+                    for mc in missing_chars:
+                        if mc.lower() in ("frida", "luna"):
+                            continue
+                        safe_slug = re.sub(r"[^a-z0-9]+", "_", mc.lower()).strip("_") or "personagem"
+                        sec_port = sec_portrait_dir / f"{safe_slug}_portrait.jpg"
+                        if sec_port.exists() and await upload_media_to_flow(page, sec_port):
+                            ref_imgs.append(sec_port.name)
+                    if missing_chars:
+                        print(
+                            f"[FlowFailover] {acc['id']} sem personagens na aba ({missing_chars}); "
+                            f"retratos/folha + keyframe enviados para manter continuidade.",
+                            flush=True,
+                        )
+
                     try:
-                        body_low = (await page.evaluate("() => (document.body && document.body.innerText || '').slice(0, 1800)")).lower()
-                    except Exception:
-                        pass
-                    if is_quota_error_text(err_txt) or is_quota_error_text(body_low):
-                        print(f"[FlowFailover] Cota esgotada em {acc['id']} ({email}); alternando para proxima conta...", flush=True)
-                        mark_account_usage(acc["id"], credits_delta=0, exhausted=True, email=email)
-                    else:
-                        print(f"[FlowFailover] Erro de UI/sessao em {acc['id']} ({email}): {err_txt}; tentando proxima conta...", flush=True)
-                        had_non_quota_err = True
-                    last_err = exc
-                    continue
-            finally:
-                await b.close()
+                        # Confere se UI ja mostra sem creditos antes de enviar
+                        res = await generate_flow_video(
+                            page,
+                            prompt=prompt,
+                            out_mp4=out_mp4,
+                            characters=tuple(c for c in characters if present.get(c, False)),
+                            ref_images=tuple(ref_imgs[:3]),
+                            video_submode="Elementos",
+                            wait_s=360,
+                        )
+                        usage = mark_account_usage(acc["id"], credits_delta=10, email=email)
+                        res["account_id"] = acc["id"]
+                        res["account_email"] = email
+                        res["credits_used_today"] = usage["credits_used_today"]
+                        return res
+                    except Exception as exc:
+                        err_txt = str(exc)
+                        # Confere texto visivel na pagina por aviso de creditos esgotados
+                        body_low = ""
+                        try:
+                            body_low = (await page.evaluate("() => (document.body && document.body.innerText || '').slice(0, 1800)")).lower()
+                        except Exception:
+                            pass
+                        if is_quota_error_text(err_txt) or is_quota_error_text(body_low):
+                            print(f"[FlowFailover] Cota esgotada em {acc['id']} ({email}); alternando para proxima conta...", flush=True)
+                            mark_account_usage(acc["id"], credits_delta=0, exhausted=True, email=email)
+                        else:
+                            print(f"[FlowFailover] Erro de UI/sessao em {acc['id']} ({email}): {err_txt}; tentando proxima conta...", flush=True)
+                            had_non_quota_err = True
+                        last_err = exc
+                        continue
+                finally:
+                    await b.close()
 
     if had_non_quota_err:
         raise RuntimeError(f"Erro transitorio de UI/sessao nas contas Flow disponiveis: {last_err}")
@@ -941,6 +1000,133 @@ import os
 import threading
 
 FLOW_WATCHDOG_FILE = BASE_DIR / ".chrome-flow-accounts" / "flow_watchdog_queue.json"
+FLOW_ACCOUNT_LOCKS_DIR = BASE_DIR / ".chrome-flow-accounts" / "account_locks"
+
+
+def _extract_port_from_url_or_int(port_or_url: int | str) -> int:
+    if isinstance(port_or_url, int):
+        return port_or_url
+    m = re.search(r":(\d{4,5})\b", str(port_or_url))
+    return int(m.group(1)) if m else int(str(port_or_url) or 0)
+
+
+def is_flow_account_locked(port_or_url: int | str) -> dict[str, Any] | None:
+    """Retorna metadados do processo dono se a conta/porta CDP estiver bloqueada por OUTRO processo vivo."""
+    port = _extract_port_from_url_or_int(port_or_url)
+    if port <= 0:
+        return None
+    lfile = FLOW_ACCOUNT_LOCKS_DIR / f"port_{port}.json"
+    if not lfile.exists():
+        return None
+    try:
+        data = json.loads(lfile.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return None
+        opid = int(data.get("pid") or 0)
+        if opid <= 0 or opid == os.getpid():
+            return None
+        if not _is_pid_alive(opid):
+            lfile.unlink(missing_ok=True)
+            return None
+        return data
+    except Exception:
+        return None
+
+
+class FlowAccountLock:
+    """
+    Lock por conta/porta CDP do Google Flow.
+    - Para imagens (wait=False): se a conta estiver em uso por outro processo, falha instantaneamente
+      para que o gerador pule imediatamente para outra conta Flow com imagem ilimitada (acc_4/acc_3/acc_2).
+    - Para videos (wait=True): aguarda a conta de video (acc_5) liberar antes de enviar Veo 3.1 Lite.
+    """
+
+    def __init__(self, port_or_url: int | str, slug: str = "", kind: str = "image", wait: bool = False, max_wait_s: float = 900.0) -> None:
+        self.port = _extract_port_from_url_or_int(port_or_url)
+        self.slug = str(slug or "episodio")
+        self.kind = str(kind or "image")
+        self.wait = bool(wait)
+        self.max_wait_s = float(max_wait_s)
+        self.pid = os.getpid()
+        self._lfile = FLOW_ACCOUNT_LOCKS_DIR / f"port_{self.port}.json"
+        self._acquired = False
+
+    def acquire(self) -> "FlowAccountLock":
+        FLOW_ACCOUNT_LOCKS_DIR.mkdir(parents=True, exist_ok=True)
+        t0 = time.time()
+        logged = False
+        while True:
+            owner = is_flow_account_locked(self.port)
+            if owner is None:
+                payload = {
+                    "pid": self.pid,
+                    "slug": self.slug,
+                    "kind": self.kind,
+                    "port": self.port,
+                    "ts": round(time.time(), 2),
+                }
+                try:
+                    self._lfile.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+                    self._acquired = True
+                    return self
+                except Exception:
+                    pass
+            if not self.wait:
+                o_slug = (owner or {}).get("slug", "?")
+                o_pid = (owner or {}).get("pid", "?")
+                raise RuntimeError(
+                    f"Conta Flow :{self.port} em uso por outro processo ({o_slug}, PID {o_pid}); alternando para outra conta."
+                )
+            if (time.time() - t0) >= self.max_wait_s:
+                raise TimeoutError(f"Timeout aguardando liberacao da conta Flow :{self.port}")
+            if not logged and owner:
+                print(
+                    f"  [FlowAccountLock] Conta :{self.port} em uso por '{owner.get('slug')}' (PID {owner.get('pid')}); aguardando liberar...",
+                    flush=True,
+                )
+                logged = True
+            time.sleep(3.0)
+
+    def release(self) -> None:
+        if not self._acquired:
+            return
+        try:
+            if self._lfile.exists():
+                data = json.loads(self._lfile.read_text(encoding="utf-8"))
+                if isinstance(data, dict) and int(data.get("pid") or 0) == self.pid:
+                    self._lfile.unlink(missing_ok=True)
+        except Exception:
+            pass
+        self._acquired = False
+
+    def __enter__(self) -> "FlowAccountLock":
+        return self.acquire()
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.release()
+
+
+def _is_legacy_process_done_with_flow(cmdline: str) -> bool:
+    """Verifica se um processo pipeline_v2 legado ja concluiu a etapa Google Flow e esta apenas renderizando FFmpeg local."""
+    try:
+        slug = ""
+        m_slug = re.search(r"--slug\s+[\"']?([a-zA-Z0-9_-]+)", cmdline or "")
+        if m_slug:
+            slug = m_slug.group(1).strip()
+        else:
+            m_leg = re.search(r"--legacy-dir\s+[\"']?([^\"'\s]+)", cmdline or "")
+            if m_leg:
+                slug = Path(m_leg.group(1).strip()).name.lower()[:44].strip("-")
+        if not slug:
+            return False
+        rep_p = BASE_DIR / "projects" / slug / "artifacts" / "scene_audit_report.json"
+        if rep_p.exists():
+            rep = json.loads(rep_p.read_text(encoding="utf-8"))
+            if isinstance(rep, dict) and rep.get("approved") is True and int(rep.get("scenes_audited") or 0) >= 15:
+                return True
+    except Exception:
+        pass
+    return False
 
 
 def _is_pid_alive(pid: int) -> bool:
@@ -1000,6 +1186,8 @@ def _detect_untracked_pipeline_processes(exclude_pids: set[int]) -> list[tuple[i
                 continue
             if any(flag in cmdline for flag in ("--flow-accounts-status", "--batch-scan", "--stage publish", "--stage audit")):
                 continue
+            if _is_legacy_process_done_with_flow(cmdline):
+                continue
             found.append((pid, cmdline))
         return found
     except Exception:
@@ -1055,6 +1243,23 @@ class FlowStageWatchdog:
         self._stop_evt = threading.Event()
         self._hb_thread: threading.Thread | None = None
         self._acquired = False
+
+    @classmethod
+    def is_busy_by_other(cls) -> bool:
+        """Retorna True se outro processo pipeline_v2 vivo estiver atualmente detendo ou na frente da fila do Watchdog."""
+        my_pid = os.getpid()
+        st = _read_watchdog_state()
+        owner = st.get("active_owner")
+        if isinstance(owner, dict):
+            opid = int(owner.get("pid") or 0)
+            if opid > 0 and opid != my_pid and _is_pid_alive(opid):
+                return True
+        for q in st.get("queue") or []:
+            if isinstance(q, dict):
+                qpid = int(q.get("pid") or 0)
+                if qpid > 0 and qpid != my_pid and _is_pid_alive(qpid):
+                    return True
+        return False
 
     def _is_owner_stale(self, owner: dict[str, Any] | None) -> bool:
         if not owner or not isinstance(owner, dict):
@@ -1129,7 +1334,11 @@ class FlowStageWatchdog:
                 preexisting_pids.pop(int(owner.get("pid") or 0), None)
                 preexisting_pids.pop(int(owner.get("ppid") or 0), None)
 
-            alive_pre = {p: cmd for p, cmd in preexisting_pids.items() if _is_pid_alive(p)}
+            alive_pre = {
+                p: cmd
+                for p, cmd in preexisting_pids.items()
+                if _is_pid_alive(p) and not _is_legacy_process_done_with_flow(cmd)
+            }
             preexisting_pids = alive_pre
 
             if owner and self._is_owner_stale(owner):

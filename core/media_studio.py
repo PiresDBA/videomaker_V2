@@ -225,16 +225,19 @@ def generate_single_image(
         import asyncio, os, urllib.request
         from core.flow_continuity import DEFAULT_CDP_URL, DEFAULT_FLOW_PROJECT_URL, generate_flow_image
         from core.flow_accounts import (
+            FlowAccountLock,
             cdp_is_alive,
             check_needs_google_login,
             ensure_story_characters_created,
-            get_next_available_accounts,
+            get_image_candidate_accounts,
+            is_flow_account_locked,
             load_accounts_config,
             upload_media_to_flow,
         )
         from playwright.async_api import async_playwright
 
         candidates: list[tuple[str, str]] = []
+        busy_candidates: list[tuple[str, str]] = []
         seen_urls: set[str] = set()
         accounts_cfg = load_accounts_config().get("accounts", [])
         port_to_proj = {f"http://127.0.0.1:{int(a['cdp_port'])}": a.get("project_url") or DEFAULT_FLOW_PROJECT_URL for a in accounts_cfg}
@@ -244,22 +247,20 @@ def generate_single_image(
             candidates.append((env_cdp, port_to_proj.get(env_cdp, DEFAULT_FLOW_PROJECT_URL)))
             seen_urls.add(env_cdp)
 
-        for acc in get_next_available_accounts(ignore_soft_daily_cap=True):
+        # Nano Banana 2.1 usa 0 creditos (ilimitado): prioriza contas de imagem (acc_4, acc_3, acc_2)
+        # ANTES da conta de video (acc_5), e pula imediatamente contas ocupadas por outro processo.
+        for acc in get_image_candidate_accounts():
             port = int(acc["cdp_port"])
             cdp_url = f"http://127.0.0.1:{port}"
             if cdp_url not in seen_urls and cdp_url not in _UNAVAILABLE_CDP_URLS and cdp_is_alive(port):
-                candidates.append((cdp_url, acc.get("project_url") or DEFAULT_FLOW_PROJECT_URL))
+                item = (cdp_url, acc.get("project_url") or DEFAULT_FLOW_PROJECT_URL)
+                if is_flow_account_locked(port):
+                    busy_candidates.append(item)
+                else:
+                    candidates.append(item)
                 seen_urls.add(cdp_url)
 
-        # Nano Banana 2.1 usa 0 creditos: contas sem cota Veo ainda servem para gerar imagens
-        for acc in accounts_cfg:
-            if not acc.get("enabled", True):
-                continue
-            port = int(acc["cdp_port"])
-            cdp_url = f"http://127.0.0.1:{port}"
-            if cdp_url not in seen_urls and cdp_url not in _UNAVAILABLE_CDP_URLS and cdp_is_alive(port):
-                candidates.append((cdp_url, acc.get("project_url") or DEFAULT_FLOW_PROJECT_URL))
-                seen_urls.add(cdp_url)
+        candidates.extend(busy_candidates)
 
         if DEFAULT_CDP_URL not in seen_urls and DEFAULT_CDP_URL not in _UNAVAILABLE_CDP_URLS:
             try:
@@ -275,7 +276,7 @@ def generate_single_image(
             if rp and Path(rp).exists() and Path(rp) not in all_refs:
                 all_refs.append(Path(rp))
 
-        async def _run_direct(cdp_url: str, proj_url: str) -> None:
+        async def _run_direct(cdp_url: str, proj_url: str, skip_busy: bool = True) -> None:
             async with async_playwright() as pw:
                 b = await pw.chromium.connect_over_cdp(cdp_url, timeout=10000)
                 try:
@@ -315,23 +316,27 @@ def generate_single_image(
                         characters=characters or ("Frida", "Luna"),
                         ref_images=tuple(ref_names),
                         wait_s=min(wait_s, 180),
+                        skip_if_busy=skip_busy,
                     )
                 finally:
                     await b.close()
 
-        for cdp_url, proj_url in candidates:
-            try:
-                asyncio.run(_run_direct(cdp_url, proj_url))
-                if out_path.exists() and out_path.stat().st_size >= 10000:
-                    tw, th = (1080, 1920) if aspect == "9:16" else (VIDEO_WIDTH, VIDEO_HEIGHT)
-                    fit_aspect_jpeg(out_path, out_path, tw, th)
-                    return out_path
-            except Exception as exc:
-                err_low = str(exc).lower()
-                print(f"  [FlowImg] {cdp_url} falhou: {str(exc).splitlines()[0]}", flush=True)
-                if any(tok in err_low for tok in ("configuracao direta", "fazer login", "deslogada", "has been closed", "target page")):
-                    _UNAVAILABLE_CDP_URLS.add(cdp_url)
-                continue
+        slug_lbl = proj_dir.name if proj_dir else "episodio"
+        for wait_lock in (False, True):
+            for cdp_url, proj_url in candidates:
+                try:
+                    with FlowAccountLock(cdp_url, slug=slug_lbl, kind="image", wait=wait_lock):
+                        asyncio.run(_run_direct(cdp_url, proj_url, skip_busy=(not wait_lock)))
+                    if out_path.exists() and out_path.stat().st_size >= 10000:
+                        tw, th = (1080, 1920) if aspect == "9:16" else (VIDEO_WIDTH, VIDEO_HEIGHT)
+                        fit_aspect_jpeg(out_path, out_path, tw, th)
+                        return out_path
+                except Exception as exc:
+                    err_low = str(exc).lower()
+                    print(f"  [FlowImg] {cdp_url} falhou: {str(exc).splitlines()[0]}", flush=True)
+                    if any(tok in err_low for tok in ("configuracao direta", "fazer login", "deslogada", "has been closed", "target page")):
+                        _UNAVAILABLE_CDP_URLS.add(cdp_url)
+                    continue
     except Exception:
         pass
 

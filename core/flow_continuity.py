@@ -260,9 +260,10 @@ async def attach_reference_from_plus(page, tab_name: str, match_label: str, exac
             try:
                 t = (await it.inner_text() or "").strip()
                 aria = (await it.get_attribute("aria-label") or "").strip()
-                first_line = t.split("\n", 1)[0].strip() if t else ""
+                lines = [ln.strip() for ln in t.splitlines() if ln.strip()]
+                first_line = lines[0] if lines else ""
                 if exact:
-                    hit = (first_line == match_label) or (aria == match_label)
+                    hit = (match_label in lines) or (first_line == match_label) or (aria == match_label)
                 else:
                     needle = match_label.lower().rstrip("….")
                     hit = (
@@ -291,6 +292,7 @@ async def attach_reference_from_plus(page, tab_name: str, match_label: str, exac
             target_opt = await _find_option()
 
     if target_opt is None and tab_name == "Imagens":
+        await page.wait_for_timeout(1800)
         srch = page.locator('.cdk-overlay-pane input[placeholder*="Pesquisar" i], .cdk-overlay-pane input[aria-label*="Pesquisar" i]').first
         if await srch.count() and await srch.is_visible():
             await srch.fill("")
@@ -434,8 +436,14 @@ async def generate_flow_image(
     ref_images: tuple[str, ...] = (),
     ref_videos: tuple[str, ...] = (),
     wait_s: int = 120,
+    skip_if_busy: bool = False,
 ) -> dict[str, Any]:
     """Gera 1 imagem 16:9 via Nano Banana 2.1 (0 creditos) e salva RGB JPEG 1920x1080."""
+    if skip_if_busy:
+        cur_init = await _snapshot_top_tiles(page, limit=3)
+        if any(re.search(r"\b\d+%", t.get("txt") or "") for t in cur_init):
+            raise RuntimeError("Conta Flow ocupada com outra geracao em andamento; alternando para outra conta.")
+
     summary = await configure_flow_mode(page, kind="Imagem", aspect="16:9", model_hint="Nano Banana 2.1", count="x1")
     await clear_attached_chips(page)
 
@@ -450,7 +458,12 @@ async def generate_flow_image(
         if vid_ref and await attach_reference_from_plus(page, "Vídeos", vid_ref, exact=False):
             attached.append(f"vid:{vid_ref[:30]}")
 
-    await _wait_for_inflight_flow_generation(page, max_wait_s=min(wait_s, 180))
+    if skip_if_busy:
+        cur_pre = await _snapshot_top_tiles(page, limit=3)
+        if any(re.search(r"\b\d+%", t.get("txt") or "") for t in cur_pre):
+            raise RuntimeError("Conta Flow ocupada com outra geracao em andamento; alternando para outra conta.")
+    else:
+        await _wait_for_inflight_flow_generation(page, max_wait_s=min(wait_s, 180))
     before = await _snapshot_top_tiles(page)
     before_srcs = {im["src"] for t in before for im in t["imgs"] if im["src"]}
     before_arias = {t["aria"] for t in before if t.get("aria")}

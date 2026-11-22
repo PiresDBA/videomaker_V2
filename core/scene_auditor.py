@@ -318,15 +318,11 @@ def audit_scene_visual_with_vision(
         )
         + ("The LAST image attached is the reference anchor portrait for the story's key object/prop. REJECT (matches_story_props=false) if the key object in the scene changed color (e.g. changed color, material, or shape compared to the attached anchor portrait), changed design, or vanished when expected.\n"
            if anchor_prop_image and anchor_prop_image.exists() else "")
-        + "NOTE ON SLEEP SYMBOLS: Cartoon sleep symbols ('Z', 'ZZZ') floating near a sleeping puppy are valid visual effects, NOT forbidden visible text (always set has_visible_text=false for 'Z'/'ZZZ' sleep symbols).\n"
+        + "NOTE ON TEXT & PROPS: Natural embossed or scenic words on props — such as 'DOG' embossed on a dog biscuit/cookie bridge, trophy plaques, race/park signs, or cartoon 'Z'/'ZZZ' sleep symbols — are valid scenic details, NOT forbidden text (ALWAYS set has_visible_text=false for them).\n"
         + "Reject (false) if: the visual contradicts or ignores what the narration is saying, shows wrong dog breeds/colors, "
           "changes the key story object's appearance/color, "
         + ("" if is_video else "has comic-strip/split-screen panels inside the frame, ")
-        + (
-            "or has intrusive watermark/subtitles/speech-bubble text (set has_visible_text=false for minor incidental prop plaque labels or 'Z'/'ZZZ' sleep symbols if the video animation and characters match the narration).\n"
-            if is_video
-            else "or has visible watermark/text (except cartoon 'Z'/'ZZZ' sleep symbols).\n"
-        )
+        + "or has intrusive watermark/subtitles/UI overlay/speech-bubble text.\n"
         + "Respond ONLY in JSON with keys: "
         '{"matches_narration": bool, "matches_location": bool, "matches_characters": bool, '
         '"matches_story_props": bool, "has_collage_or_split": bool, "has_visible_text": bool, '
@@ -367,10 +363,15 @@ def audit_scene_visual_with_vision(
                     res["has_collage_or_split"] = collage_flag
                     reason_low = str(res.get("reason") or "").lower()
                     text_flag = bool(res.get("has_visible_text", False))
-                    if text_flag and any(tok in reason_low for tok in ("'z' de sono", '"z" de sono', "z de sono", "zzz", "sinal de sono")):
-                        text_flag = False
-                        res["has_visible_text"] = False
-                    if is_video and text_flag and any(tok in reason_low for tok in ("não viola", "nao viola", "cenográfico esperado", "cenografico esperado")):
+                    intrusive_text = any(tok in reason_low for tok in ("marca d'água", "marca d'agua", "watermark", "legenda", "subtitle", "balão", "balao", "speech bubble"))
+                    if text_flag and not intrusive_text and any(
+                        tok in reason_low
+                        for tok in (
+                            "'z' de sono", '"z" de sono', "z de sono", "zzz", "sinal de sono",
+                            "'dog'", '"dog"', "dog", "relevo", "biscoito", "placa", "troféu", "trofeu",
+                            "não viola", "nao viola", "cenográfico", "cenografico", "incidental",
+                        )
+                    ):
                         text_flag = False
                         res["has_visible_text"] = False
                     props_ok = bool(res.get("matches_story_props", True)) if props_desc else True
