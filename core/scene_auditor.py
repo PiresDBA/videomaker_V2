@@ -287,7 +287,7 @@ def audit_scene_visual_with_vision(
     extra_animals_rule = (
         "- Background competitor/crowd dogs ARE expected in this race/competition scene, while Frida & Luna MUST stay clearly recognizable in the foreground with their exact canonical breeds/accessories. Still reject unscripted fantasy monsters (such as a literal red furry monster).\n"
         if crowd_allowed
-        else "- ZERO unrequested foreground dog breeds or unscripted fantasy monsters (such as a literal red furry monster) unless explicitly listed in Expected Characters.\n"
+        else "- Ignore tiny or blurred background dogs far in the distance when the main scripted characters are clearly in the foreground; reject ONLY unscripted foreground breeds taking focus or unscripted fantasy monsters (such as a literal red furry monster).\n"
     )
 
     prompt = (
@@ -299,8 +299,8 @@ def audit_scene_visual_with_vision(
         f"Expected Characters in Scene: {chars_txt}\n"
         + (f"Sub-clip Shot Variant: {clip_variant} (may be a tighter reaction or reverse angle of the same scene)\n" if clip_variant else "")
         + "Character & Breed Design Rules (STRICT):\n"
-        "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace with small gold paw pendant; NEVER Golden Retriever, NEVER black-and-white spotted, NEVER adult/old dog).\n"
-        "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and double gold heart chain (NEVER Cocker Spaniel, NEVER random brown/black dog).\n"
+        "- Frida: soft fawn golden-tan young English bulldog puppy (3D cartoon, white pearl necklace; NEVER Golden Retriever, NEVER black-and-white spotted, NEVER adult/old dog). Note: if a tiny pendant/charm on the collar is hidden by fur, angle, or distance, STILL set matches_characters=true as long as Frida's breed, coat, and pearl necklace match.\n"
+        "- Luna: dark chocolate-brown young miniature dachshund puppy with tan markings and golden chain necklace (NEVER Cocker Spaniel, NEVER random brown/black dog). Note: tiny heart charms hidden by angle/distance are acceptable (matches_characters=true).\n"
         + extra_animals_rule
         + (f"- Secondary Characters: {sec_desc}\n" if sec_desc else "")
         + (
