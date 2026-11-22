@@ -17,3 +17,9 @@ Leia [CONTRATO_MOTOR_V2.md](CONTRATO_MOTOR_V2.md) antes de qualquer alteração 
    - **Ao entrar no projeto (economia de contexto):** Antes de varrer ou ler dezenas de arquivos manualmente, leia primeiro `graphify-out/GRAPH_REPORT.md` e `graphify-out/wiki/index.md`, ou consulte via `graphify query "<pergunta>"` / `graphify explain "<nó>"`. Se `graphify-out/` não existir, gere-o com `graphify update E:\videos\videomaker_v2`.
    - **Após cada commit de alteração no código:** Execute obrigatoriamente `graphify update E:\videos\videomaker_v2` para manter o grafo e a wiki (`cérebro`) atualizados com o último commit.
 12. **Python Padrão:** Sempre executar `pipeline_v2.py`, `scripts/verify_contract_guard.py` e `tests/test_pipeline_v2.py` com `C:\Docling\venv\Scripts\python.exe`.
+13. **Travas Anti-Regressão Flow / Veo / Vision QA (Seção 5 do `CONTRATO_MOTOR_V2.md`):**
+   - Proibido `v_mp4.unlink()` em vídeos Veo (sempre arquivar em `videos/_archive/` e registrar em `veo_generation_ledger.json`).
+   - Proibido fallback cego do 1º item de `Envios` em `attach_reference_from_plus`; respeitar `max_elements = 3` no Veo (keyframe primeiro + até 2 personagens).
+   - `ensure_direct_mode` deve sair de `/character` ou `/edit/` antes de buscar a pílula inferior; `configure_flow_mode` deve clicar em `button[role="radio"]` e fechar overlays com `_dismiss_open_overlays`.
+   - Filtrar `secondary_characters` por cena (`_scene_matching_secondary_chars`), isentar `cartoon prop object` em `enforce_youthful_puppy_prompt` e bloquear vídeos verticais (`9:16`) em episódios `16:9`.
+

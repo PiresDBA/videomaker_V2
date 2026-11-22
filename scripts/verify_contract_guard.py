@@ -127,8 +127,18 @@ def check_contract() -> list[str]:
     fc_txt = (ROOT / "core" / "flow_continuity.py").read_text(encoding="utf-8", errors="replace")
     if "def _inject_at_character_mentions" not in fc_txt or "def _wait_for_inflight_flow_generation" not in fc_txt:
         errors.append("CONTRATO VIOLADO: core/flow_continuity.py deve manter _inject_at_character_mentions e _wait_for_inflight_flow_generation.")
-    if "def _resolve_scene_videos" not in va_txt:
-        errors.append("CONTRATO VIOLADO: _resolve_scene_videos ausente em core/video_assembler.py.")
+    if "Fallback: selecionando 1a midia" in fc_txt:
+        errors.append("CONTRATO VIOLADO: proibido fallback cego da 1a midia de 'Envios' em core/flow_continuity.py.")
+    for fc_sym in ("max_elements = 3", "def _dismiss_open_overlays", 'button[role="radio"]', "cartoon prop object"):
+        if fc_sym not in fc_txt:
+            errors.append(f"CONTRATO VIOLADO: trava anti-regressao '{fc_sym}' ausente em core/flow_continuity.py.")
+    for sa_sym in ("def _scene_matching_secondary_chars", "_archive", "proporcao vertical invalida"):
+        if sa_sym not in sa_txt:
+            errors.append(f"CONTRATO VIOLADO: trava anti-regressao '{sa_sym}' ausente em core/scene_auditor.py.")
+    if "v_mp4.unlink" in sa_txt:
+        errors.append("CONTRATO VIOLADO: proibido apagar video Veo pago com v_mp4.unlink em core/scene_auditor.py (usar _archive).")
+    if "def _resolve_scene_videos" not in va_txt or "def render_multi_video_montage_subclip" not in va_txt:
+        errors.append("CONTRATO VIOLADO: _resolve_scene_videos / render_multi_video_montage_subclip ausente em core/video_assembler.py.")
 
     # 4. Compilacao Python de todos os modulos principais
     for py_path in [ROOT / "config.py", ROOT / "pipeline_v2.py", *sorted((ROOT / "core").glob("*.py")), Path(__file__)]:

@@ -220,6 +220,24 @@ def audit_scene_visual_with_vision(
         return {"checked": False, "ok": False, "reason": "nenhum frame valido encontrado", "fix_prompt_hint": ""}
 
     for fp in valid_frames:
+        try:
+            with Image.open(fp) as _im:
+                _w, _h = _im.size
+            if _w >= 100 and _h >= 100 and _h > _w:
+                return {
+                    "checked": True,
+                    "ok": False,
+                    "matches_narration": False,
+                    "matches_location": False,
+                    "matches_characters": True,
+                    "matches_story_props": True,
+                    "has_collage_or_split": False,
+                    "has_visible_text": False,
+                    "reason": f"proporcao vertical invalida ({_w}x{_h}) para episodio 16:9 em {fp.name}",
+                    "fix_prompt_hint": "Generate in landscape 16:9 horizontal widescreen format (never 9:16 vertical).",
+                }
+        except Exception:
+            pass
         cols = detect_split_collage(fp)
         if cols > 1:
             return {
@@ -289,19 +307,21 @@ def audit_scene_visual_with_vision(
         + (
             f"VIDEO KEYFRAMES AUDIT: The first {len(valid_frames)} attached images are sequential temporal snapshots "
             "(start, middle, end) extracted from ONE continuous 8-second video. It is EXPECTED that you received multiple sequential images. "
-            "NEVER reject or claim the sequence is a collage of frames; ALWAYS set has_collage_or_split to false for sequential video snapshots.\n"
+            "NEVER reject or claim the sequence is a collage of frames; ALWAYS set has_collage_or_split to false for sequential video snapshots. "
+            f"Also, in a video close-up focused on the main speaking character ({scene.get('speaker', 'narrador')}) performing the core action (e.g. winking or waving to camera), set matches_characters=true even if a silent companion is off-frame.\n"
             if is_video
             else ""
         )
         + ("The LAST image attached is the reference anchor portrait for the story's key object/prop. REJECT (matches_story_props=false) if the key object in the scene changed color (e.g. changed color, material, or shape compared to the attached anchor portrait), changed design, or vanished when expected.\n"
            if anchor_prop_image and anchor_prop_image.exists() else "")
+        + "NOTE ON SLEEP SYMBOLS: Cartoon sleep symbols ('Z', 'ZZZ') floating near a sleeping puppy are valid visual effects, NOT forbidden visible text (always set has_visible_text=false for 'Z'/'ZZZ' sleep symbols).\n"
         + "Reject (false) if: the visual contradicts or ignores what the narration is saying, shows wrong dog breeds/colors, "
           "changes the key story object's appearance/color, "
         + ("" if is_video else "has comic-strip/split-screen panels inside the frame, ")
         + (
-            "or has intrusive watermark/subtitles/speech-bubble text (set has_visible_text=false for minor incidental prop plaque labels if the video animation and characters match the narration).\n"
+            "or has intrusive watermark/subtitles/speech-bubble text (set has_visible_text=false for minor incidental prop plaque labels or 'Z'/'ZZZ' sleep symbols if the video animation and characters match the narration).\n"
             if is_video
-            else "or has visible watermark/text.\n"
+            else "or has visible watermark/text (except cartoon 'Z'/'ZZZ' sleep symbols).\n"
         )
         + "Respond ONLY in JSON with keys: "
         '{"matches_narration": bool, "matches_location": bool, "matches_characters": bool, '
@@ -343,6 +363,9 @@ def audit_scene_visual_with_vision(
                     res["has_collage_or_split"] = collage_flag
                     reason_low = str(res.get("reason") or "").lower()
                     text_flag = bool(res.get("has_visible_text", False))
+                    if text_flag and any(tok in reason_low for tok in ("'z' de sono", '"z" de sono', "z de sono", "zzz", "sinal de sono")):
+                        text_flag = False
+                        res["has_visible_text"] = False
                     if is_video and text_flag and any(tok in reason_low for tok in ("não viola", "nao viola", "cenográfico esperado", "cenografico esperado")):
                         text_flag = False
                         res["has_visible_text"] = False
@@ -814,15 +837,12 @@ def generate_and_audit_scenes(
                         time.sleep(4.0)
                         continue
                     v_fix_hint = str(v_vis.get("fix_prompt_hint") or v_vis.get("reason") or "")
-                    if auto_fix:
-                        if v_mp4.exists() and v_mp4.stat().st_size >= 50000:
-                            arc_dir = videos_dir / "_archive"
-                            arc_dir.mkdir(parents=True, exist_ok=True)
-                            arc_path = arc_dir / f"{sid}_try{v_try}_{int(time.time())}.mp4"
-                            shutil.move(str(v_mp4), str(arc_path))
-                            print(f"  [AUDIT-VIDEO] {sid}.mp4 arquivado (nao apagado) em {arc_path.name}", flush=True)
-                        else:
-                            v_mp4.unlink(missing_ok=True)
+                    if auto_fix and v_mp4.exists():
+                        arc_dir = videos_dir / "_archive"
+                        arc_dir.mkdir(parents=True, exist_ok=True)
+                        arc_path = arc_dir / f"{sid}_try{v_try}_{int(time.time())}.mp4"
+                        shutil.move(str(v_mp4), str(arc_path))
+                        print(f"  [AUDIT-VIDEO] {sid}.mp4 arquivado (nao apagado) em {arc_path.name}", flush=True)
 
                 vid_entry = {"scene_id": sid, "video_path": str(v_mp4), **v_vis}
                 if not v_approved:
