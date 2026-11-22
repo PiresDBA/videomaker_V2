@@ -192,10 +192,23 @@ async def attach_reference_from_plus(page, tab_name: str, match_label: str, exac
     await page.wait_for_timeout(850)
 
     pane = page.locator(".cdk-overlay-pane").last
-    tab = pane.locator(f'button:has-text("{tab_name}"), [role="tab"]:has-text("{tab_name}")').first
-    if await tab.count():
-        await tab.click()
-        await page.wait_for_timeout(700)
+    if tab_name == "Imagens" and match_label.lower().endswith((".jpg", ".jpeg", ".png")):
+        env_tab = pane.locator('button:has-text("Envios"), [role="tab"]:has-text("Envios")').first
+        if await env_tab.count():
+            await env_tab.click()
+            await page.wait_for_timeout(700)
+        else:
+            tab = pane.locator(f'button:has-text("{tab_name}"), [role="tab"]:has-text("{tab_name}")').first
+            if await tab.count():
+                await tab.click()
+                await page.wait_for_timeout(700)
+    else:
+        tab = pane.locator(f'button:has-text("{tab_name}"), [role="tab"]:has-text("{tab_name}")').first
+        if await tab.count():
+            await tab.click()
+            await page.wait_for_timeout(700)
+
+    stem_needle = Path(match_label).stem.lower()
 
     async def _find_option():
         opts = page.locator('.cdk-overlay-pane [role="option"]')
@@ -215,6 +228,11 @@ async def attach_reference_from_plus(page, tab_name: str, match_label: str, exac
                         or needle in first_line.lower()
                         or needle in t.lower()
                         or needle in aria.lower()
+                        or (len(stem_needle) >= 5 and (
+                            stem_needle in first_line.lower()
+                            or stem_needle in t.lower()
+                            or stem_needle in aria.lower()
+                        ))
                     )
                 if hit:
                     return it
@@ -226,7 +244,7 @@ async def attach_reference_from_plus(page, tab_name: str, match_label: str, exac
     if target_opt is None and tab_name in ("Imagens", "Vídeos"):
         srch = page.locator('.cdk-overlay-pane input[placeholder*="Pesquisar" i], .cdk-overlay-pane input[aria-label*="Pesquisar" i]').first
         if await srch.count() and await srch.is_visible():
-            await srch.fill(match_label[:32].rstrip("…."))
+            await srch.fill((stem_needle or match_label)[:32].rstrip("…."))
             await page.wait_for_timeout(700)
             target_opt = await _find_option()
 
@@ -242,17 +260,6 @@ async def attach_reference_from_plus(page, tab_name: str, match_label: str, exac
                 await page.wait_for_timeout(700)
                 target_opt = await _find_option()
                 if target_opt is not None:
-                    break
-        if target_opt is None and match_label.lower().endswith((".jpg", ".jpeg", ".png")):
-            for fb_tab in ("Envios", "Imagens"):
-                t_btn = pane.locator(f'button:has-text("{fb_tab}"), [role="tab"]:has-text("{fb_tab}")').first
-                if await t_btn.count():
-                    await t_btn.click()
-                    await page.wait_for_timeout(700)
-                first_opt = page.locator('.cdk-overlay-pane [role="option"]').first
-                if await first_opt.count():
-                    target_opt = first_opt
-                    print(f"  [Flow] Fallback: selecionando 1a midia de '{fb_tab}' para '{match_label}'", flush=True)
                     break
 
     if target_opt is None:
@@ -401,8 +408,10 @@ async def generate_flow_image(
         if vid_ref and await attach_reference_from_plus(page, "Vídeos", vid_ref, exact=False):
             attached.append(f"vid:{vid_ref[:30]}")
 
+    await _wait_for_inflight_flow_generation(page, max_wait_s=min(wait_s, 180))
     before = await _snapshot_top_tiles(page)
     before_srcs = {im["src"] for t in before for im in t["imgs"] if im["src"]}
+    before_arias = {t["aria"] for t in before if t.get("aria")}
 
     prompt = enforce_baby_puppy_prompt(prompt)
     prompt = _inject_at_character_mentions(prompt, [a for a in attached if a.startswith("char:")])
@@ -414,6 +423,7 @@ async def generate_flow_image(
     await page.locator('button[aria-label="Iniciar geração"]').first.click()
     t0 = time.time()
     winner = None
+    saw_progress = False
     tile_retries = 0
     while time.time() - t0 < wait_s:
         await page.wait_for_timeout(3000)
@@ -421,16 +431,21 @@ async def generate_flow_image(
         if not cur:
             continue
         top = cur[0]
-        if re.search(r"\b\d+%", top["txt"]) or "play_circle" in top["txt"]:
+        if re.search(r"\b\d+%", top["txt"]):
+            saw_progress = True
             continue
+        if "play_circle" in top["txt"]:
+            continue
+        aria_fresh = bool(top.get("aria")) and (top["aria"] not in before_arias)
         for im in top["imgs"]:
-            if im["src"].startswith("http") and im["src"] not in before_srcs and im["w"] >= 800:
+            if im["src"].startswith("http") and im["src"] not in before_srcs and im["w"] >= 800 and (saw_progress or aria_fresh):
                 winner = (im["src"], top["aria"], im["w"], im["h"])
                 break
         if winner:
             break
         if (time.time() - t0) >= 9.0 and await _retry_failed_flow_tile(page, tile_retries, max_retries=3):
             tile_retries += 1
+            saw_progress = False
             t0 = time.time()
 
     if not winner:
@@ -492,16 +507,30 @@ async def generate_flow_video(
     )
     await clear_attached_chips(page)
 
+    max_elements = 3
     attached: list[str] = []
+    if ref_images:
+        for im_ref in ref_images[: (1 if characters else max_elements)]:
+            if len(attached) >= max_elements:
+                break
+            if im_ref and await attach_reference_from_plus(page, "Imagens", im_ref, exact=False):
+                attached.append(f"img:{im_ref[:30]}")
     for ch in characters:
+        if len(attached) >= max_elements:
+            break
         if await attach_reference_from_plus(page, "Personagens", ch, exact=True):
             attached.append(f"char:{ch}")
-    for im_ref in ref_images:
+    for im_ref in (ref_images[1:] if characters else ()):
+        if len(attached) >= max_elements:
+            break
         if im_ref and await attach_reference_from_plus(page, "Imagens", im_ref, exact=False):
             attached.append(f"img:{im_ref[:30]}")
     for vid_ref in ref_videos:
+        if len(attached) >= max_elements:
+            break
         if vid_ref and await attach_reference_from_plus(page, "Vídeos", vid_ref, exact=False):
             attached.append(f"vid:{vid_ref[:30]}")
+    print(f"  [FlowVeo] Anexos no comando ({len(attached)}/{max_elements}): {attached}", flush=True)
 
     await _wait_for_inflight_flow_generation(page, max_wait_s=min(wait_s, 180))
     before = await _snapshot_top_tiles(page, limit=4)

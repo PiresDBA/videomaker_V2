@@ -208,6 +208,10 @@ class TestVideomakerV2Unified(unittest.TestCase):
             finally:
                 fa.FLOW_ACCOUNTS_CONFIG, fa.FLOW_ACCOUNTS_STATE = old_cfg, old_st
 
+        fc_src = (ROOT / "core" / "flow_continuity.py").read_text(encoding="utf-8")
+        self.assertNotIn("Fallback: selecionando 1a midia", fc_src)
+        self.assertGreaterEqual(fc_src.count("await _wait_for_inflight_flow_generation"), 2)
+
     def test_e2e_unified_render_whisper_dual_avatar_and_short(self):
         """Teste real ponta a ponta: TTS + Whisper QA + Dual-Avatar + Pop ASS + 16:9 + Short 9:16."""
         tmp = Path(tempfile.mkdtemp(prefix="vm_v2_uni_"))

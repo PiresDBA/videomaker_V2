@@ -275,7 +275,7 @@ def generate_single_image(
                 try:
                     ctx = b.contexts[0]
                     pg = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
-                    if "flow.google.com" not in pg.url or "/project/" not in pg.url:
+                    if "flow.google.com" not in pg.url or "/project/" not in pg.url or "/character" in pg.url or "/edit/" in pg.url:
                         await pg.goto(proj_url, wait_until="domcontentloaded", timeout=30000)
                         await pg.wait_for_timeout(2000)
                     if await check_needs_google_login(pg):
@@ -321,6 +321,7 @@ def generate_single_image(
                     return out_path
             except Exception as exc:
                 err_low = str(exc).lower()
+                print(f"  [FlowImg] {cdp_url} falhou: {str(exc).splitlines()[0]}", flush=True)
                 if any(tok in err_low for tok in ("configuracao direta", "fazer login", "deslogada", "has been closed", "target page")):
                     _UNAVAILABLE_CDP_URLS.add(cdp_url)
                 continue
