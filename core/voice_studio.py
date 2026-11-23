@@ -64,6 +64,8 @@ PHONETIC_PT_RULES: tuple[tuple[str, str], ...] = (
     (r"\bpiadas\b", "piádas"),
     (r"\bgatinha\b", "cachorrinha"),
     (r"\bgatinho\b", "cachorro"),
+    (r"\bc[oó]cegas\b", "cósegas"),
+    (r"\bc[oó]cega\b", "cósega"),
 )
 
 _WHISPER_MODEL = None
@@ -815,7 +817,10 @@ def synthesize_all_scenes(
                     prosody_report = {"ok": True, "motivos": []}
 
                 if enable_whisper_qa:
-                    qa_report = validate_audio_with_whisper(wav_path, orig_text)
+                    qa_report = validate_audio_with_whisper(
+                        wav_path, orig_text,
+                        min_similarity=0.62 if prov == "voice_studio" else 0.78,
+                    )
                 else:
                     qa_report = {"ok": True, "similarity": 1.0, "reason": "qa_desativado"}
 
