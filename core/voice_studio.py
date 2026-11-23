@@ -675,7 +675,10 @@ def _synthesize_voice_studio(
     elif emotion_hint:
         cmd += ["--instruct", str(emotion_hint)[:120]]
     cmd.append(text)
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    r = subprocess.run(
+        cmd, capture_output=True, timeout=600,
+        encoding="utf-8", errors="replace",
+    )
     if r.returncode != 0 or not out_raw.exists() or out_raw.stat().st_size < 2000:
         raise RuntimeError(f"VoiceStudio falhou para '{voice}': {(r.stderr or r.stdout or '').strip()[:180]}")
     return f"voice_studio:{voice}", "voice_studio"
