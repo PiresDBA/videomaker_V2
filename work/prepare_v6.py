@@ -87,19 +87,30 @@ def main() -> None:
     vdir.mkdir(parents=True, exist_ok=True)
 
     # 3. Video ja presentes no projeto 2 (novos da rodada) + v5
+    #    Mapeamento explicito por aria -> cena do ROTEIRO NOVO (30 cenas), para distribuir
+    #    os 15 videos unicos sem colidir todos em sc_01..sc_05.
+    P2_MAP = {"sc_01": "sc_01", "sc_02": "sc_02", "sc_03": "sc_03", "sc_04": "sc_04", "sc_05": "sc_05"}
+    V5_MAP = {
+        "sc_01": "sc_06", "sc_02": "sc_15", "sc_03": "sc_11", "sc_04": "sc_04_v2",
+        "sc_05": "sc_21", "sc_06": "sc_23", "sc_07": "sc_24", "sc_08": "sc_26",
+        "sc_09": "sc_05_v2", "sc_10": "sc_05_v3",
+    }
     seen: set[str] = set()
     by_scene: dict[str, list[Path]] = {}
     for p in sorted(vdir.glob("*.mp4")):
-        seen.add(sha(p))
-        base = p.stem.split("_")[0]  # sc_XX
+        h = sha(p)
+        if h in seen:
+            continue
+        seen.add(h)
+        base = p.stem.split("_p")[0].split("_v")[0]
+        base = P2_MAP.get(base, base)  # p2: sc_01..05 -> mesma cena do roteiro novo
         by_scene.setdefault(base, []).append(p)
     for p in sorted(V5.glob("*.mp4")):
         h = sha(p)
         if h in seen:
             continue
         seen.add(h)
-        # Mapeia cena antiga -> nova por aria (feito na analise); usa scene do analyze
-        by_scene.setdefault(p.stem, []).append(p)
+        by_scene.setdefault(V5_MAP.get(p.stem, p.stem), []).append(p)
 
     # 4. Injeta videos de tema da colheita (novos do Flow), dedupe
     for r in theme:
