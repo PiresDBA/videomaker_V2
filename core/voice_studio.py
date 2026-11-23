@@ -670,10 +670,8 @@ def _synthesize_voice_studio(
         "-o", str(out_raw),
         "--overwrite",
     ]
-    if attempt > 1:
-        cmd += ["--instruct", "alegre, brincalhona, energetica, sorridente"]
-    elif emotion_hint:
-        cmd += ["--instruct", str(emotion_hint)[:120]]
+    # O backend do Voice Studio nao aceita --instruct em texto livre (HTTP 400).
+    # As vozes salvas (Simone-feliz/Frida/Luninha) ja carregam a emoção desejada.
     cmd.append(text)
     r = subprocess.run(
         cmd, capture_output=True, timeout=600,

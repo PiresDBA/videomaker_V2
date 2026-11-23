@@ -11,6 +11,7 @@ script = {"scenes": [{
     "scene_id": "sc_vs_test", "act": 1, "speaker": "luna",
     "text": "Eita! A areia me mordeu! Está entrando entre os meus dedinhos e fazendo cócegas, Frida! Olha só que coisa mais esquisita, eu juro que o chão está me mordendo!", "location": "Praia",
     "visual_action": "Luna pulando", "characters": ["Luna"],
+    "emotion_direction": "explodindo de empolgação e rindo",
 }]}
 with tempfile.TemporaryDirectory() as td:
     audio = Path(td) / "assets" / "audio"
