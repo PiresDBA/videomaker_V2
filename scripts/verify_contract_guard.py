@@ -197,6 +197,8 @@ def check_contract() -> list[str]:
     # Regra 26: pipeline redondo, voz local, duracao adaptativa
     if "def recommend_target_minutes" not in pipe_txt or "ADAPTIVE_DURATION" not in cfg_txt:
         errors.append("HOOK VIOLADO: duracao adaptativa por material ausente (Regra 26).")
+    if '"--skip-tts"' not in pipe_txt or "Reaproveitando" not in pipe_txt:
+        errors.append("HOOK VIOLADO: reaproveitamento de falas TTS ausente (Regra 26).")
     vs2_txt = (ROOT / "core" / "voice_studio.py").read_text(encoding="utf-8", errors="replace")
     if "voicestudio" not in vs2_txt.lower() or "edge" in cfg_txt.lower() and "edge_tts" in cfg_txt.lower():
         errors.append("HOOK VIOLADO: voz local Voice Studio nao preservada (Regra 26).")

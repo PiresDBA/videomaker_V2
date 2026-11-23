@@ -290,15 +290,34 @@ def run_pipeline(args: argparse.Namespace) -> int:
         return 0
 
     # 3. TTS EMOCIONAL EMBUTIDO + PORTAO DE PROSODIA + WHISPER QA
-    timings = synthesize_all_scenes(
-        script_data,
-        audio_dir,
-        provider=args.tts_provider,
-        enable_whisper_qa=not args.skip_whisper_qa,
-        enable_prosody_gate=not args.skip_prosody_gate,
-        allow_flat_fallback=args.allow_flat_fallback,
-        force=args.force,
-    )
+    if getattr(args, "skip_tts", False) and timings_path.exists():
+        # Regra 26 (pipeline redondo): reaproveita falas ja sintetizadas se o roteiro nao mudou.
+        timings = json.loads(timings_path.read_text(encoding="utf-8"))
+        wavs_ok = all(
+            (audio_dir / Path(t.get("wav_path", "")).name).exists()
+            or Path(t.get("wav_path", "")).exists()
+            for t in timings
+        )
+        if len(timings) == len(script_data.get("scenes", [])) and wavs_ok:
+            print(f"[TTS] Reaproveitando {len(timings)} falas existentes (--skip-tts).", flush=True)
+        else:
+            print("[TTS] AVISO: cache incompleto; resintetizando.", flush=True)
+            timings = synthesize_all_scenes(
+                script_data, audio_dir, provider=args.tts_provider,
+                enable_whisper_qa=not args.skip_whisper_qa,
+                enable_prosody_gate=not args.skip_prosody_gate,
+                allow_flat_fallback=args.allow_flat_fallback, force=args.force,
+            )
+    else:
+        timings = synthesize_all_scenes(
+            script_data,
+            audio_dir,
+            provider=args.tts_provider,
+            enable_whisper_qa=not args.skip_whisper_qa,
+            enable_prosody_gate=not args.skip_prosody_gate,
+            allow_flat_fallback=args.allow_flat_fallback,
+            force=args.force,
+        )
     timings_path.write_text(json.dumps(timings, ensure_ascii=False, indent=2), encoding="utf-8")
     if args.stage == "tts":
         return 0
@@ -632,6 +651,7 @@ def main() -> int:
     ap.add_argument("--allow-flat-fallback", action="store_true")
     ap.add_argument("--skip-prosody-gate", action="store_true")
     ap.add_argument("--skip-whisper-qa", action="store_true")
+    ap.add_argument("--skip-tts", action="store_true", help="Reaproveita falas/timings ja sintetizados se o roteiro nao mudou (Regra 26)")
     ap.add_argument("--skip-images", action="store_true")
     ap.add_argument("--skip-veo", action="store_true", help="Pula geracao dos 10 videos 8s Veo 3.1 Lite")
     ap.add_argument("--veo-videos", type=int, default=TARGET_VEO_VIDEOS, help="Quantidade alvo de videos 8s Veo 3.1 Lite (padrao 10)")
