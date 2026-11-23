@@ -134,6 +134,18 @@ RICH_IMAGE_MONTAGE = True
 IMAGE_MONTAGE_BEAT_SECONDS = 1.7
 IMAGE_MONTAGE_MAX_PARTS = 5
 
+# Rajada (burst): 10 quadros quase idênticos derivados da mesma imagem aprovada,
+# encadeados com xfade curto => ilusão de slow motion feita só com imagens (0 crédito).
+BURST_MONTAGE = True
+BURST_FRAMES = 10
+BURST_FRAME_SECONDS = 0.35
+BURST_XFADE_SECONDS = 0.12
+BURST_MAX_SCENES = 5  # no maximo 5 cenas de alto impacto por video (evita excesso de slow motion)
+BURST_KEYWORDS = (
+    "pul", "salt", "onda", "molh", "sacod", "corr", "voa", "mergulh", "escorreg",
+    "patin", "queda", "caiu", "lanç", "joga", "bate", "estour", "fog", "fug",
+)
+
 # Vozes locais do Voice Studio (primeira opção). Fallback: Chirp 3 HD travado.
 VOICE_STUDIO_VOICES = {
     "narrador": "Simone-feliz",
@@ -144,6 +156,15 @@ VOICE_STUDIO_VOICES = {
 TARGET_VEO_VIDEOS = 10
 MAX_VEO_GENERATIONS_PER_SCENE = 1
 VOICE_LOCK_STRICT = True
+
+# Separacao de contas/projetos Flow (Regra 24):
+# Uma UNICA conta gera TODAS as imagens (0 credito) e NUNCA gera videos.
+# As demais contas geram APENAS videos Veo e nunca imagens.
+FLOW_IMAGE_ACCOUNT_ID = "acc_2"
+FLOW_IMAGE_ONLY = True
+FLOW_VIDEO_ONLY = True
+# Um projeto Flow novo por episodio/tema em cada conta (ex.: "Frida na praia",
+# "Frida e Luna no espaco"). O mesmo nome e criado na conta de video quando ha videos.
 
 SHORT_MIN_SECONDS = 30.0
 SHORT_MAX_SECONDS = 40.0

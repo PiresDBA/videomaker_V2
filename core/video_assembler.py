@@ -206,7 +206,9 @@ _OVERLAY_RULES: tuple[tuple[str, str], ...] = (
     (r"pombo|passarinh|pigeon|bird|voou|bico", "birds"),
     (r"vagalum|firefl|noite|twilight", "fireflies"),
     (r"poeira\s+dourada|m[aá]gic|espirr|brilh|sparkl", "sparkles"),
-    (r"onda|mar\b|praia|ocean|wave|splash|resping|molh|água|\bagua\b|piscina|chuva|water", "water"),
+    (r"onda|mar\b|praia|ocean|wave|splash|resping|molh|água|\bagua\b|piscina|water", "water"),
+    (r"chuva|chov|rain|gotas\s+caindo", "rain"),
+    (r"vento|brisa|wind|rajada\s+de\s+ar|sopr", "wind"),
 )
 
 
@@ -243,15 +245,16 @@ def apply_contextual_particle_overlay(
 
     counts = {
         "zzz": 14, "hearts": 18, "steam": 15, "fire": 22,
-        "bees": 16, "birds": 12, "fireflies": 24, "sparkles": 26, "leaves": 20, "water": 28,
+        "bees": 16, "birds": 12, "fireflies": 24, "sparkles": 26, "leaves": 20, "water": 28, "rain": 34, "wind": 18,
     }
     sizes = {
         "zzz": (20, 38), "hearts": (11, 22), "steam": (20, 48), "fire": (5, 13),
-        "bees": (9, 16), "birds": (12, 22), "fireflies": (4, 8), "sparkles": (6, 14), "leaves": (9, 18), "water": (5, 11),
+        "bees": (9, 16), "birds": (12, 22), "fireflies": (4, 8), "sparkles": (6, 14), "leaves": (9, 18), "water": (5, 11), "rain": (9, 18), "wind": (24, 46),
     }
     speeds = {
         "zzz": (26, 46), "hearts": (22, 42), "steam": (20, 38), "fire": (38, 72),
         "bees": (42, 85), "birds": (55, 110), "fireflies": (12, 28), "sparkles": (10, 24), "leaves": (30, 60), "water": (95, 190),
+        "rain": (210, 360), "wind": (150, 290),
     }
     n_p = counts.get(style, 18)
     slo, shi = sizes.get(style, (8, 16))
@@ -291,6 +294,14 @@ def apply_contextual_particle_overlay(
                 elif style in ("bees", "birds"):
                     xx = int((x0 + delta) % (w + 60) - 30)
                     yy = int((y0 + 26 * math.sin(t * 2.2 + ph)) % (h + 60) - 30)
+                elif style == "wind":
+                    # Rajada de vento: varredura horizontal rapida com ondulacao
+                    xx = int((x0 + delta) % (w + 80) - 40)
+                    yy = int((y0 + 34 * math.sin(t * 2.6 + ph)) % (h + 60) - 30)
+                elif style == "rain":
+                    # Chuva: queda rapida e levemente inclinada (angulo do vento)
+                    xx = int((x0 + delta * 0.28) % (w + 60) - 30)
+                    yy = int((y0 + delta) % (h + 60) - 30)
                 else:  # leaves
                     xx = int((x0 + dr * delta * 0.6 + 24 * math.sin(t * 1.2 + ph)) % (w + 60) - 30)
                     yy = int((y0 + delta) % (h + 60) - 30)
@@ -348,6 +359,24 @@ def apply_contextual_particle_overlay(
                     cv2.line(overlay, (xx - max(1, r // 4), yy - r // 2), (xx - max(1, r // 4), yy + r // 3),
                              (245, 252, 255), 2, cv2.LINE_AA)
                     cv2.ellipse(alpha_u8, (xx, yy), (max(2, r // 2), r), 0, 0, 360, a, -1, cv2.LINE_AA)
+                elif style == "rain":
+                    # Fio de chuva: traco fino e inclinado caindo
+                    ln = max(8, r * 2)
+                    drift = max(2, r // 3)
+                    cv2.line(overlay, (xx, yy - ln), (xx - drift, yy + ln),
+                             (200, 225, 255), max(1, r // 6), cv2.LINE_AA)
+                    cv2.line(alpha_u8, (xx, yy - ln), (xx - drift, yy + ln),
+                             min(210, a + 25), max(1, r // 5), cv2.LINE_AA)
+                elif style == "wind":
+                    # Rajada de vento: callback suaves (filetes de ar) varrendo na horizontal
+                    span = max(14, r)
+                    arc = int(7 * math.sin(t * 2.6 + ph))
+                    pts = np.array(
+                        [[xx - span, yy - arc], [xx - span // 2, yy + arc], [xx, yy - arc // 2], [xx + span, yy + arc]],
+                        np.int32,
+                    )
+                    cv2.polylines(overlay, [pts], False, (235, 245, 255), 2, cv2.LINE_AA)
+                    cv2.polylines(alpha_u8, [pts], False, min(150, a), 2, cv2.LINE_AA)
                 else:  # leaves
                     ang = int((t * 50 + ph * 60) % 360)
                     pts = np.array(cv2.ellipse2Poly((xx, yy), (r, max(3, r // 2)), ang, 0, 360, 12), np.int32)
@@ -704,14 +733,14 @@ def _concat_segments_with_smooth_xfade(
         for seg_p, _d, _f in items:
             cmd += ["-i", str(seg_p)]
         filters: list[str] = []
+        # settb=AVTB uniformiza o timebase: concat emite 1/1000000 e fps emite 1/30;
+        # o xfade exige timebases iguais nos dois inputs (senao EINVAL -22).
         for idx, (_p, d, f) in enumerate(items):
+            base = f"[{idx}:v]fps={VIDEO_FPS},settb=AVTB,format=yuv420p,setpts=PTS-STARTPTS"
             if idx < len(items) - 1 and f > 0.04:
-                filters.append(
-                    f"[{idx}:v]fps={VIDEO_FPS},format=yuv420p,setpts=PTS-STARTPTS,"
-                    f"tpad=stop_mode=clone:stop_duration={f:.3f}[s{idx}]"
-                )
+                filters.append(f"{base},tpad=stop_mode=clone:stop_duration={f:.3f}[s{idx}]")
             else:
-                filters.append(f"[{idx}:v]fps={VIDEO_FPS},format=yuv420p,setpts=PTS-STARTPTS[s{idx}]")
+                filters.append(f"{base}[s{idx}]")
 
         prev = "[s0]"
         cum_dur = items[0][1]
@@ -744,7 +773,7 @@ def _concat_segments_with_smooth_xfade(
             c_cur = visual_clips[i] if i < len(visual_clips) else {}
             c_nxt = visual_clips[i + 1] if (i + 1) < len(visual_clips) else {}
             scene_change = c_cur.get("scene_id") != c_nxt.get("scene_id")
-            raw_f = 0.45 if scene_change else 0.25
+            raw_f = float(c_cur.get("xfade_duration") or (0.45 if scene_change else 0.25))
             fade_after = round(min(raw_f, d * 0.30, d_next * 0.30), 3)
             if fade_after < 0.08:
                 fade_after = 0.0
@@ -896,9 +925,26 @@ def assemble_video(
     else:
         sparkles_mov = None
 
+    # Regra 25: overlay de CTA infantil (joinha + sininho + SUBSCRIBE) no final do video.
+    cta_mov = avatar_dir / "cta_subscribe.mov"
+    cta_dur = min(5.2, total_dur)
+    cta_start = max(0.0, total_dur - cta_dur - 0.6)
+    if cta_dur >= 2.0:
+        try:
+            from core.cta_overlay import render_cta_subscribe_overlay
+
+            render_cta_subscribe_overlay(cta_mov, duration=cta_dur)
+        except Exception as exc:
+            print(f"  [CTA] aviso: nao gerou overlay de subscribe: {str(exc)[:120]}", flush=True)
+            cta_mov = None
+    else:
+        cta_mov = None
+
     out_mp4.parent.mkdir(parents=True, exist_ok=True)
 
-    if not overlays and not burn_captions and not (sparkles_mov and sparkles_mov.exists()):
+    if (not overlays and not burn_captions
+            and not (sparkles_mov and sparkles_mov.exists())
+            and not (cta_mov and cta_mov.exists())):
         subprocess.run(
             [FFMPEG_EXE, "-y", "-v", "error", "-i", str(base_video), "-i", str(mix_m4a),
              "-c:v", "copy", "-c:a", "copy", "-shortest", "-movflags", "+faststart", str(out_mp4)],
@@ -915,6 +961,15 @@ def assemble_video(
         cmd += ["-i", str(sparkles_mov)]
         nxt = "[vsp]"
         filters.append(f"{prev}[{in_idx}:v]overlay=0:0:enable='between(t,0,{hook_spark_dur:.3f})':eof_action=pass{nxt}")
+        prev = nxt
+        in_idx += 1
+
+    if cta_mov and cta_mov.exists():
+        cmd += ["-itsoffset", f"{cta_start:.3f}", "-i", str(cta_mov)]
+        nxt = "[vcta]"
+        filters.append(
+            f"{prev}[{in_idx}:v]overlay=0:0:enable='between(t,{cta_start:.3f},{cta_start + cta_dur:.3f})':eof_action=pass{nxt}"
+        )
         prev = nxt
         in_idx += 1
 

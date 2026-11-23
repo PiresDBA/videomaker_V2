@@ -185,16 +185,17 @@ class TestVideomakerV2Unified(unittest.TestCase):
                 fa.FLOW_ACCOUNTS_STATE = td_p / "flow_accounts_state.json"
                 cfg = fa.load_accounts_config()
                 self.assertEqual(len(cfg["accounts"]), 5)
-                self.assertEqual([a["id"] for a in fa.get_next_available_accounts()], ["acc_1", "acc_2", "acc_3", "acc_4", "acc_5"])
+                # Regra 24: acc_2 e a conta de IMAGENS e nao aparece na pool de VIDEO.
+                self.assertEqual([a["id"] for a in fa.get_next_available_accounts()], ["acc_1", "acc_3", "acc_4", "acc_5"])
 
                 for _ in range(5):
                     fa.mark_account_usage("acc_1", credits_delta=10, email="a1@gmail.com")
                 avail = [a["id"] for a in fa.get_next_available_accounts()]
                 self.assertNotIn("acc_1", avail)
-                self.assertEqual(avail[0], "acc_2")
+                self.assertEqual(avail[0], "acc_3")
 
-                fa.mark_account_usage("acc_2", credits_delta=0, exhausted=True)
-                self.assertEqual(fa.get_next_available_accounts()[0]["id"], "acc_3")
+                fa.mark_account_usage("acc_3", credits_delta=0, exhausted=True)
+                self.assertEqual(fa.get_next_available_accounts()[0]["id"], "acc_4")
                 self.assertTrue(fa.is_quota_error_text("Créditos insuficientes para gerar vídeo"))
 
                 old_ls = fa.FLOW_LEARNED_SESSIONS
@@ -1428,10 +1429,109 @@ class TestVideomakerV2Unified(unittest.TestCase):
         }]}
         timings = [{"scene_id": "sc_99", "duration": 8.0, "wav_path": ""}]
         clips, prompts = build_pacing_plan(script, timings)
-        self.assertGreaterEqual(len(clips), 3)
-        self.assertLessEqual(len(clips), IMAGE_MONTAGE_MAX_PARTS)
+        # Regra 20: burst injeta quadros extras; conta so os clips de montagem base.
+        base_clips = [c for c in clips if not c.get("burst_from")]
+        self.assertGreaterEqual(len(base_clips), 3)
+        self.assertLessEqual(len(base_clips), IMAGE_MONTAGE_MAX_PARTS)
         self.assertTrue(all(float(c["duration"]) <= 5.0 for c in clips))
-        self.assertEqual(len(prompts), len(clips))
+        self.assertEqual(len(prompts), len(base_clips))
+        self.assertGreater(len(clips), len(base_clips))  # rajada presente
+
+
+    def test_burst_montage_prompt_and_frames(self):
+        """Regra 20: rajada de 10 quadros a partir de uma imagem, com prompt detalhado."""
+        import tempfile
+
+        from PIL import Image
+
+        from config import BURST_FRAMES
+        from core.burst_montage import build_burst_prompt, derive_burst_frames
+        from core.pacing_planner import build_pacing_plan
+
+        scene = {
+            "scene_id": "sc_99", "act": 2, "speaker": "luna",
+            "text": "A onda me pegou!", "location": "Praia",
+            "visual_action": "Luna pula na onda e se sacode",
+            "characters": ["Frida", "Luna"],
+        }
+        prompt = build_burst_prompt(scene, BURST_FRAMES)
+        self.assertIn("Imagem 10", prompt)
+        self.assertIn("referência", prompt.lower())
+
+        clips, _ = build_pacing_plan(
+            {"scenes": [scene]},
+            [{"scene_id": "sc_99", "duration": 6.5, "wav_path": ""}],
+        )
+        burst = [c for c in clips if c.get("burst_from")]
+        self.assertGreaterEqual(len(burst), BURST_FRAMES - 1)
+        self.assertTrue(all(float(c["xfade_duration"]) <= 0.2 for c in burst))
+        # Regra 20: cena com video Veo NAO recebe rajada (movimento ja existe)
+        clips_video, _ = build_pacing_plan(
+            {"scenes": [scene]},
+            [{"scene_id": "sc_99", "duration": 6.5, "wav_path": ""}],
+            video_scene_ids={"sc_99"},
+        )
+        self.assertEqual([c for c in clips_video if c.get("burst_from")], [])
+
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / "sc_99_p1.jpg"
+            Image.new("RGB", (1920, 1080), (120, 180, 220)).save(src, quality=90)
+            frames = derive_burst_frames(src, Path(td), n=BURST_FRAMES - 1, base_name="sc_99_b")
+            self.assertEqual(len(frames), BURST_FRAMES - 1)
+            for f in frames:
+                with Image.open(f) as im:
+                    self.assertEqual(im.size, (1920, 1080))
+
+    def test_flow_image_video_account_separation(self):
+        """Regra 24: uma conta so imagens, contas de video separadas, projeto nomeado por episodio."""
+        from config import FLOW_IMAGE_ACCOUNT_ID
+        from core.flow_accounts import (
+            episode_project_name,
+            get_image_candidate_accounts,
+            get_image_flow_account,
+            get_named_project_url,
+            get_video_flow_accounts,
+        )
+
+        img = get_image_flow_account()
+        self.assertEqual(img.get("id"), FLOW_IMAGE_ACCOUNT_ID)
+        vids = get_video_flow_accounts()
+        self.assertTrue(all(a.get("id") != FLOW_IMAGE_ACCOUNT_ID for a in vids))
+        cands = get_image_candidate_accounts()
+        self.assertTrue(cands)
+        self.assertEqual(cands[0].get("id"), FLOW_IMAGE_ACCOUNT_ID)
+        self.assertEqual(
+            episode_project_name("primeiro-dia-de-praia-2", {"title": "FRIDA E LUNA NA PRAIA"}),
+            "Frida E Luna Na Praia",
+        )
+        self.assertEqual(
+            episode_project_name("x", {"flow_project_name": "Frida no espaço"}),
+            "Frida no espaço",
+        )
+        self.assertEqual(get_named_project_url("__nao_existe__", "x"), "")
+
+    def test_no_veo_regeneration_when_improving_existing_video(self):
+        """Regra 25: ao melhorar video ja pronto, NAO gera novos Veo (so reaproveita)."""
+        import pipeline_v2 as pv
+
+        # Ja existem videos -> nunca gerar (modo melhoria)
+        self.assertFalse(pv.should_generate_new_veo(
+            skip_veo=False, target_veo=10,
+            existing_base_sids=["sc_01", "sc_02", "sc_03", "sc_04"],
+        ))
+        # --skip-veo -> nunca gerar
+        self.assertFalse(pv.should_generate_new_veo(
+            skip_veo=True, target_veo=10, existing_base_sids=[],
+        ))
+        # Sem videos e sem skip -> gera (fluxo normal de episodio novo)
+        self.assertTrue(pv.should_generate_new_veo(
+            skip_veo=False, target_veo=10, existing_base_sids=[],
+        ))
+        # --force e a unica escapatoria para regenerar
+        self.assertTrue(pv.should_generate_new_veo(
+            skip_veo=False, target_veo=10,
+            existing_base_sids=["sc_01"], force=True,
+        ))
 
 
 if __name__ == "__main__":

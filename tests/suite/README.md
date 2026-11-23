@@ -43,8 +43,8 @@ C:\Docling\venv\Scripts\python.exe tests\suite\runner.py --run unit_all
 → contagem de palavras, pontuação de piada e restauração da versão aprovada.
 
 ### Imagem / mídia do Flow
-`check_missing_images`, `make_missing_images`, `ensure_all_images`, `harvest_flow`, `analyze_harvest`
-→ conferir/derivar sub-clips, colher mídia das contas e auditar aproveitamento.
+`check_missing_images`, `make_missing_images`, `ensure_all_images`, `harvest_flow`, `analyze_harvest`, `probe_agent_mode`, `test_flow_batch_mode`, `test_burst_batch`
+→ conferir/derivar sub-clips, colher mídia das contas e auditar aproveitamento; localizar o Agente do Flow, confirmar o limite x4, gerar a rajada de 10 imagens e pré-visualizar o overlay CTA transparente (Regras 23/24/25).
 
 ### Vídeo
 `diag_lipsync`, `publicar_shorts`

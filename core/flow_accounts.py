@@ -28,6 +28,8 @@ FLOW_ACCOUNTS_CONFIG = BASE_DIR / "flow_accounts.json"
 FLOW_ACCOUNTS_EXAMPLE = BASE_DIR / "flow_accounts.example.json"
 FLOW_ACCOUNTS_STATE = BASE_DIR / "flow_accounts_state.json"
 FLOW_LEARNED_SESSIONS = BASE_DIR / "flow_learned_sessions.json"
+# Registro de projetos Flow nomeados por conta: {account_id: {project_name: url}} (Regra 24)
+FLOW_PROJECTS_REGISTRY = BASE_DIR / "flow_projects.json"
 CHARACTERS_REF_DIR = BASE_DIR / "assets" / "reference" / "characters"
 DEFAULT_CHROME_EXE = Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
 
@@ -85,6 +87,59 @@ def load_accounts_config() -> dict[str, Any]:
 
 def save_accounts_config(cfg: dict[str, Any]) -> None:
     FLOW_ACCOUNTS_CONFIG.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def load_flow_projects() -> dict[str, dict[str, str]]:
+    """Carrega o registro de projetos nomeados por conta (Regra 24)."""
+    if FLOW_PROJECTS_REGISTRY.exists():
+        try:
+            return json.loads(FLOW_PROJECTS_REGISTRY.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
+
+
+def save_flow_projects(reg: dict[str, dict[str, str]]) -> None:
+    FLOW_PROJECTS_REGISTRY.write_text(json.dumps(reg, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def get_named_project_url(account_id: str, project_name: str) -> str:
+    """Retorna a URL do projeto nomeado para a conta, se ja criado."""
+    if not project_name:
+        return ""
+    return (load_flow_projects().get(account_id) or {}).get(project_name, "")
+
+
+def register_named_project(account_id: str, project_name: str, url: str) -> None:
+    """Registra a URL de um projeto nomeado para reutilizacao futura."""
+    if not project_name or not url:
+        return
+    reg = load_flow_projects()
+    reg.setdefault(account_id, {})[project_name] = url
+    save_flow_projects(reg)
+
+
+def episode_project_name(slug: str, script_data: dict[str, Any] | None = None) -> str:
+    """Nome legivel do projeto Flow para o episodio/tema (Regra 24).
+
+    Prioriza `flow_project_name` no roteiro; senao deriva do titulo/slug.
+    Ex.: 'primeiro-dia-de-praia-2' -> 'Frida na praia'.
+    """
+    if script_data and script_data.get("flow_project_name"):
+        return str(script_data["flow_project_name"]).strip()
+    title = str((script_data or {}).get("title") or "").strip()
+    if title:
+        # Titulos modelo "O MISTERIO DA AREIA...: FRIDA E LUNA NA PRAIA" -> usa o trecho depois de ':'
+        tail = title.split(":")[-1].strip()
+        if 3 <= len(tail) <= 60 and ("frida" in tail.lower() or "luna" in tail.lower()):
+            return tail.title() if tail.isupper() else tail
+    if not slug:
+        return ""
+    s = re.sub(r"[-_]+", " ", slug).strip()
+    s = re.sub(r"\bv\d+\b", "", s, flags=re.I)
+    s = re.sub(r"\bprimeiro dia de praia\b", "Frida na praia", s, flags=re.I)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s.title()
 
 
 def load_accounts_state() -> dict[str, Any]:
@@ -190,7 +245,12 @@ def get_next_available_accounts(ignore_soft_daily_cap: bool = False) -> list[dic
     cost = int(cfg.get("credits_per_veo_lite_8s", 10))
     primary_daily: list[dict[str, Any]] = []
     last_resort_reserve: list[dict[str, Any]] = []
-    all_accs = [a for a in cfg.get("accounts", []) if a.get("enabled", True)]
+    from config import FLOW_IMAGE_ACCOUNT_ID
+
+    all_accs = [
+        a for a in cfg.get("accounts", [])
+        if a.get("enabled", True) and a.get("id") != FLOW_IMAGE_ACCOUNT_ID
+    ]
     last_acc_id = all_accs[-1]["id"] if len(all_accs) >= 5 else "acc_5"
     for acc in all_accs:
         rec = st.get("accounts", {}).get(acc["id"], {})
@@ -208,13 +268,13 @@ def get_next_available_accounts(ignore_soft_daily_cap: bool = False) -> list[dic
 
 
 def get_image_candidate_accounts() -> list[dict[str, Any]]:
+    """Conta UNICA padrao para TODAS as imagens (Regra 24), com fallback so se indisponivel.
+
+    Nano Banana 2.1 = 0 credito. Concentrar numa so conta evita espalhar imagens por
+    varias contas/projetos. As demais entram apenas como reserva de emergencia.
     """
-    Para imagens Nano Banana 2.1 (0 creditos, ilimitadas):
-    1. Primeiro: contas entre as 4 primeiras (acc_1..acc_4) que ja esgotaram os 50 creditos de video do dia
-       (pois tem imagem ilimitada e nao disputam cota de video).
-    2. Segundo: demais contas entre as 4 primeiras (acc_1..acc_4).
-    3. Por ultimo: a ultima conta reserva (acc_5).
-    """
+    from config import FLOW_IMAGE_ACCOUNT_ID
+
     cfg = load_accounts_config()
     st = load_accounts_state()
     primary_exhausted: list[dict[str, Any]] = []
@@ -222,18 +282,45 @@ def get_image_candidate_accounts() -> list[dict[str, Any]]:
     reserve_last: list[dict[str, Any]] = []
     all_accs = [a for a in cfg.get("accounts", []) if a.get("enabled", True)]
     last_acc_id = all_accs[-1]["id"] if len(all_accs) >= 5 else "acc_5"
+    designated: list[dict[str, Any]] = []
     for acc in all_accs:
         rec = st.get("accounts", {}).get(acc["id"], {})
         item = {**acc, "state": rec}
-        if acc["id"] == last_acc_id:
+        if acc.get("id") == FLOW_IMAGE_ACCOUNT_ID:
+            designated.append(item)
+        elif acc["id"] == last_acc_id:
             reserve_last.append(item)
         elif rec.get("exhausted_today"):
             primary_exhausted.append(item)
         else:
             primary_with_video.append(item)
     primary_exhausted.reverse()
-    return primary_exhausted + primary_with_video + reserve_last
+    return designated + primary_exhausted + primary_with_video + reserve_last
 
+
+def get_image_flow_account() -> dict[str, Any]:
+    """Conta UNICA e padrao para TODAS as imagens (Regra 24). Nunca gera videos."""
+    from config import FLOW_IMAGE_ACCOUNT_ID
+
+    cfg = load_accounts_config()
+    for acc in cfg.get("accounts", []):
+        if acc.get("id") == FLOW_IMAGE_ACCOUNT_ID and acc.get("enabled", True):
+            return acc
+    for acc in cfg.get("accounts", []):
+        if acc.get("enabled", True):
+            return acc
+    return {}
+
+
+def get_video_flow_accounts() -> list[dict[str, Any]]:
+    """Contas que geram APENAS videos Veo (Regra 24). Exclui a conta de imagens."""
+    from config import FLOW_IMAGE_ACCOUNT_ID
+
+    cfg = load_accounts_config()
+    return [
+        acc for acc in cfg.get("accounts", [])
+        if acc.get("enabled", True) and acc.get("id") != FLOW_IMAGE_ACCOUNT_ID
+    ]
 
 
 def is_quota_error_text(txt: str) -> bool:
@@ -310,8 +397,116 @@ async def _ensure_project_canvas_url(page) -> None:
             await page.wait_for_timeout(2000)
 
 
-async def ensure_flow_project(page, account: dict[str, Any], cfg: dict[str, Any]) -> str:
-    """Abre o projeto Flow da conta (ou cria um novo projeto limpo automaticamente)."""
+async def _rename_flow_project(page, name: str) -> bool:
+    """Renomeia o projeto Flow aberto via menu 'Mais opcoes' -> 'Renomear' (Regra 24)."""
+    try:
+        more = page.locator(
+            'button[aria-label="Mais opções para o projeto"], '
+            'button[aria-label="More options for project"]'
+        ).first
+        if not await more.count():
+            return False
+        await more.click(timeout=6000)
+        await page.wait_for_timeout(500)
+        ren = page.locator(
+            '[role="menuitem"]:has-text("Renomear"), [role="menuitem"]:has-text("Rename"), '
+            'button:has-text("Renomear"), button:has-text("Rename")'
+        ).first
+        if not await ren.count():
+            await page.keyboard.press("Escape")
+            return False
+        await ren.click(timeout=6000)
+        await page.wait_for_timeout(600)
+        ed = page.locator('input[placeholder*="nome" i], input[placeholder*="name" i], [contenteditable="true"]').last
+        if await ed.count():
+            await ed.fill(name)
+        else:
+            await page.keyboard.press("Control+A")
+            await page.keyboard.type(name)
+        await page.keyboard.press("Enter")
+        await page.wait_for_timeout(1200)
+        return True
+    except Exception:
+        try:
+            await page.keyboard.press("Escape")
+        except Exception:
+            pass
+        return False
+
+
+async def ensure_named_flow_project(page, account: dict[str, Any], cfg: dict[str, Any], project_name: str) -> str:
+    """Abre (ou cria e renomeia) um projeto Flow nomeado para o episodio/tema (Regra 24)."""
+    saved = get_named_project_url(account["id"], project_name)
+    if saved:
+        try:
+            if normalize_project_url(page.url) != normalize_project_url(saved) or "/character" in (page.url or ""):
+                await page.goto(saved, wait_until="domcontentloaded", timeout=35000)
+                await page.wait_for_timeout(2500)
+            if "/project/" in (page.url or ""):
+                return normalize_project_url(page.url) or saved
+        except Exception:
+            pass
+
+    await page.goto("https://flow.google.com/", wait_until="domcontentloaded", timeout=35000)
+    await page.wait_for_timeout(3000)
+    if await check_needs_google_login(page):
+        raise RuntimeError(f"Conta {account['id']} precisa fazer login no Google Flow (porta {account['cdp_port']}).")
+
+    new_btn = page.locator(
+        'button:has-text("Novo projeto"), a:has-text("Novo projeto"), '
+        'button:has-text("New project"), a:has-text("New project")'
+    ).first
+    if await new_btn.count():
+        await new_btn.click(timeout=8000)
+        await page.wait_for_timeout(3500)
+    else:
+        links = await page.evaluate(
+            "() => Array.from(document.querySelectorAll('a[href*=\"/project/\"]')).map(a => a.getAttribute('href'))"
+        )
+        if links:
+            target = links[0] if links[0].startswith("http") else f"https://flow.google.com{links[0]}"
+            await page.goto(target, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2500)
+
+    if project_name:
+        renamed = await _rename_flow_project(page, project_name)
+        print(f"  [FlowProject] Conta {account['id']} -> '{project_name}' ({'renomeado' if renamed else 'nome padrao'})", flush=True)
+
+    final_url = normalize_project_url(page.url) or page.url
+    if "/project/" in final_url:
+        register_named_project(account["id"], project_name, final_url)
+        for row in cfg.get("accounts", []):
+            if row["id"] == account["id"]:
+                row["project_url"] = final_url
+                account["project_url"] = final_url
+                save_accounts_config(cfg)
+                break
+    return final_url
+
+
+async def ensure_episode_project_on_account(account: dict[str, Any], project_name: str) -> str:
+    """Abre o CDP da conta e garante o projeto Flow nomeado do episodio (Regra 24)."""
+    from playwright.async_api import async_playwright
+
+    cfg = load_accounts_config()
+    cdp = ensure_account_cdp(account)
+    async with async_playwright() as pw:
+        b = await pw.chromium.connect_over_cdp(cdp, timeout=15000)
+        try:
+            ctx = b.contexts[0]
+            pg = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
+            return await ensure_named_flow_project(pg, account, cfg, project_name)
+        finally:
+            await b.close()
+
+
+async def ensure_flow_project(page, account: dict[str, Any], cfg: dict[str, Any], project_name: str = "") -> str:
+    """Abre o projeto Flow da conta (ou cria um novo projeto limpo automaticamente).
+
+    Se `project_name` for informado, usa/cria um projeto nomeado por episodio (Regra 24).
+    """
+    if project_name:
+        return await ensure_named_flow_project(page, account, cfg, project_name)
     proj_url = normalize_project_url(account.get("project_url") or "") or (account.get("project_url") or "").strip()
     if proj_url:
         if normalize_project_url(page.url) != normalize_project_url(proj_url) or "/character" in (page.url or ""):
@@ -526,6 +721,7 @@ async def generate_video_with_failover(
     preferred_account_id: str = "",
     script_data: dict[str, Any] | None = None,
     proj_dir: Path | None = None,
+    project_name: str = "",
 ) -> dict[str, Any]:
     """Gera video Veo 3.1 Lite (8s, 10 creditos) fazendo failover automatico entre as contas cadastradas."""
     from playwright.async_api import async_playwright
@@ -554,7 +750,7 @@ async def generate_video_with_failover(
                     ctx = b.contexts[0]
                     page = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
                     await page.set_viewport_size({"width": 1600, "height": 920})
-                    await ensure_flow_project(page, acc, cfg)
+                    await ensure_flow_project(page, acc, cfg, project_name=project_name)
 
                     if await check_needs_google_login(page):
                         print(f"[FlowFailover] {acc['id']} deslogada; tentando proxima conta.", flush=True)

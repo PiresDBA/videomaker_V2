@@ -175,6 +175,39 @@ def check_contract() -> list[str]:
         errors.append("HOOK VIOLADO: Regra 22 (earshot como ouvidos) ausente do contrato/manual.")
     if "def run_earshot_critique" not in afx2_txt:
         errors.append("HOOK VIOLADO: audio_fx.py deve manter run_earshot_critique (Regra 22).")
+    # Regra 20/23: rajada de imagens e modo agente do Flow
+    burst_txt = (ROOT / "core" / "burst_montage.py").read_text(encoding="utf-8", errors="replace")
+    if "BURST_FRAMES = 10" not in cfg_txt or "def build_burst_prompt" not in burst_txt:
+        errors.append("HOOK VIOLADO: burst de 10 imagens ausente (Regra 20).")
+    if "BURST_MAX_SCENES = 5" not in cfg_txt:
+        errors.append("HOOK VIOLADO: limite de cenas com burst ausente (Regra 20).")
+    pace_txt = (ROOT / "core" / "pacing_planner.py").read_text(encoding="utf-8", errors="replace")
+    if "video_scene_ids" not in pace_txt or "burst_scenes_used < BURST_MAX_SCENES" not in pace_txt:
+        errors.append("HOOK VIOLADO: rajada nao respeita cenas com Veo / limite (Regra 20).")
+    # Regra 25: anti-regeneracao de Veo em melhorias + overlay CTA transparente
+    pipe_txt = (ROOT / "pipeline_v2.py").read_text(encoding="utf-8", errors="replace")
+    if "def should_generate_new_veo" not in pipe_txt or "generate_new_veo = should_generate_new_veo" not in pipe_txt:
+        errors.append("HOOK VIOLADO: trava anti-regeneracao de Veo ausente (Regra 25).")
+    cta_txt = (ROOT / "core" / "cta_overlay.py").read_text(encoding="utf-8", errors="replace")
+    if "render_cta_subscribe_overlay" not in cta_txt or "qtrle" not in cta_txt:
+        errors.append("HOOK VIOLADO: overlay CTA transparente ausente (Regra 25).")
+    va2b_txt = (ROOT / "core" / "video_assembler.py").read_text(encoding="utf-8", errors="replace")
+    if "render_cta_subscribe_overlay" not in va2b_txt or "cta_subscribe.mov" not in va2b_txt:
+        errors.append("HOOK VIOLADO: overlay CTA nao integrado no assemble_video (Regra 25).")
+    fc_txt = (ROOT / "core" / "flow_continuity.py").read_text(encoding="utf-8", errors="replace")
+    if "def set_flow_agent_mode" not in fc_txt or "def generate_flow_image_batch" not in fc_txt:
+        errors.append("HOOK VIOLADO: modo agente do Flow para lote de imagens ausente (Regra 23).")
+    # Regra 24: separacao de contas/projetos Flow (uma conta imagens, contas videos, projeto por episodio)
+    fa2_txt = (ROOT / "core" / "flow_accounts.py").read_text(encoding="utf-8", errors="replace")
+    if "FLOW_IMAGE_ACCOUNT_ID" not in cfg_txt or "def get_image_flow_account" not in fa2_txt:
+        errors.append("HOOK VIOLADO: conta unica de imagens ausente (Regra 24).")
+    if "def get_video_flow_accounts" not in fa2_txt or "def ensure_named_flow_project" not in fa2_txt:
+        errors.append("HOOK VIOLADO: contas de video separadas / projeto nomeado por episodio ausente (Regra 24).")
+    if "def episode_project_name" not in fa2_txt or "FLOW_PROJECTS_REGISTRY" not in fa2_txt:
+        errors.append("HOOK VIOLADO: registro de projetos nomeados do Flow ausente (Regra 24).")
+    va2b_txt = (ROOT / "core" / "video_assembler.py").read_text(encoding="utf-8", errors="replace")
+    if '"rain": (210, 360)' not in va2b_txt or 'elif style == "wind":' not in va2b_txt:
+        errors.append("HOOK VIOLADO: overlays de chuva/vento incompletos (Regra 20).")
     if '"narrador": "Simone-feliz"' not in cfg_txt or '"luna": "Luninha"' not in cfg_txt:
         errors.append("HOOK VIOLADO: VOICE_STUDIO_VOICES deve manter Simone-feliz/Luninha/Frida (Regra 21).")
     if "is_video_scene" not in va_txt:

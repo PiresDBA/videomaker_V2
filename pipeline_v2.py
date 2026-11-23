@@ -54,6 +54,24 @@ def slugify(text: str, max_len: int = 44) -> str:
     return slug[:max_len].strip("-") or "projeto"
 
 
+def should_generate_new_veo(
+    skip_veo: bool,
+    target_veo: int,
+    existing_base_sids: list[str] | set[str],
+    force: bool = False,
+) -> bool:
+    """Trava anti-regeneracao (melhorias): se ja ha videos no disco, NAO gera novos.
+
+    So gera novos se nao existir nenhum video E nao for pedido --skip-veo.
+    `--force` e a unica escapatoria para regenerar de proposito (Regra 25).
+    """
+    if skip_veo or target_veo <= 0:
+        return False
+    if existing_base_sids and not force:
+        return False
+    return True
+
+
 def run_pipeline(args: argparse.Namespace) -> int:
     if args.batch_scan:
         rows = batch_scan_legacy_root(Path(args.batch_scan))
@@ -265,7 +283,14 @@ def run_pipeline(args: argparse.Namespace) -> int:
         return 0
 
     # 4. RITMO (DIVISAO <= 5s + KEN BURNS + DUAL AVATAR)
-    visual_clips, final_prompts = build_pacing_plan(script_data, timings)
+    # Regra 20: cenas que ja tem video Veo nao recebem rajada (evita movimento duplicado).
+    existing_video_sids: set[str] = set()
+    if videos_dir.exists():
+        for vp in videos_dir.glob("*.mp4"):
+            m_veo = re.match(r"^(sc_\d+)", vp.stem)
+            if m_veo and vp.stat().st_size > 50_000:
+                existing_video_sids.add(m_veo.group(1))
+    visual_clips, final_prompts = build_pacing_plan(script_data, timings, video_scene_ids=existing_video_sids)
     pacing_path.write_text(json.dumps(visual_clips, ensure_ascii=False, indent=2), encoding="utf-8")
     prompts_path.write_text(json.dumps(final_prompts, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Pacing: {len(visual_clips)} sub-clips visuais (<= 5s cada)", flush=True)
@@ -276,18 +301,38 @@ def run_pipeline(args: argparse.Namespace) -> int:
     target_veo = int(getattr(args, "veo_videos", TARGET_VEO_VIDEOS) or 0)
     flow_accounts = load_accounts_config().get("accounts", [])
     flow_cdp_alive = any(cdp_is_alive(int(a["cdp_port"])) for a in flow_accounts)
+    # Detecta SEMPRE os videos Veo ja existentes para APROVEITA-LOS (Regra: nao gerar de novo).
+    # `--skip-veo` so impede gerar NOVos; nunca descarta os que ja estao no disco.
+    existing_veo = sorted(
+        [p for p in videos_dir.glob("*.mp4") if p.stat().st_size > 50_000],
+        key=lambda p: p.name,
+    ) if videos_dir.exists() else []
+    valid_scene_ids = {s["scene_id"] for s in script_data.get("scenes", []) if s.get("scene_id")}
+    existing_base_sids: list[str] = []
+    for ep in existing_veo:
+        base_sid = re.sub(r"_(?:v|p)\d+$", "", ep.stem)
+        if base_sid in valid_scene_ids and base_sid not in existing_base_sids:
+            existing_base_sids.append(base_sid)
+    if existing_base_sids:
+        print(f"[VEO] Reaproveitando {len(existing_base_sids)} video(s) Veo ja existente(s): {', '.join(existing_base_sids)}", flush=True)
+
     veo_scene_ids: set[str] = set()
-    if not getattr(args, "skip_veo", False) and target_veo > 0:
-        existing_veo = sorted(
-            [p for p in videos_dir.glob("*.mp4") if p.stat().st_size > 50_000],
-            key=lambda p: p.name,
-        ) if videos_dir.exists() else []
-        valid_scene_ids = {s["scene_id"] for s in script_data.get("scenes", []) if s.get("scene_id")}
-        existing_base_sids: list[str] = []
-        for ep in existing_veo:
-            base_sid = re.sub(r"_(?:v|p)\d+$", "", ep.stem)
-            if base_sid in valid_scene_ids and base_sid not in existing_base_sids:
-                existing_base_sids.append(base_sid)
+    if existing_base_sids:
+        veo_scene_ids.update(existing_base_sids)
+
+    # TRAVA ANTI-REGENERACAO: se existem videos no disco, APROVEITA e NAO gera novos.
+    # So gera novos quando nao ha nenhum video E o usuario nao pediu --skip-veo.
+    # (Usuario: "o video ja foi gerado, so estamos mudando vozes e imagens; pare de gerar video".)
+    generate_new_veo = should_generate_new_veo(
+        skip_veo=bool(getattr(args, "skip_veo", False)),
+        target_veo=target_veo,
+        existing_base_sids=existing_base_sids,
+        force=bool(getattr(args, "force", False)),
+    )
+    if existing_base_sids:
+        print("[VEO] TRAVA: videos existentes detectados -> NENHUM novo video sera gerado neste episodio.", flush=True)
+
+    if generate_new_veo:
         if flow_cdp_alive:
             archived_only_sids: set[str] = set()
             if not args.force and (videos_dir / "_archive").exists():
@@ -379,7 +424,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
                     force_audit_cached=True,
                     force=args.force,
                     veo_scene_ids=veo_scene_ids,
-                    generate_veo_inline=bool(veo_scene_ids),
+                    # Reaproveita existentes, mas NUNCA gera novos se ja ha videos no disco.
+                    generate_veo_inline=generate_new_veo,
                     veo_max_retries=2,
                     max_new_veo_per_scene=1,
                     strict_vision=True,
@@ -396,8 +442,8 @@ def run_pipeline(args: argparse.Namespace) -> int:
                     return 2
             else:
                 generate_images_for_plan(final_prompts, images_dir, force=args.force, script_data=script_data)
-                if veo_scene_ids:
-                    print(f"Gerando ate {len(veo_scene_ids)} videos 8s (Veo 3.1 Lite) no pool Flow...", flush=True)
+                if generate_new_veo:
+                    print(f"Gerando ate {target_veo} videos 8s (Veo 3.1 Lite) no pool Flow...", flush=True)
                     veo_map = generate_veo_videos_for_episode(
                         script_data=script_data,
                         visual_clips=visual_clips,
@@ -408,6 +454,22 @@ def run_pipeline(args: argparse.Namespace) -> int:
                         proj_dir=proj_dir,
                     )
                     print(f"Veo 3.1 Lite concluidos: {len(veo_map)}/{target_veo}", flush=True)
+
+    # Rajada (burst): deriva os quadros extras a partir da imagem aprovada da cena (0 crédito)
+    try:
+        from core.burst_montage import derive_burst_frames
+        burst_groups: dict[tuple[str, str], list[dict]] = {}
+        for c in visual_clips:
+            if c.get("burst_from"):
+                burst_groups.setdefault((str(c["scene_id"]), str(c["burst_from"])), []).append(c)
+        for (sid, src_id), bclips in burst_groups.items():
+            src_img = images_dir / f"{src_id}.jpg"
+            if src_img.exists():
+                derive_burst_frames(src_img, images_dir, n=len(bclips), base_name=f"{sid}_b")
+                print(f"[BURST] {sid}: {len(bclips)} quadros derivados de {src_id}.jpg", flush=True)
+    except Exception as exc:
+        print(f"[BURST] aviso na derivação: {str(exc)[:160]}", flush=True)
+
     if args.stage == "images":
         return 0
 

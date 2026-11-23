@@ -546,6 +546,90 @@ async def generate_flow_image(
     }
 
 
+async def set_flow_agent_mode(page, enabled: bool = True) -> bool:
+    """Liga/desliga o 'Agente do Flow' (botão spark ao lado do prompt)."""
+    btn = page.locator('button[aria-label="Agente do Flow"]').first
+    if not await btn.count():
+        return False
+    pressed = (await btn.get_attribute("aria-pressed") or "").lower() == "true"
+    if pressed != bool(enabled):
+        await btn.click()
+        await page.wait_for_timeout(600)
+    pressed = (await btn.get_attribute("aria-pressed") or "").lower() == "true"
+    print(f"  [FlowAgent] Modo agente {'LIGADO' if pressed else 'DESLIGADO'}", flush=True)
+    return pressed
+
+
+async def generate_flow_image_batch(
+    page,
+    prompt: str,
+    out_dir: Path,
+    n: int = 10,
+    ref_images: tuple[str, ...] = (),
+    wait_s: int = 480,
+) -> list[dict[str, Any]]:
+    """Gera N imagens em sequência via Agente do Flow e salva em out_dir/NN.jpg."""
+    summary = await configure_flow_mode(
+        page, kind="Imagem", aspect="16:9", model_hint="Nano Banana 2.1", count="x1"
+    )
+    if not await set_flow_agent_mode(page, True):
+        raise RuntimeError("Botão 'Agente do Flow' não encontrado; não é possível gerar lote.")
+    await clear_attached_chips(page)
+    attached: list[str] = []
+    for im_ref in ref_images:
+        if im_ref and await attach_reference_from_plus(page, "Imagens", im_ref, exact=False):
+            attached.append(f"img:{im_ref[:30]}")
+
+    before = await _snapshot_top_tiles(page, limit=30)
+    before_srcs = {im["src"] for t in before for im in t.get("imgs", []) if im.get("src")}
+    before_arias = {t.get("aria") for t in before if t.get("aria")}
+
+    await _dismiss_open_overlays(page)
+    ed = page.locator('[contenteditable="true"]').last
+    await ed.click()
+    await ed.fill(prompt)
+    await page.wait_for_timeout(500)
+    await _dismiss_open_overlays(page)
+    await page.locator('button[aria-label="Iniciar geração"]').first.click()
+
+    t0 = time.time()
+    found: list[dict[str, Any]] = []
+    while time.time() - t0 < wait_s:
+        await page.wait_for_timeout(4000)
+        cur = await _snapshot_top_tiles(page, limit=30)
+        for t in cur:
+            if "play_circle" in (t.get("txt") or ""):
+                continue
+            aria_fresh = bool(t.get("aria")) and t.get("aria") not in before_arias
+            for im in t.get("imgs", []):
+                src = im.get("src") or ""
+                if (
+                    src.startswith("http") and src not in before_srcs
+                    and im.get("w", 0) >= 800 and (aria_fresh or any(i["src"] == src for i in found))
+                ):
+                    if not any(i["src"] == src for i in found):
+                        found.append({"src": src, "aria": t.get("aria") or "", "w": im["w"], "h": im["h"]})
+                    break
+        if len(found) >= n:
+            break
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    saved: list[dict[str, Any]] = []
+    for idx, item in enumerate(found[:n]):
+        resp = await page.context.request.get(item["src"], timeout=60000)
+        if not resp.ok:
+            continue
+        data = await resp.body()
+        im = Image.open(io.BytesIO(data)).convert("RGB")
+        if im.width < im.height:
+            continue
+        p = out_dir / f"burst_{idx + 1:02d}.jpg"
+        im.resize((1920, 1080), Image.Resampling.LANCZOS).save(p, "JPEG", quality=93)
+        saved.append({"path": str(p), "aria": item["aria"], "src": item["src"]})
+    print(f"  [FlowBatch] {len(saved)}/{n} imagens salvas em {out_dir}", flush=True)
+    return saved
+
+
 async def _wait_for_inflight_flow_generation(page, max_wait_s: int = 180) -> bool:
     """Aguarda qualquer geracao em andamento no grid do Flow concluir; destrava tile zumbi congelado (ex: 0%)."""
     t0 = time.time()

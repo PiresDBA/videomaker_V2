@@ -6,6 +6,7 @@ import math
 from typing import Any
 
 from config import (
+    BURST_FRAMES, BURST_KEYWORDS, BURST_MAX_SCENES, BURST_MONTAGE, BURST_XFADE_SECONDS,
     IMAGE_MONTAGE_BEAT_SECONDS, IMAGE_MONTAGE_MAX_PARTS, KEN_BURNS_PRESETS,
     MAX_IMAGE_SECONDS, RICH_IMAGE_MONTAGE, TARGET_BEAT_SECONDS,
 )
@@ -18,8 +19,13 @@ def build_pacing_plan(
     script_data: dict[str, Any],
     tts_timings: list[dict[str, Any]],
     gap_seconds: float = 0.25,
+    video_scene_ids: set[str] | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, str]]]:
-    """Garante <= 5.0s por imagem, alterna Ken Burns e define o avatar ativo (frida/luna/duo)."""
+    """Garante <= 5.0s por imagem, alterna Ken Burns e define o avatar ativo (frida/luna/duo).
+
+    `video_scene_ids`: cenas que ja tem video Veo (movimento real) — a rajada as ignora
+    para nao duplicar movimento (Regra 20: equilibrio entre Veo, rajada e estatico).
+    """
     timing_by_id = {t["scene_id"]: t for t in tts_timings}
     visual_clips: list[dict[str, Any]] = []
     prompts_manifest: dict[str, dict[str, str]] = {}
@@ -30,6 +36,7 @@ def build_pacing_plan(
     sec_chars = script_data.get("secondary_characters") or []
     story_props = script_data.get("story_props") or []
 
+    burst_scenes_used = 0
     for sc_idx, sc in enumerate(scenes):
         sid = sc["scene_id"]
         t_info = timing_by_id.get(sid)
@@ -86,6 +93,29 @@ def build_pacing_plan(
                 "scene_audio_dur": audio_dur,
                 "wav_path": t_info["wav_path"],
             })
+
+            if (BURST_MONTAGE and p_idx == 0 and burst_scenes_used < BURST_MAX_SCENES
+                    and sid not in (video_scene_ids or set())):
+                hay = f"{sc.get('text', '')} {sc.get('visual_action', '')} {sc.get('comedy_beat', '')}".lower()
+                if any(k in hay for k in BURST_KEYWORDS):
+                    burst_scenes_used += 1
+                    base_clip = visual_clips[-1]
+                    frame_dur = round(base_clip["duration"] / max(2, BURST_FRAMES), 3)
+                    base_clip["duration"] = frame_dur
+                    base_clip["end"] = round(base_clip["start"] + frame_dur, 3)
+                    base_clip["burst"] = True
+                    base_clip["xfade_duration"] = BURST_XFADE_SECONDS
+                    for i in range(1, max(2, BURST_FRAMES)):
+                        b = dict(base_clip)
+                        b["clip_id"] = f"{sid}_b_{i:02d}"
+                        b["start"] = round(base_clip["start"] + i * frame_dur, 3)
+                        b["end"] = round(b["start"] + frame_dur, 3)
+                        b["burst_from"] = f"{sid}_p1"
+                        b["burst_index"] = i
+                        b["sfx"] = None
+                        b["comedy_beat"] = ""
+                        b["variant"] = "burst"
+                        visual_clips.append(b)
 
         cursor = round(cursor + scene_dur, 3)
 

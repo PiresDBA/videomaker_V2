@@ -199,6 +199,8 @@ def fit_aspect_jpeg(src: Path, dst: Path, tw: int = VIDEO_WIDTH, th: int = VIDEO
 
 
 _UNAVAILABLE_CDP_URLS: set[str] = set()
+# Cache do projeto nomeado por episodio ja garantido (evita abrir CDP a cada imagem)
+_ENSURED_EPISODE_PROJECTS: dict[str, str] = {}
 
 
 def generate_single_image(
@@ -229,12 +231,32 @@ def generate_single_image(
             cdp_is_alive,
             check_needs_google_login,
             ensure_story_characters_created,
+            ensure_episode_project_on_account,
             get_image_candidate_accounts,
+            get_image_flow_account,
+            get_named_project_url,
+            episode_project_name,
             is_flow_account_locked,
             load_accounts_config,
             upload_media_to_flow,
         )
         from playwright.async_api import async_playwright
+
+        # Regra 24: todas as imagens vao para UM projeto nomeado por episodio/tema na conta de imagens.
+        project_name = episode_project_name(proj_dir.name if proj_dir else "", script_data)
+        if project_name:
+            img_acc = get_image_flow_account()
+            if img_acc and cdp_is_alive(int(img_acc["cdp_port"])):
+                key = f"{img_acc['id']}::{project_name}"
+                named_url = _ENSURED_EPISODE_PROJECTS.get(key) or get_named_project_url(img_acc["id"], project_name)
+                if not named_url:
+                    try:
+                        named_url = asyncio.run(ensure_episode_project_on_account(img_acc, project_name))
+                    except Exception as exc:
+                        print(f"  [FlowProject] AVISO: nao criou projeto '{project_name}': {str(exc)[:120]}", flush=True)
+                if named_url:
+                    _ENSURED_EPISODE_PROJECTS[key] = named_url
+                    img_acc["project_url"] = named_url
 
         candidates: list[tuple[str, str]] = []
         busy_candidates: list[tuple[str, str]] = []
@@ -249,9 +271,12 @@ def generate_single_image(
 
         # Nano Banana 2.1 usa 0 creditos (ilimitado): prioriza contas de imagem (acc_4, acc_3, acc_2)
         # ANTES da conta de video (acc_5), e pula imediatamente contas ocupadas por outro processo.
+        img_account_id = img_acc.get("id") if project_name else ""
         for acc in get_image_candidate_accounts():
             port = int(acc["cdp_port"])
             cdp_url = f"http://127.0.0.1:{port}"
+            if acc.get("id") == img_account_id and _ENSURED_EPISODE_PROJECTS.get(f"{img_account_id}::{project_name}"):
+                acc["project_url"] = _ENSURED_EPISODE_PROJECTS[f"{img_account_id}::{project_name}"]
             if cdp_url not in seen_urls and cdp_url not in _UNAVAILABLE_CDP_URLS and cdp_is_alive(port):
                 item = (cdp_url, acc.get("project_url") or DEFAULT_FLOW_PROJECT_URL)
                 if is_flow_account_locked(port):
@@ -594,6 +619,8 @@ def generate_single_veo_video(
     _save_veo_ledger(ledger_path, ledger)
 
     try:
+        from core.flow_accounts import episode_project_name as _ep_name
+
         res = asyncio.run(
             generate_video_with_failover(
                 prompt=veo_prompt,
@@ -602,6 +629,7 @@ def generate_single_veo_video(
                 keyframe_path=keyframe if keyframe.exists() else None,
                 script_data=script_data,
                 proj_dir=proj_dir,
+                project_name=_ep_name(proj_dir.name if proj_dir else "", script_data),
             )
         )
         dur = probe_duration(out_mp4) if out_mp4.exists() else 0.0
