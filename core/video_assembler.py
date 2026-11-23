@@ -749,10 +749,14 @@ def _concat_segments_with_smooth_xfade(
             nxt_dur = items[idx][1]
             out_lbl = "[vout]" if idx == len(items) - 1 else f"[x{idx}]"
             if f > 0.04:
-                filters.append(f"{prev}[s{idx}]xfade=transition=fade:duration={f:.3f}:offset={cum_dur:.3f}{out_lbl}")
+                # offset = ponto ONDE o fade comeca = fim do acumulado - duracao do fade.
+                # O xfade sobrepoe f segundos: a duracao resultante e cum_dur + nxt_dur - f.
+                off = max(0.0, cum_dur - f)
+                filters.append(f"{prev}[s{idx}]xfade=transition=fade:duration={f:.3f}:offset={off:.3f}{out_lbl}")
+                cum_dur = off + nxt_dur
             else:
                 filters.append(f"{prev}[s{idx}]concat=n=2:v=1:a=0{out_lbl}")
-            cum_dur += nxt_dur
+                cum_dur += nxt_dur
             prev = out_lbl
 
         _run_h264_ffmpeg(
