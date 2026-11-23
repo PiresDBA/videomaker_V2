@@ -121,6 +121,8 @@ C:\Docling\venv\Scripts\python.exe scripts/verify_contract_guard.py
 C:\Docling\venv\Scripts\python.exe tests/test_pipeline_v2.py
 ```
 
+> **Suíte de testes (feature do motor):** `tests/suite/` mantém o catálogo único de testes, diagnósticos e ferramentas de reparo (29 scripts). Consulte antes de criar um teste novo: `python tests/suite/runner.py --list`, `--check` (nenhum arquivo ausente) ou `--run <id>`. Toda entry nova do catálogo entra no mesmo commit do script.
+
 ---
 
 ## 4. Grafo de Conhecimento & Cérebro (`graphify`) — Economia de Contexto

@@ -1,0 +1,48 @@
+{
+  "schema": "VIDEOMAKER_TEST_SUITE_V1",
+  "description": "Catalogo de tests, diagnosticos e ferramentas de reparo do Videomaker v2. Cada entry diz O QUE testa, QUAL modulo/feature cobre e como executar.",
+  "categories": {
+    "voz": "Testes de voz/ prosodia / cota TTS (Chirp 3 HD)",
+    "audio": "Juncao de narração, correção de Shorts e BGM",
+    "roteiro": "Reescrita, encurtamento e restauração de texto",
+    "imagem": "Auditoria, geração derivada e colheita de mídia do Flow",
+    "video": "Sincronia labial e publicação",
+    "nucleo": "Bateria unitária, guardião do contrato e recuperação/revoice"
+  },
+  "entries": [
+    {"id": "unit_all", "path": "tests/test_pipeline_v2.py", "category": "nucleo", "target": "motor completo", "purpose": "Bateria unitaria e ponta a ponta (roteiro, TTS, pacing, short, Veo, pesquisa viral, auditoria light).", "cmd": "python tests/test_pipeline_v2.py", "mutating": false, "credentials": false},
+    {"id": "contract_guard", "path": "scripts/verify_contract_guard.py", "category": "nucleo", "target": "invariantes do contrato", "purpose": "Valida regras imutaveis, sintaxe e seguranca Git do staging.", "cmd": "python scripts/verify_contract_guard.py", "mutating": false, "credentials": false},
+    {"id": "flow_recover", "path": "scripts/recover_flow_media.py", "category": "nucleo", "target": "Google Flow", "purpose": "Recupera e audita midia ja gerada nas 5 contas (use --no-apply para so inspecionar).", "cmd": "python scripts/recover_flow_media.py --project-dir <proj> --no-apply", "mutating": true, "credentials": true},
+    {"id": "revoice_republish", "path": "scripts/revoice_and_republish.py", "category": "nucleo", "target": "troca de narração", "purpose": "Revoz e republica episodio sem re-render (Regra 15).", "cmd": "python scripts/revoice_and_republish.py <args>", "mutating": true, "credentials": true},
+
+    {"id": "voices_infantis", "path": "work/testar_voices_infantis.py", "category": "voz", "target": "voice_studio / Chirp 3 HD", "purpose": "Testa vozes candidatas a narradora infantil no MESMO texto.", "cmd": "python work/testar_voices_infantis.py", "mutating": false, "credentials": true},
+    {"id": "voices_emocionais", "path": "work/teste_voices_emocionais.py", "category": "voz", "target": "voice_studio", "purpose": "Amostras de voz COM emoção via Chirp 3 HD (sem Gemini-TTS).", "cmd": "python work/teste_voices_emocionais.py", "mutating": false, "credentials": true},
+    {"id": "voices_final", "path": "work/teste_vozes_final.py", "category": "voz", "target": "casting final", "purpose": "4 vozes no mesmo texto com gatilhos de humor, isolando emoção.", "cmd": "python work/teste_vozes_final.py", "mutating": false, "credentials": true},
+    {"id": "chirp_voices", "path": "work/test_chirp3_voices.py", "category": "voz", "target": "Chirp 3 HD", "purpose": "Uma frase por voz pt-BR; checa disponibilidade e combustivel da cota.", "cmd": "python work/test_chirp3_voices.py", "mutating": false, "credentials": true},
+    {"id": "listar_chirp", "path": "work/listar_vozes_chirp3.py", "category": "voz", "target": "Cloud TTS", "purpose": "Lista todas as vozes pt-BR (GET, nao consome caracteres).", "cmd": "python work/listar_vozes_chirp3.py", "mutating": false, "credentials": true},
+    {"id": "diagnostico_cota", "path": "work/diagnostico_cota.py", "category": "voz", "target": "cotas TTS", "purpose": "Mostra qual API/modelo esta sendo chamado e o erro 429 completo.", "cmd": "python work/diagnostico_cota.py", "mutating": false, "credentials": true},
+    {"id": "amostra_cena1", "path": "work/amostra_cena1.py", "category": "voz", "target": "amostrapiloto sc_01", "purpose": "Roteiro engraçado + voz + SFX cartoon da cena 1 (versao inicial).", "cmd": "python work/amostra_cena1.py", "mutating": false, "credentials": true},
+    {"id": "amostra_cena1_v2", "path": "work/amostra_cena1_v2.py", "category": "voz", "target": "amostrapiloto sc_01", "purpose": "Versao 2 da amostra com gatilhos de humor + SFX.", "cmd": "python work/amostra_cena1_v2.py", "mutating": false, "credentials": true},
+    {"id": "amostra_emocao_forte", "path": "work/amostra_emoção_forte.py", "category": "voz", "target": "emocao TTS", "purpose": "Teste com risada exagerada escrita (reprovado: TTS robotizado).", "cmd": "python work/amostra_emocao_forte.py", "mutating": false, "credentials": true},
+    {"id": "amostra_puck", "path": "work/amostra_puck_emoção.py", "category": "voz", "target": "casting narradora", "purpose": "Amostra final Puck SEM risada escrita (aprovada pelo usuario).", "cmd": "python work/amostra_puck_emocao.py", "mutating": false, "credentials": true},
+
+    {"id": "join_main_audio", "path": "work/join_main_audio.py", "category": "audio", "target": "faixa 16:9", "purpose": "Junta narração nova ao video 16:9 (versao inicial).", "cmd": "python work/join_main_audio.py", "mutating": true, "credentials": false},
+    {"id": "join_main_audio_clean", "path": "work/join_main_audio_clean.py", "category": "audio", "target": "faixa 16:9", "purpose": "Junta 25 WAVs sequencialmente SEM amix e com loudnorm -14 LUFS (Regra 15).", "cmd": "python work/join_main_audio_clean.py", "mutating": true, "credentials": false},
+    {"id": "join_short_sounds", "path": "work/join_short_sounds.py", "category": "audio", "target": "Shorts", "purpose": "Junta som novo aos Shorts.", "cmd": "python work/join_short_sounds.py", "mutating": true, "credentials": false},
+    {"id": "fix_short_sounds", "path": "work/fix_short_sounds.py", "category": "audio", "target": "Shorts 02 e 03", "purpose": "Corrige Shorts mudos (-91 dB) e reauedita com volumedetect.", "cmd": "python work/fix_short_sounds.py", "mutating": true, "credentials": false},
+    {"id": "bgm_praia", "path": "work/make_bgm_praia.py", "category": "audio", "target": "BGM original", "purpose": "Gera o loop musical original do episodio da praia (126 BPM).", "cmd": "python work/make_bgm_praia.py", "mutating": true, "credentials": false},
+
+    {"id": "encurtar_script", "path": "work/encurtar_script.py", "category": "roteiro", "target": "contagem de palavras", "purpose": "Encurta textos para 450-550 palavras mantendo pontuação de piada.", "cmd": "python work/encurtar_script.py", "mutating": true, "credentials": false},
+    {"id": "rewrite_script", "path": "work/rewrite_script.py", "category": "roteiro", "target": "roteiro 25 cenas", "purpose": "Reescreve textos com pontuação de piada, sem risada escrita.", "cmd": "python work/rewrite_script.py", "mutating": true, "credentials": false},
+    {"id": "restaurar_textos", "path": "work/restaurar_textos.py", "category": "roteiro", "target": "roteiro aprovado", "purpose": "Restaura versao de 568 palavras aprovada e ajusta limite.", "cmd": "python work/restaurar_textos.py", "mutating": true, "credentials": false},
+
+    {"id": "check_missing_images", "path": "work/check_missing_images.py", "category": "imagem", "target": "pacing x imagens", "purpose": "Compara imagens pedidas pelo pacing com existentes e procura no legado.", "cmd": "python work/check_missing_images.py", "mutating": false, "credentials": false},
+    {"id": "make_missing_images", "path": "work/make_missing_images.py", "category": "imagem", "target": "sub-angulos _p2/_p3", "purpose": "Deriva subangulos do _p1 com crop/zoom (sem Flow).", "cmd": "python work/make_missing_images.py", "mutating": true, "credentials": false},
+    {"id": "ensure_all_images", "path": "work/ensure_all_images.py", "category": "imagem", "target": "todos os _pN", "purpose": "Garante todos os sub-clips do pacing a partir do _p1 (sem CDP).", "cmd": "python work/ensure_all_images.py", "mutating": true, "credentials": false},
+    {"id": "harvest_flow", "path": "work/harvest_all_flow_media.py", "category": "imagem", "target": "5 contas Flow", "purpose": "Colhe TODOS os videos/imagens das contas para referencia, sem Vision QA.", "cmd": "python work/harvest_all_flow_media.py", "mutating": true, "credentials": true},
+    {"id": "analyze_harvest", "path": "work/analyze_v2.py", "category": "imagem", "target": "aproveitamento", "purpose": "Compara colheita com o usado (hash + pHash + cor) e gera relatorios/shortlist.", "cmd": "python work/analyze_v2.py", "mutating": true, "credentials": false},
+
+    {"id": "diag_lipsync", "path": "work/diag_lipsync.py", "category": "video", "target": "sincronia labial", "purpose": "Diagnostica boca/audio dos avatares (Regra 17).", "cmd": "python work/diag_lipsync.py", "mutating": false, "credentials": false},
+    {"id": "publicar_shorts", "path": "work/publicar_shorts.py", "category": "video", "target": "YouTube PT", "purpose": "Publica os 3 Shorts 9:16 no canal.", "cmd": "python work/publicar_shorts.py", "mutating": true, "credentials": true}
+  ]
+}

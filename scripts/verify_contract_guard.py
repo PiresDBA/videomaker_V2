@@ -23,6 +23,9 @@ REQUIRED_FILES = (
     "core/script_engine.py",
     "core/viral_research.py",
     "core/youtube_publisher.py",
+    "tests/suite/manifest.json",
+    "tests/suite/runner.py",
+    "tests/suite/README.md",
     "vendor/gerenciador_efeitos_sonoros.py",
 )
 

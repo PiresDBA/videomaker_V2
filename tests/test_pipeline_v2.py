@@ -1393,5 +1393,20 @@ class TestVideomakerV2Unified(unittest.TestCase):
         self.assertTrue(all(0 < v <= 0.35 for _h, v in hits))
 
 
+    def test_test_suite_catalog_integrity(self):
+        """O catalogo da suíte deve estar completo: ids unicos e arquivos existentes."""
+        import json
+
+        manifest = Path(__file__).parent / "suite" / "manifest.json"
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        entries = data.get("entries") or []
+        self.assertGreaterEqual(len(entries), 25)
+        ids = [e["id"] for e in entries]
+        self.assertEqual(len(ids), len(set(ids)))
+        root = Path(__file__).resolve().parents[1]
+        missing = [e["path"] for e in entries if not (root / e["path"]).exists()]
+        self.assertEqual(missing, [], f"Testes catalogados ausentes: {missing}")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
