@@ -645,7 +645,15 @@ def _to_wav_norm(src_audio: Path, wav_path: Path, tail_s: float = 0.0) -> float:
     wav_path.parent.mkdir(parents=True, exist_ok=True)
     af = "loudnorm=I=-16:TP=-1.5:LRA=11"
     if tail_s > 0:
-        af += f",apad=pad_dur={float(tail_s):.2f}"
+        # Fade curto no final da fala + silêncio mínimo: evita tanto o corte seco
+        # quanto a sensação de "falta um pedaço" de um silêncio longo demais.
+        src_dur = probe_duration(src_audio)
+        fade = min(0.22, float(tail_s) * 0.5)
+        pad = max(0.10, float(tail_s) * 0.25)
+        af += (
+            f",afade=t=out:st={max(0.0, src_dur - fade):.3f}:d={fade:.3f}"
+            f",apad=pad_dur={pad:.2f}"
+        )
     subprocess.run(
         [FFMPEG_EXE, "-y", "-v", "error", "-i", str(src_audio),
          "-ar", "44100", "-ac", "2", "-af", af,
