@@ -33,7 +33,7 @@ FORBIDDEN_STAGED_PATTERNS = (
     re.compile(r"(?:^|/)\.env(?:\.|$)", re.I),
     re.compile(r"(?:^|/)\.credentials/", re.I),
     re.compile(r"(?:secret|youtube_token).*\.json$", re.I),
-    re.compile(r"^flow_accounts(?:_state|_learned_sessions)?\.json$", re.I),
+    re.compile(r"^flow_(?:accounts(?:_state|_learned_sessions)?|projects)\.json$", re.I),
     re.compile(r"(?:^|/)\.chrome-", re.I),
     re.compile(r"^projects/", re.I),
     re.compile(r"^bin/", re.I),

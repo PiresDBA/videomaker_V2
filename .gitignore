@@ -32,6 +32,7 @@ projects/
 flow_accounts.json
 flow_accounts_state.json
 flow_learned_sessions.json
+flow_projects.json
 .chrome-flow-accounts/
 .chrome-flow-profile/
 .chrome-*-profile/

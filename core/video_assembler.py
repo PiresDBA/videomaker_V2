@@ -926,16 +926,28 @@ def assemble_video(
         sparkles_mov = None
 
     # Regra 25: overlay de CTA infantil (joinha + sininho + SUBSCRIBE) no final do video.
+    # Usa o arquivo mestre permanente em assets/reference/overlays/ (reutilizavel em todos os episodios);
+    # se nao existir, gera um local como fallback. Pode entrar em qualquer ponto do video.
+    from config import BASE_DIR as _BASE
+
+    cta_master = _BASE / "assets" / "reference" / "overlays" / "cta_subscribe.mov"
     cta_mov = avatar_dir / "cta_subscribe.mov"
-    cta_dur = min(5.2, total_dur)
-    cta_start = max(0.0, total_dur - cta_dur - 0.6)
+    cta_dur = min(5.0, total_dur)
+    # Regra 25: o CTA transparente pode subir no MEIO do video (independente da cena),
+    # alem do video de despedida no final. Alvo ~40% da duracao total (ex.: 2.5min num video de 6min).
+    cta_start = max(0.0, min(total_dur * 0.40, total_dur - cta_dur - 1.0))
     if cta_dur >= 2.0:
         try:
-            from core.cta_overlay import render_cta_subscribe_overlay
+            if cta_master.exists():
+                import shutil
 
-            render_cta_subscribe_overlay(cta_mov, duration=cta_dur)
+                shutil.copy2(cta_master, cta_mov)
+            else:
+                from core.cta_overlay import render_cta_subscribe_overlay
+
+                render_cta_subscribe_overlay(cta_mov, duration=cta_dur)
         except Exception as exc:
-            print(f"  [CTA] aviso: nao gerou overlay de subscribe: {str(exc)[:120]}", flush=True)
+            print(f"  [CTA] aviso: nao preparou overlay de subscribe: {str(exc)[:120]}", flush=True)
             cta_mov = None
     else:
         cta_mov = None
