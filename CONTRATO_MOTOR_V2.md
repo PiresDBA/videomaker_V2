@@ -1,6 +1,6 @@
 # CONTRATO DO MOTOR VIDEOMAKER V2 (PORTÁTIL E AUTOCONTIDO)
 
-Este documento define a arquitetura, a estrutura de pastas autocontida e as **19 Regras Imutáveis** do motor **Videomaker v2** (`Frida & Luna`), garantindo portabilidade total entre máquinas e zero regressões por agentes ou edições manuais.
+Este documento define a arquitetura, a estrutura de pastas autocontida e as **21 Regras Imutáveis** do motor **Videomaker v2** (`Frida & Luna`), garantindo portabilidade total entre máquinas e zero regressões por agentes ou edições manuais.
 
 ---
 
@@ -50,7 +50,7 @@ videomaker_v2/
 
 ---
 
-## 2. As 19 Regras Imutáveis do Contrato
+## 2. As 21 Regras Imutáveis do Contrato
 
 1. **100% Autocontido e Portátil:** O motor nunca depende de projetos externos para funcionar. Caminhos priorizam diretórios internos (`bin/`, `.credentials/`, `.chrome-flow-accounts/`, `assets/`, `vendor/`).
 2. **Cânone Visual Criança / Pré-Adolescente 3D Disney-Pixar (`config.py`, `script_engine.py` & `flow_continuity.py`):** Frida (obrigatoriamente **Buldogue Inglesa caramelo-dourada** com colar de pérolas; nunca Golden Retriever) e Luna (obrigatoriamente **Dachshund/Salsicha marrom-chocolate** com correntinhas douradas; nunca Cocker Spaniel) possuem idade visual padrão de **até 1 ano no máximo** (equivalente a **criança de 5–10 anos** em animação 3D estilizada). `validate_script_schema` reprova raças incorretas e `build_image_prompt` injeta a Bíblia Visual seletivamente pelos personagens da cena.
@@ -75,6 +75,8 @@ videomaker_v2/
 17. **REGRA DE OURO — Sincronia Labial por Timeline Atualizada:** A boca dos avatares PiP é renderizada dos WAVs + `scene_audio_start`/`scene_audio_dur`. Sempre que a narração for refeita (voz/texto/duração diferente), **o `pacing_plan_v2.json` e os clipes `.mov` de avatar DEVEM ser regenerados juntos** — reaproveitar `.mov` antigo com `-c:v copy` gera boca dessincronizada ("fala com boca fechada / boca mexendo sem fala").
 18. **REGRA DE OURO — Pesquisa de Virais Antes de Escrever (ESTRUTURA, NUNCA CONTEÚDO):** Para TODO vídeo novo, antes de `generate_script()`, `core/viral_research.py` (`research_viral_humor`) deve pesquisar videos reais do mesmo tema no YouTube (HTML publico/Innertube, sem chave paga), filtrar os que tem **>= 1.000.000 de visualizacoes** e extrair apenas **padroes estruturais de humor** (gancho, contraste de personalidades, plano que falha, escalada de gags, repeticao/callback, desfecho). O resultado vai para `projects/<slug>/artifacts/viral_research.json` (cache de 24h por tema) e e injetado no prompt do roteirista via `humor_prompt`. **E PROIBIDO copiar titulos, falas, cenas, personagens ou piadas dos videos pesquisados** — a pesquisa so define o formato. Se nenhum video passar de 1M, o modulo deve gerar uma **sugestao de estrutura baseada nos videos encontrados** e seguir com o roteiro. Falha de rede nunca quebra o pipeline (`--skip-viral-research` desliga a etapa).
 19. **REGRA DE OURO — Auditoria Light de Mídia Paga (NÃO DESPERDIÇAR CRÉDITO):** Vídeo Veo e imagem já gerados custaram crédito/dinheiro; o perfil padrão de auditoria é `light` (`--audit-profile light`, também em `core/scene_auditor.py`), que **aprova** o material utilizável mesmo com pequena divergência de ação, objeto ou posição. Só bloqueia defeitos **toscos**: colagem/split, marca d'água/legenda/balão de fala, figuras humanas/stick figures em animação de cães, cenário de outro episódio, raça trocada ou personagem ausente. O perfil `strict` restaura o fail-closed total e continua disponível (`--audit-profile strict`). Toda aprovação light registra `audit_profile` e `relaxed_checks` no resultado para rastreabilidade.
+20. **REGRA DE OURO — Montagem Rica de Imagens e Água (ECONOMIA DE VÍDEO):** Imagens custam 0 créditos e podem ser geradas ilimitadamente. O pacing DEVE usar `RICH_IMAGE_MONTAGE=True` com `IMAGE_MONTAGE_BEAT_SECONDS≈1.7` para criar 3–5 sub-clips por cena, encadeados por `_concat_segments_with_smooth_xfade` — a troca suave dá impressão de movimento ("slow motion") sem pagar vídeo Veo. Cada sub-clip continua com `<= 5,0 s` e recebe overlay contextual; cenas de praia/água usam o overlay `water` (gotas caindo). A sonoplastia de praia inclui **ambiência de mar contínua** (`ocean waves`) e foley `cartoon splash` nas cenas em que a personagem se molha.
+21. **REGRA DE OURO — Voice Studio como Primeira Opção de Voz:** `--tts-provider` e `synthesize_all_scenes` têm `default="voice_studio"`. As vozes locais travadas são `Simone-feliz` (narradora), `Frida` (Frida) e `Luninha` (Luna), chamadas via CLI `voicestudio speak --voice <nome>`. Se o CLI/voz falhar, o pipeline faz **fallback automático para o Chirp 3 HD travado** (Puck/Sulafat/Leda). Edge TTS continua proibido. `audit_voice_consistency` aceita `voice_studio:<nome>` desde que corresponda ao personagem.
 
 ---
 

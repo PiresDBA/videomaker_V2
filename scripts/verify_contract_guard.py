@@ -161,6 +161,15 @@ def check_contract() -> list[str]:
         errors.append("HOOK VIOLADO: scene_auditor.py deve manter os perfis light/strict e _is_hard_block (Regra 19).")
     if '--audit-profile' not in pipe_txt:
         errors.append("HOOK VIOLADO: pipeline_v2.py deve manter --audit-profile (light por padrao, Regra 19).")
+    # Regras 20/21: montagem rica de imagens, overlay de agua e voz Voice Studio first
+    va2_txt = (ROOT / "core" / "video_assembler.py").read_text(encoding="utf-8", errors="replace")
+    afx2_txt = (ROOT / "core" / "audio_fx.py").read_text(encoding="utf-8", errors="replace")
+    if "RICH_IMAGE_MONTAGE = True" not in cfg_txt or 'style == "water"' not in va2_txt:
+        errors.append("HOOK VIOLADO: montagem rica de imagens e overlay water ausentes (Regra 20).")
+    if "ocean waves seaside" not in afx2_txt or "cartoon splash" not in afx2_txt:
+        errors.append("HOOK VIOLADO: sonoplastia de mar/splash ausente (Regra 20).")
+    if '"narrador": "Simone-feliz"' not in cfg_txt or '"luna": "Luninha"' not in cfg_txt:
+        errors.append("HOOK VIOLADO: VOICE_STUDIO_VOICES deve manter Simone-feliz/Luninha/Frida (Regra 21).")
     if "is_video_scene" not in va_txt:
         errors.append("CONTRATO VIOLADO: core/video_assembler.py deve reduzir card_sz quando is_video_scene=True.")
     av_txt = (ROOT / "core" / "avatar_studio.py").read_text(encoding="utf-8", errors="replace")
@@ -171,10 +180,12 @@ def check_contract() -> list[str]:
 
     # 3d. HOOKS DE TRAVAMENTO — travam as melhorias desta sessao (anti-regressao automatica)
     # HOOK 1: provedor padrao Chirp 3 HD (cota 1M chars/mes) — Gemini free tier tem so 10 req/dia.
-    if 'default="chirp3_hd"' not in pipe_txt:
-        errors.append("HOOK VIOLADO: pipeline_v2.py --tts-provider deve ter default='chirp3_hd' (cota 1M/mes; Gemini free tier=10 req/dia).")
-    if 'provider: str = "chirp3_hd"' not in vs_txt:
-        errors.append("HOOK VIOLADO: synthesize_all_scenes deve ter provider='chirp3_hd' como default.")
+    if 'default="voice_studio"' not in pipe_txt or 'choices=("voice_studio"' not in pipe_txt:
+        errors.append("HOOK VIOLADO: pipeline_v2.py --tts-provider deve ter default='voice_studio' (Regra 21).")
+    if 'provider: str = "voice_studio"' not in vs_txt:
+        errors.append("HOOK VIOLADO: synthesize_all_scenes deve ter provider='voice_studio' como default (Regra 21).")
+    if "def _synthesize_voice_studio" not in vs_txt or "voice_studio:" not in vs_txt:
+        errors.append("HOOK VIOLADO: voice_studio.py deve manter _synthesize_voice_studio e fallback Chirp 3 HD (Regra 21).")
     # HOOK CRITICO: Gemini-TTS (gemini-2.5-flash-tts / modelName no Cloud TTS) E PROIBIDO — cobrado por token.
     if '"modelName": "gemini-' in vs_txt or 'gemini-2.5-flash-tts' in vs_txt and 'GEMINI_TTS_MODELS' not in vs_txt:
         errors.append("HOOK CRITICO VIOLADO: Gemini-TTS cobrado por token e proibido; usar apenas Chirp 3 HD (cota 1M).")

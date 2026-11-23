@@ -10,6 +10,7 @@ import itertools
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -39,6 +40,7 @@ from config import (
     PROSODY_LIMITS,
     SPEAKER_VOICE_PROFILES,
     VENDOR_DIR,
+    VOICE_STUDIO_VOICES,
 )
 
 sys.path.insert(0, str(VENDOR_DIR))
@@ -641,10 +643,48 @@ def _to_wav_norm(src_audio: Path, wav_path: Path) -> float:
     return probe_duration(wav_path)
 
 
+def _voice_studio_cli() -> str:
+    """Localiza o CLI do Voice Studio no PATH ou na instalacao padrao do usuario."""
+    exe = shutil.which("voicestudio")
+    if exe:
+        return exe
+    local = Path.home() / "AppData" / "Local" / "Programs" / "VoiceStudio" / "resources" / "cli" / "voicestudio.exe"
+    if local.exists():
+        return str(local)
+    raise RuntimeError("VoiceStudio CLI nao encontrado (PATH ou instalacao local).")
+
+
+def _synthesize_voice_studio(
+    text: str,
+    speaker: str,
+    out_raw: Path,
+    emotion_hint: str = "",
+    attempt: int = 1,
+) -> tuple[str, str]:
+    """Sintetiza com uma voz salva no Voice Studio (luninha/frida/simone-feliz)."""
+    voice = VOICE_STUDIO_VOICES.get(speaker, VOICE_STUDIO_VOICES["narrador"])
+    cmd = [
+        _voice_studio_cli(), "speak",
+        "--voice", voice,
+        "--language", "Portuguese (Brazil)",
+        "-o", str(out_raw),
+        "--overwrite",
+    ]
+    if attempt > 1:
+        cmd += ["--instruct", "alegre, brincalhona, energetica, sorridente"]
+    elif emotion_hint:
+        cmd += ["--instruct", str(emotion_hint)[:120]]
+    cmd.append(text)
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+    if r.returncode != 0 or not out_raw.exists() or out_raw.stat().st_size < 2000:
+        raise RuntimeError(f"VoiceStudio falhou para '{voice}': {(r.stderr or r.stdout or '').strip()[:180]}")
+    return f"voice_studio:{voice}", "voice_studio"
+
+
 def synthesize_all_scenes(
     script_data: dict[str, Any],
     audio_dir: Path,
-    provider: str = "chirp3_hd",
+    provider: str = "voice_studio",
     enable_whisper_qa: bool = True,
     enable_prosody_gate: bool = True,
     allow_flat_fallback: bool = False,
@@ -655,11 +695,11 @@ def synthesize_all_scenes(
 
     REGRA DE OURO: Edge TTS e estritamente proibido em producao (sem emocao).
     """
-    prov = str(provider or "gemini_emotion").strip().lower()
-    if prov not in ("gemini", "gemini_emotion", "chirp3_hd", "auto"):
+    prov = str(provider or "voice_studio").strip().lower()
+    if prov not in ("voice_studio", "gemini", "gemini_emotion", "chirp3_hd", "auto"):
         raise ValueError(
             f"REGRA DE OURO VIOLADA: provedor '{provider}' nao permitido. "
-            "Edge TTS e proibido pois nao tem emocao; use 'gemini_emotion' ou 'chirp3_hd' (Kore/Sulafat/Leda)."
+            "Use 'voice_studio' (vozes luninha/frida/simone-feliz, first option), 'chirp3_hd' (fallback) ou 'gemini_emotion'. Edge TTS e proibido."
         )
 
     raw_dir = audio_dir / "raw"
@@ -699,6 +739,8 @@ def synthesize_all_scenes(
         )
         if prov == "chirp3_hd" and prev_v and not prev_v.startswith("chirp3_hd:"):
             voice_matches_lock = False
+        if prov == "voice_studio" and prev_v and not prev_v.startswith("voice_studio:"):
+            voice_matches_lock = False
 
         if not force and voice_matches_lock and wav_path.exists() and wav_path.stat().st_size > 4000:
             dur = probe_duration(wav_path)
@@ -723,7 +765,23 @@ def synthesize_all_scenes(
             try:
                 # REGRA DE OURO: trava absoluta de voz por personagem (proibido alternar para outra voz)
                 v_choice = locked_voice
-                if prov == "chirp3_hd":
+                converted = False
+                if prov == "voice_studio":
+                    vs_raw = raw_dir / f"{sid}_vs.wav"
+                    try:
+                        used_voice, emo_mode = _synthesize_voice_studio(
+                            tts_text, speaker, vs_raw, emo_dir, attempt
+                        )
+                        dur = _to_wav_norm(vs_raw, wav_path)
+                        converted = True
+                    except Exception as vs_exc:
+                        print(f"  [VOICE-STUDIO] {sid} fallback Chirp 3 HD: {str(vs_exc)[:120]}", flush=True)
+                        base_rate = float(CHIRP3_SPEAKING_RATE.get(speaker, 1.10))
+                        rate = min(1.12, base_rate + (0.02 if attempt >= 2 else 0.0))
+                        used_voice, emo_mode = _synthesize_chirp3_hd(
+                            tts_text, speaker, mp3_path, speaking_rate=rate
+                        )
+                elif prov == "chirp3_hd":
                     base_rate = float(CHIRP3_SPEAKING_RATE.get(speaker, 1.10))
                     rate = min(1.12, base_rate + (0.02 if attempt >= 2 else 0.0))
                     used_voice, emo_mode = _synthesize_chirp3_hd(
@@ -745,7 +803,8 @@ def synthesize_all_scenes(
                         else:
                             raise
 
-                dur = _to_wav_norm(mp3_path, wav_path)
+                if not converted:
+                    dur = _to_wav_norm(mp3_path, wav_path)
                 if dur <= 0.25:
                     raise RuntimeError(f"duracao invalida ({dur}s)")
 

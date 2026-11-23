@@ -128,6 +128,19 @@ CTA_TAIL_SECONDS = 10.0
 MAX_IMAGE_SECONDS = 5.0
 MIN_IMAGE_SECONDS = 3.5
 TARGET_BEAT_SECONDS = 4.2
+
+# Regra 20: montagem rica de imagens (sub-clips curtos com xfade simulam "slow motion" sem custo de vídeo)
+RICH_IMAGE_MONTAGE = True
+IMAGE_MONTAGE_BEAT_SECONDS = 1.7
+IMAGE_MONTAGE_MAX_PARTS = 5
+
+# Vozes locais do Voice Studio (primeira opção). Fallback: Chirp 3 HD travado.
+VOICE_STUDIO_VOICES = {
+    "narrador": "Simone-feliz",
+    "frida": "Frida",
+    "luna": "Luninha",
+    "secundario": "Luquinha",
+}
 TARGET_VEO_VIDEOS = 10
 MAX_VEO_GENERATIONS_PER_SCENE = 1
 VOICE_LOCK_STRICT = True

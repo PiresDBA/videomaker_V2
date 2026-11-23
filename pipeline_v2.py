@@ -528,7 +528,7 @@ def main() -> int:
     ap.add_argument("--batch-scan", default="", help="Escaneia e audita todas as pastas de video dentro de um diretorio")
     ap.add_argument("--stage", choices=("all", "avatar-only", "script", "tts", "pacing", "images", "shorts", "audit", "publish"), default="all")
     ap.add_argument("--build-avatar", choices=("luna",), default="", help="Gera o pacote de avatar Luna dentro do programa")
-    ap.add_argument("--tts-provider", choices=("gemini_emotion", "chirp3_hd", "auto"), default="chirp3_hd", help="Vozes emocionais Cloud Chirp 3 HD (padrao, cota 1M chars/mes) ou Gemini TTS; Edge TTS proibido (Regra de Ouro)")
+    ap.add_argument("--tts-provider", choices=("voice_studio", "gemini_emotion", "chirp3_hd", "auto"), default="voice_studio", help="Voice Studio local (padrao: Luninha/Frida/Simone-feliz, com emoção) → fallback Chirp 3 HD; Edge TTS proibido (Regra de Ouro)")
     ap.add_argument("--auth-chirp3", action="store_true", help="Autentica OAuth 2.0 para Google Cloud Chirp 3 HD e testa as vozes Kore/Sulafat/Leda")
     ap.add_argument("--short-engine", choices=("auto", "split_70_30", "split_60_40", "motion_hud", "remotion"), default="auto")
     ap.add_argument("--min-words", type=int, default=SCRIPT_MIN_WORDS, help="Minimo de palavras no roteiro")

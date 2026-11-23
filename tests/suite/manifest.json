@@ -43,6 +43,7 @@
     {"id": "analyze_harvest", "path": "work/analyze_v2.py", "category": "imagem", "target": "aproveitamento", "purpose": "Compara colheita com o usado (hash + pHash + cor) e gera relatorios/shortlist.", "cmd": "python work/analyze_v2.py", "mutating": true, "credentials": false},
 
     {"id": "diag_lipsync", "path": "work/diag_lipsync.py", "category": "video", "target": "sincronia labial", "purpose": "Diagnostica boca/audio dos avatares (Regra 17).", "cmd": "python work/diag_lipsync.py", "mutating": false, "credentials": false},
-    {"id": "publicar_shorts", "path": "work/publicar_shorts.py", "category": "video", "target": "YouTube PT", "purpose": "Publica os 3 Shorts 9:16 no canal.", "cmd": "python work/publicar_shorts.py", "mutating": true, "credentials": true}
+    {"id": "publicar_shorts", "path": "work/publicar_shorts.py", "category": "video", "target": "YouTube PT", "purpose": "Publica os 3 Shorts 9:16 no canal.", "cmd": "python work/publicar_shorts.py", "mutating": true, "credentials": true},
+    {"id": "voice_studio_integration", "path": "work/test_voice_studio_integration.py", "category": "voz", "target": "Voice Studio (Regra 21)", "purpose": "Sintetiza 1 cena com Luninha e confirma voice_studio:<nome> no timing.", "cmd": "python work/test_voice_studio_integration.py", "mutating": false, "credentials": true}
   ]
 }

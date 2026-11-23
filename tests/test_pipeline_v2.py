@@ -1408,5 +1408,31 @@ class TestVideomakerV2Unified(unittest.TestCase):
         self.assertEqual(missing, [], f"Testes catalogados ausentes: {missing}")
 
 
+    def test_voice_studio_and_water_montage_features(self):
+        """Regras 20/21: Voice Studio first, montagem rica de imagens e overlay de água."""
+        from config import IMAGE_MONTAGE_MAX_PARTS, VOICE_STUDIO_VOICES
+        from core.pacing_planner import build_pacing_plan
+        from core.video_assembler import infer_scene_overlay_style
+
+        self.assertEqual(VOICE_STUDIO_VOICES["narrador"], "Simone-feliz")
+        self.assertEqual(VOICE_STUDIO_VOICES["frida"], "Frida")
+        self.assertEqual(VOICE_STUDIO_VOICES["luna"], "Luninha")
+
+        beach_clip = {"text": "A Luna se molha com a onda", "location": "Praia", "visual_action": "splash"}
+        self.assertEqual(infer_scene_overlay_style(beach_clip), "water")
+
+        script = {"scenes": [{
+            "scene_id": "sc_99", "act": 1, "speaker": "luna",
+            "text": "Eita! A onda me molhou inteira!", "location": "Praia",
+            "visual_action": "Luna se sacode", "characters": ["Frida", "Luna"],
+        }]}
+        timings = [{"scene_id": "sc_99", "duration": 8.0, "wav_path": ""}]
+        clips, prompts = build_pacing_plan(script, timings)
+        self.assertGreaterEqual(len(clips), 3)
+        self.assertLessEqual(len(clips), IMAGE_MONTAGE_MAX_PARTS)
+        self.assertTrue(all(float(c["duration"]) <= 5.0 for c in clips))
+        self.assertEqual(len(prompts), len(clips))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

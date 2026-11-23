@@ -206,6 +206,7 @@ _OVERLAY_RULES: tuple[tuple[str, str], ...] = (
     (r"pombo|passarinh|pigeon|bird|voou|bico", "birds"),
     (r"vagalum|firefl|noite|twilight", "fireflies"),
     (r"poeira\s+dourada|m[aá]gic|espirr|brilh|sparkl", "sparkles"),
+    (r"onda|mar\b|praia|ocean|wave|splash|resping|molh|água|\bagua\b|piscina|chuva|water", "water"),
 )
 
 
@@ -242,15 +243,15 @@ def apply_contextual_particle_overlay(
 
     counts = {
         "zzz": 14, "hearts": 18, "steam": 15, "fire": 22,
-        "bees": 16, "birds": 12, "fireflies": 24, "sparkles": 26, "leaves": 20,
+        "bees": 16, "birds": 12, "fireflies": 24, "sparkles": 26, "leaves": 20, "water": 28,
     }
     sizes = {
         "zzz": (20, 38), "hearts": (11, 22), "steam": (20, 48), "fire": (5, 13),
-        "bees": (9, 16), "birds": (12, 22), "fireflies": (4, 8), "sparkles": (6, 14), "leaves": (9, 18),
+        "bees": (9, 16), "birds": (12, 22), "fireflies": (4, 8), "sparkles": (6, 14), "leaves": (9, 18), "water": (5, 11),
     }
     speeds = {
         "zzz": (26, 46), "hearts": (22, 42), "steam": (20, 38), "fire": (38, 72),
-        "bees": (42, 85), "birds": (55, 110), "fireflies": (12, 28), "sparkles": (10, 24), "leaves": (30, 60),
+        "bees": (42, 85), "birds": (55, 110), "fireflies": (12, 28), "sparkles": (10, 24), "leaves": (30, 60), "water": (95, 190),
     }
     n_p = counts.get(style, 18)
     slo, shi = sizes.get(style, (8, 16))
@@ -284,7 +285,7 @@ def apply_contextual_particle_overlay(
 
             for x0, y0, sz, sp, ph, dr in parts:
                 delta = sp * t
-                if style in ("zzz", "hearts", "steam", "fire", "fireflies", "sparkles"):
+                if style in ("zzz", "hearts", "steam", "fire", "fireflies", "sparkles", "water"):
                     xx = int((x0 + dr * delta * 0.4 + 18 * math.sin(t * 1.1 + ph)) % (w + 60) - 30)
                     yy = int((y0 - delta) % (h + 60) - 30)
                 elif style in ("bees", "birds"):
@@ -341,6 +342,12 @@ def apply_contextual_particle_overlay(
                     cv2.line(overlay, (xx, yy - r), (xx, yy + r), (165, 240, 255), 2, cv2.LINE_AA)
                     cv2.line(alpha_u8, (xx - r, yy), (xx + r, yy), a, 2, cv2.LINE_AA)
                     cv2.line(alpha_u8, (xx, yy - r), (xx, yy + r), a, 2, cv2.LINE_AA)
+                elif style == "water":
+                    # Gota de água caindo: gota alongada com fio de brilho ("mundo feito de água")
+                    cv2.ellipse(overlay, (xx, yy), (max(2, r // 2), r), 0, 0, 360, (185, 230, 255), -1, cv2.LINE_AA)
+                    cv2.line(overlay, (xx - max(1, r // 4), yy - r // 2), (xx - max(1, r // 4), yy + r // 3),
+                             (245, 252, 255), 2, cv2.LINE_AA)
+                    cv2.ellipse(alpha_u8, (xx, yy), (max(2, r // 2), r), 0, 0, 360, a, -1, cv2.LINE_AA)
                 else:  # leaves
                     ang = int((t * 50 + ph * 60) % 360)
                     pts = np.array(cv2.ellipse2Poly((xx, yy), (r, max(3, r // 2)), ang, 0, 360, 12), np.int32)

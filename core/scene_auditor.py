@@ -24,7 +24,9 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from config import FFMPEG_EXE, FFPROBE_EXE, SPEAKER_VOICE_PROFILES, TARGET_VEO_VIDEOS  # noqa: E402
+from config import (  # noqa: E402
+    FFMPEG_EXE, FFPROBE_EXE, SPEAKER_VOICE_PROFILES, TARGET_VEO_VIDEOS, VOICE_STUDIO_VOICES,
+)
 from core.flow_accounts import is_quota_error_text  # noqa: E402
 from core.media_studio import (  # noqa: E402
     detect_split_collage,
@@ -100,6 +102,9 @@ def audit_voice_consistency(tts_timings: list[dict[str, Any]]) -> list[str]:
             continue
         raw_v = voice.split(":")[-1].strip()
         short_v = raw_v.split("-")[-1].strip() if "Chirp3-HD-" in raw_v else raw_v
+        if voice.startswith("voice_studio:"):
+            # Vozes locais (Regra 21): Luninha/Frida/Simone-feliz sao as travadas
+            short_v = VOICE_STUDIO_VOICES.get(spk, VOICE_STUDIO_VOICES["narrador"])
         seen_by_speaker.setdefault(spk, set()).add(short_v)
         if short_v != expected:
             errors.append(

@@ -86,7 +86,7 @@ SEMANTIC_FOLEY_RULES: tuple[tuple[str, str, str, float], ...] = (
     (r"aben[cç]|acenar|tchau|beijos|like|inscrev", "cartoon kiss", "freesound", 0.27),
     # Praia / primeiro dia de praia — gags fisicos e sonoros bem casados com a acao
     (r"areia|sand|praia|beach|concha|shell|casco", "cartoon sand shuffle", "freesound", 0.30),
-    (r"onda|mar[aá]?|wave|surf|mergulh|splash|resping", "cartoon splash", "freesound", 0.32),
+    (r"onda|mar[aá]?|wave|surf|mergulh|splash|resping|molh|ensopad|banho|glub", "cartoon splash", "freesound", 0.34),
     (r"protetor|solar|sunscreen|lo[cç][aã]o|creme|bronze", "slide whistle", "freesound", 0.28),
     (r"escorreg|desliz|tobog[aã]|ladeira|morro", "slide whistle", "freesound", 0.30),
     (r"biqu[íi]ni|shorts|roupa|trocar|vesti", "cartoon giggle", "freesound", 0.27),
@@ -373,9 +373,17 @@ def build_sfx_stem(
     # Camada suave de ambiencia (passarinhos/brisa CC0) se a maioria for parque/natureza
     all_loc = " ".join(str(c.get("location") or "") for c in visual_clips).lower()
     amb_path: Path | None = None
+    amb_vol = 0.05
     if any(k in all_loc for k in ("park", "praca", "lawn", "garden", "forest", "trees")):
         try:
             amb_path = obter_efeito_sonoro("park birds nature", origem="freesound", max_duracao=15.0)
+        except Exception:
+            amb_path = None
+    elif any(k in all_loc for k in ("praia", "beach", "ocean", "mar ", "onda", "wave", "areia", "sand", "sea")):
+        try:
+            amb_path = obter_efeito_sonoro("ocean waves seaside", origem="freesound", max_duracao=20.0)
+            amb_vol = 0.11
+            print("  [SFX] Ambiência de mar ativada (ocean waves).", flush=True)
         except Exception:
             amb_path = None
 
@@ -396,7 +404,10 @@ def build_sfx_stem(
 
     if amb_path and amb_path.exists():
         cmd += ["-stream_loop", "-1", "-t", f"{total_duration:.3f}", "-i", str(amb_path)]
-        filters.append(f"[{in_idx}:a]aformat=sample_rates=44100:channel_layouts=stereo,highpass=f=220,volume=0.05[amb]")
+        filters.append(
+            f"[{in_idx}:a]aformat=sample_rates=44100:channel_layouts=stereo,"
+            f"highpass=f=180,volume={amb_vol:.2f}[amb]"
+        )
         labels.append("[amb]")
         in_idx += 1
 

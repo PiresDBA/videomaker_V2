@@ -5,10 +5,13 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from config import KEN_BURNS_PRESETS, MAX_IMAGE_SECONDS, TARGET_BEAT_SECONDS
+from config import (
+    IMAGE_MONTAGE_BEAT_SECONDS, IMAGE_MONTAGE_MAX_PARTS, KEN_BURNS_PRESETS,
+    MAX_IMAGE_SECONDS, RICH_IMAGE_MONTAGE, TARGET_BEAT_SECONDS,
+)
 from core.media_studio import build_image_prompt
 
-_SPLIT_VARIANTS = ("main", "reaction", "angle_b", "detail")
+_SPLIT_VARIANTS = ("main", "reaction", "angle_b", "detail", "close")
 
 
 def build_pacing_plan(
@@ -36,6 +39,10 @@ def build_pacing_plan(
         audio_dur = float(t_info["duration"])
         scene_dur = round(audio_dur + (gap_seconds if sc_idx < len(scenes) - 1 else 0.35), 3)
         n_parts = 1 if scene_dur <= MAX_IMAGE_SECONDS else max(2, math.ceil(scene_dur / TARGET_BEAT_SECONDS))
+        if RICH_IMAGE_MONTAGE:
+            # Regra 20: mais sub-clips curtos -> troca suave (xfade) com aparencia de movimento.
+            rich_parts = min(IMAGE_MONTAGE_MAX_PARTS, max(2, math.ceil(scene_dur / IMAGE_MONTAGE_BEAT_SECONDS)))
+            n_parts = max(n_parts, rich_parts)
         part_dur = round(scene_dur / n_parts, 3)
 
         speaker = str(sc.get("speaker") or "narrador").lower()
