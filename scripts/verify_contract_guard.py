@@ -21,6 +21,7 @@ REQUIRED_FILES = (
     "core/flow_continuity.py",
     "core/flow_accounts.py",
     "core/script_engine.py",
+    "core/viral_research.py",
     "core/youtube_publisher.py",
     "vendor/gerenciador_efeitos_sonoros.py",
 )
@@ -151,6 +152,12 @@ def check_contract() -> list[str]:
         errors.append("CONTRATO VIOLADO: _concat_segments_with_smooth_xfade ausente em core/video_assembler.py (transicao suave obrigatoria).")
     if "def _find_pause_slot_for_window" not in afx_txt:
         errors.append("CONTRATO VIOLADO: _find_pause_slot_for_window ausente em core/audio_fx.py (SFX apenas nas pausas da narracao).")
+    # Perfil de auditoria light (custo de midia): so bloqueia defeitos toscos.
+    sa_txt = (ROOT / "core" / "scene_auditor.py").read_text(encoding="utf-8", errors="replace")
+    if 'AUDIT_PROFILES = ("light", "strict")' not in sa_txt or "def _is_hard_block" not in sa_txt:
+        errors.append("HOOK VIOLADO: scene_auditor.py deve manter os perfis light/strict e _is_hard_block (Regra 19).")
+    if '--audit-profile' not in pipe_txt:
+        errors.append("HOOK VIOLADO: pipeline_v2.py deve manter --audit-profile (light por padrao, Regra 19).")
     if "is_video_scene" not in va_txt:
         errors.append("CONTRATO VIOLADO: core/video_assembler.py deve reduzir card_sz quando is_video_scene=True.")
     av_txt = (ROOT / "core" / "avatar_studio.py").read_text(encoding="utf-8", errors="replace")
@@ -193,6 +200,15 @@ def check_contract() -> list[str]:
     # HOOK CRITICO DE TEXTO: risada e SENTIMENTO, nunca escrita (hahaha soa robotizado no TTS).
     if 'hahaha+|ha\\s+ha\\s+ha+' not in vs_txt:
         errors.append("HOOK VIOLADO: normalize_phonetics_pt deve remover 'hahaha' do texto antes do TTS (risada e sentimento, nunca escrita).")
+    # HOOK 7 (Regra 18): pesquisa automatica de virais por tema ESTRUTURA, nunca conteudo.
+    vr_txt = (ROOT / "core" / "viral_research.py").read_text(encoding="utf-8", errors="replace")
+    se_txt = (ROOT / "core" / "script_engine.py").read_text(encoding="utf-8", errors="replace")
+    if "def research_viral_humor" not in vr_txt or "def build_prompt_section" not in vr_txt:
+        errors.append("HOOK VIOLADO: core/viral_research.py deve manter research_viral_humor e build_prompt_section (Regra 18).")
+    if "MIN_VIRAL_VIEWS = 1_000_000" not in vr_txt or "PROIBIDO copiar" not in vr_txt:
+        errors.append("HOOK VIOLADO: pesquisa de virais deve usar limiar de 1M views e bloquear copia de conteudo (Regra 18).")
+    if "--skip-viral-research" not in pipe_txt or "humor_prompt: str" not in se_txt:
+        errors.append("HOOK VIOLADO: pipeline_v2.py precisa de --skip-viral-research e generate_script de humor_prompt (Regra 18).")
 
     # 4. Compilacao Python de todos os modulos principais
     for py_path in [ROOT / "config.py", ROOT / "pipeline_v2.py", *sorted((ROOT / "core").glob("*.py")), Path(__file__)]:

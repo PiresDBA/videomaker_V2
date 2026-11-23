@@ -199,7 +199,7 @@ SPEAKER_VOICE_PROFILES = {
         "chirp3_voice": "pt-BR-Chirp3-HD-Puck",
         "gemini_alt_voices": (),
         "profile": "narrador",
-        "emotion": "Narradora feminina jovem de 16 anos, amiga, muito alegre, sorridente, risonha e saltitante: conte a história como uma piada super divertida com sorriso na voz do início ao fim (nunca séria ou jornalística)",
+        "emotion": "Narradora feminina jovem de 16 anos, amiga, MUITO alegre, sorridente, risonha, saltitante e cheia de energia do primeiro segundo: conte a historia como uma brincadeira engraçadíssima, com interjeições animadas, ritmo acelerado e sorriso na voz do início ao fim (nunca séria, monótona ou jornalística)",
         "edge_voice": "pt-BR-ThalitaNeural",
         "edge_rate": "+6%",
         "edge_pitch": "+4Hz",

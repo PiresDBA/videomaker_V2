@@ -67,6 +67,7 @@ def build_pacing_plan(
                 "visual_action": sc.get("visual_action", ""),
                 "characters": list(sc.get("characters") or ["Frida", "Luna"]),
                 "sfx": sc.get("sfx") if p_idx == 0 else None,
+                "comedy_beat": sc.get("comedy_beat", "") if p_idx == 0 else "",
                 "avatar_mode": avatar_mode,
                 "avatar_pip": avatar_mode != "none",
                 "start": sub_start,

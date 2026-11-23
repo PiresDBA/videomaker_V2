@@ -633,6 +633,13 @@ async def generate_flow_video(
         if vid_ref and await attach_reference_from_plus(page, "Vídeos", vid_ref, exact=False):
             attached.append(f"vid:{vid_ref[:30]}")
     print(f"  [FlowVeo] Anexos no comando ({len(attached)}/{max_elements}): {attached}", flush=True)
+    if not attached:
+        # Sem keyframe/personagem ancorado o Veo "alucina" a cena (ex.: trocar areia por biscoito).
+        # Aborta ANTES de submeter para nao queimar 10 creditos num video que sera reprovado.
+        raise RuntimeError(
+            "[FlowVeo] Nenhuma referencia ancorada no comando (keyframe/personagens); "
+            "abortando antes de submeter para evitar video inconsistente."
+        )
 
     await _wait_for_inflight_flow_generation(page, max_wait_s=min(wait_s, 180))
     before = await _snapshot_top_tiles(page, limit=4)

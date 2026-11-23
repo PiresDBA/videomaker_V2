@@ -203,7 +203,25 @@ def run_pipeline(args: argparse.Namespace) -> int:
     else:
         if not args.prompt:
             raise ValueError("Informe --prompt, --script-file ou --legacy-dir.")
-        script_data = generate_script(args.prompt, script_path, min_words=args.min_words, max_words=args.max_words)
+        humor_prompt = ""
+        if not getattr(args, "skip_viral_research", False):
+            try:
+                from core.viral_research import build_prompt_section, research_viral_humor
+                viral = research_viral_humor(args.prompt, artifacts_dir / "viral_research.json")
+                humor_prompt = build_prompt_section(viral)
+                sinais = [s.get("signal", "") for s in (viral.get("humor") or {}).get("signals", [])[:4]]
+                print(
+                    f"[VIRAL] {viral.get('viral_count', 0)} video(s) acima de 1M | "
+                    f"estrutura: {', '.join(sinais) if sinais else 'sugestao fallback'}",
+                    flush=True,
+                )
+            except Exception as exc:
+                print(f"[VIRAL] pesquisa indisponivel ({str(exc)[:120]}); seguindo com formula padrao.", flush=True)
+        script_data = generate_script(
+            args.prompt, script_path,
+            min_words=args.min_words, max_words=args.max_words,
+            humor_prompt=humor_prompt,
+        )
 
     if getattr(args, "target_minutes", None):
         script_data["target_minutes"] = float(args.target_minutes)
@@ -345,6 +363,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
                 veo_scene_ids=set(),
                 generate_veo_inline=False,
                 strict_vision=True,
+                audit_profile=getattr(args, "audit_profile", "light"),
             )
         with FlowStageWatchdog(slug=slug, stage="flow_media"):
             if not getattr(args, "skip_scene_audit", False):
@@ -364,6 +383,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
                     veo_max_retries=2,
                     max_new_veo_per_scene=1,
                     strict_vision=True,
+                    audit_profile=getattr(args, "audit_profile", "light"),
                 )
                 print(
                     f"Auditoria Cena-a-Cena (Imagens + Veo): APPROVED={sc_audit['approved']} | "
@@ -533,6 +553,8 @@ def main() -> int:
     ap.add_argument("--skip-veo", action="store_true", help="Pula geracao dos 10 videos 8s Veo 3.1 Lite")
     ap.add_argument("--veo-videos", type=int, default=TARGET_VEO_VIDEOS, help="Quantidade alvo de videos 8s Veo 3.1 Lite (padrao 10)")
     ap.add_argument("--skip-scene-audit", action="store_true", help="Desativa auditoria cena-a-cena antes de avancar")
+    ap.add_argument("--audit-profile", choices=("light", "strict"), default="light", help="light (padrao) libera midia utilizavel e so bloqueia defeitos toscos; strict restaura o fail-closed total")
+    ap.add_argument("--skip-viral-research", action="store_true", help="Pula a pesquisa automatica de virais do YouTube antes de escrever o roteiro")
     ap.add_argument("--skip-short", action="store_true")
     ap.add_argument("--skip-thumbs", action="store_true")
     ap.add_argument("--vision-audit", action="store_true", help="Compara imagens geradas x cenario via Gemini Vision")

@@ -1,6 +1,6 @@
 # CONTRATO DO MOTOR VIDEOMAKER V2 (PORTÁTIL E AUTOCONTIDO)
 
-Este documento define a arquitetura, a estrutura de pastas autocontida e as **10 Regras Imutáveis** do motor **Videomaker v2** (`Frida & Luna`), garantindo portabilidade total entre máquinas e zero regressões por agentes ou edições manuais.
+Este documento define a arquitetura, a estrutura de pastas autocontida e as **19 Regras Imutáveis** do motor **Videomaker v2** (`Frida & Luna`), garantindo portabilidade total entre máquinas e zero regressões por agentes ou edições manuais.
 
 ---
 
@@ -50,7 +50,7 @@ videomaker_v2/
 
 ---
 
-## 2. As 13 Regras Imutáveis do Contrato
+## 2. As 19 Regras Imutáveis do Contrato
 
 1. **100% Autocontido e Portátil:** O motor nunca depende de projetos externos para funcionar. Caminhos priorizam diretórios internos (`bin/`, `.credentials/`, `.chrome-flow-accounts/`, `assets/`, `vendor/`).
 2. **Cânone Visual Criança / Pré-Adolescente 3D Disney-Pixar (`config.py`, `script_engine.py` & `flow_continuity.py`):** Frida (obrigatoriamente **Buldogue Inglesa caramelo-dourada** com colar de pérolas; nunca Golden Retriever) e Luna (obrigatoriamente **Dachshund/Salsicha marrom-chocolate** com correntinhas douradas; nunca Cocker Spaniel) possuem idade visual padrão de **até 1 ano no máximo** (equivalente a **criança de 5–10 anos** em animação 3D estilizada). `validate_script_schema` reprova raças incorretas e `build_image_prompt` injeta a Bíblia Visual seletivamente pelos personagens da cena.
@@ -73,6 +73,8 @@ videomaker_v2/
 15. **REGRA DE OURO — Troca de Narração Sem Re-render + Auditoria de Short Mudo:** Para trocar só a narração de um vídeo pronto: (1) `-c:v copy -an` remove TODAS as faixas de áudio antigas; (2) as falas são coladas em **sequência, sem sobreposição** (pausa distribuída entre cenas, `loudnorm -14 LUFS`), nunca `amix` com timestamps antigos (isso gera falas sobrepostas "2 áudios"); (3) antes de publicar, **todo Short é auditado por volume** — faixa com `mean_volume ≈ -91 dB` é silêncio digital e deve ser considerada **muda** (mesmo tendo stream de áudio). Nenhum Short mudo ou com áudio antigo é publicado.
 16. **REGRA DE OURO — Roteiro Infantil Divertido + Sonoplastia Cartoon Sincronizada + BGM Original:** O roteiro NÃO pode ser narrado de forma neutra/séria: cada cena deve usar texto conversacional com interjeições, reticências e travessões (estilo "Olha só que incrível! ... você vai adorar!") e `emotion_direction` alegre/brincalhona, para extrair emoção do Chirp 3 HD (que não tem parâmetro de emoção). A sonoplastia é **cartoon estilo Pica-Pau/Pernalonga** (`cartoon boing`, `cartoon giggle`, `cartoon fanfare`, `slide whistle`, `mallet celesta`, `ui_pop`), com **até 3 foleys por cena colados no instante da ação** (pulo = boing, voo = whoosh, patinhas = tap), nunca atropelando a fala (`sidechaincompress`/pausas). A música de fundo é a **BGM original do episódio** (`assets/audio/o-campeonato-de-caes-mais-maluco-do-mundo_musica.wav`), loopada com volume suave — não BGM genérica.
 17. **REGRA DE OURO — Sincronia Labial por Timeline Atualizada:** A boca dos avatares PiP é renderizada dos WAVs + `scene_audio_start`/`scene_audio_dur`. Sempre que a narração for refeita (voz/texto/duração diferente), **o `pacing_plan_v2.json` e os clipes `.mov` de avatar DEVEM ser regenerados juntos** — reaproveitar `.mov` antigo com `-c:v copy` gera boca dessincronizada ("fala com boca fechada / boca mexendo sem fala").
+18. **REGRA DE OURO — Pesquisa de Virais Antes de Escrever (ESTRUTURA, NUNCA CONTEÚDO):** Para TODO vídeo novo, antes de `generate_script()`, `core/viral_research.py` (`research_viral_humor`) deve pesquisar videos reais do mesmo tema no YouTube (HTML publico/Innertube, sem chave paga), filtrar os que tem **>= 1.000.000 de visualizacoes** e extrair apenas **padroes estruturais de humor** (gancho, contraste de personalidades, plano que falha, escalada de gags, repeticao/callback, desfecho). O resultado vai para `projects/<slug>/artifacts/viral_research.json` (cache de 24h por tema) e e injetado no prompt do roteirista via `humor_prompt`. **E PROIBIDO copiar titulos, falas, cenas, personagens ou piadas dos videos pesquisados** — a pesquisa so define o formato. Se nenhum video passar de 1M, o modulo deve gerar uma **sugestao de estrutura baseada nos videos encontrados** e seguir com o roteiro. Falha de rede nunca quebra o pipeline (`--skip-viral-research` desliga a etapa).
+19. **REGRA DE OURO — Auditoria Light de Mídia Paga (NÃO DESPERDIÇAR CRÉDITO):** Vídeo Veo e imagem já gerados custaram crédito/dinheiro; o perfil padrão de auditoria é `light` (`--audit-profile light`, também em `core/scene_auditor.py`), que **aprova** o material utilizável mesmo com pequena divergência de ação, objeto ou posição. Só bloqueia defeitos **toscos**: colagem/split, marca d'água/legenda/balão de fala, figuras humanas/stick figures em animação de cães, cenário de outro episódio, raça trocada ou personagem ausente. O perfil `strict` restaura o fail-closed total e continua disponível (`--audit-profile strict`). Toda aprovação light registra `audit_profile` e `relaxed_checks` no resultado para rastreabilidade.
 
 ---
 
@@ -82,6 +84,8 @@ videomaker_v2/
 ```powershell
 C:\Docling\venv\Scripts\python.exe pipeline_v2.py --prompt "Frida e Luna encontram um mapa secreto no quintal" --slug mapa-secreto --tts-provider chirp3_hd --veo-videos 10 --min-words 450 --max-words 550 --target-minutes 3.5 --max-clip-seconds 5.0 --overlay-style auto --sfx-volume 0.35 --bgm-volume 0.22 --target-lufs -14
 ```
+
+> Toda criação com `--prompt` executa **automaticamente** a pesquisa de virais do tema (Regra 18) e salva `artifacts/viral_research.json`. Para desativar: `--skip-viral-research`.
 
 ### Autenticar Google Cloud Chirp 3 HD (OAuth 2.0 gratuito 1M chars/mês)
 ```powershell

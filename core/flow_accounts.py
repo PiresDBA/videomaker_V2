@@ -383,6 +383,21 @@ async def upload_media_to_flow(page, media_path: Path) -> bool:
                     await env_tab.click(timeout=4000)
                     await page.wait_for_timeout(600)
 
+        if not await file_inp.count() and not await up_btn.count():
+            # Segunda tentativa: o overlay pode ter fechado ou trocado de aba entre navegacoes
+            await page.keyboard.press("Escape")
+            await page.wait_for_timeout(350)
+            add_retry = page.locator('button[aria-label="Adicionar elementos à caixa de comando"]').first
+            if await add_retry.count() and await add_retry.is_visible():
+                await add_retry.click(timeout=4000)
+                await page.wait_for_timeout(700)
+                env_retry = page.locator(
+                    '.cdk-overlay-pane :is(button,[role="tab"]):has-text("Envios")'
+                ).first
+                if await env_retry.count():
+                    await env_retry.click(timeout=4000)
+                    await page.wait_for_timeout(600)
+
         if await file_inp.count():
             await file_inp.set_input_files(str(media_path))
         elif await up_btn.count():
@@ -391,6 +406,7 @@ async def upload_media_to_flow(page, media_path: Path) -> bool:
             chooser = await fc.value
             await chooser.set_files(str(media_path))
         else:
+            print(f"  [FlowUpload] AVISO: nenhum campo de upload disponivel para '{media_path.name}'.", flush=True)
             await page.keyboard.press("Escape")
             return False
 
@@ -563,8 +579,10 @@ async def generate_video_with_failover(
 
                     # Anexa keyframe e eventuais retratos de fallback para personagens ausentes
                     ref_imgs: list[str] = []
+                    keyframe_ready = False
                     if acc["id"] == "acc_1" and keyframe_aria_on_acc1:
                         ref_imgs.append(keyframe_aria_on_acc1)
+                        keyframe_ready = True
                     elif keyframe_path and keyframe_path.exists():
                         import hashlib
                         import shutil
@@ -574,13 +592,21 @@ async def generate_video_with_failover(
                             shutil.copy2(keyframe_path, kf_unique)
                             if await upload_media_to_flow(page, kf_unique):
                                 ref_imgs.append(kf_unique.name)
+                                keyframe_ready = True
                         finally:
                             kf_unique.unlink(missing_ok=True)
+                    if keyframe_path and keyframe_path.exists() and not keyframe_ready:
+                        print(
+                            f"[FlowFailover] {acc['id']} nao conseguiu anexar o keyframe; "
+                            "pulando conta para nao gerar video com morfologia instavel.",
+                            flush=True,
+                        )
+                        continue
 
-                    if any(mc.lower() in ("frida", "luna") for mc in missing_chars):
-                        sheet = BASE_DIR / "assets" / "reference" / "frida_luna_reference.jpg"
-                        if sheet.exists() and await upload_media_to_flow(page, sheet):
-                            ref_imgs.append(sheet.name)
+                    # Sempre inclui a folha de referencia dupla como ancora visual extra
+                    sheet = BASE_DIR / "assets" / "reference" / "frida_luna_reference.jpg"
+                    if sheet.exists() and sheet.name not in ref_imgs and await upload_media_to_flow(page, sheet):
+                        ref_imgs.append(sheet.name)
                     for mc in missing_chars:
                         if mc.lower() in ("frida", "luna"):
                             continue

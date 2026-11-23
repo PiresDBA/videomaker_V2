@@ -378,15 +378,15 @@ class TestVideomakerV2Unified(unittest.TestCase):
         from core.media_studio import select_veo_scenes
         from core.scene_auditor import audit_voice_consistency
 
-        # 1. Trava de vozes (Zephyr/Sulafat/Leda sem troca)
+        # 1. Trava de vozes (Puck/Sulafat/Leda sem troca)
         ok_timings = [
-            {"scene_id": "sc_01", "speaker": "narrador", "voice": "gemini-3.8-flash-tts:Zephyr"},
+            {"scene_id": "sc_01", "speaker": "narrador", "voice": "gemini-3.8-flash-tts:Puck"},
             {"scene_id": "sc_02", "speaker": "frida", "voice": "gemini-3.8-flash-tts:Sulafat"},
             {"scene_id": "sc_03", "speaker": "luna", "voice": "gemini-3.8-flash-tts:Leda"},
         ]
         self.assertEqual(audit_voice_consistency(ok_timings), [])
         bad_timings = ok_timings + [
-            {"scene_id": "sc_17", "speaker": "narrador", "voice": "gemini-3.8-flash-tts:Puck"},
+            {"scene_id": "sc_17", "speaker": "narrador", "voice": "gemini-3.8-flash-tts:Zephyr"},
         ]
         self.assertTrue(audit_voice_consistency(bad_timings))
 
@@ -468,6 +468,7 @@ class TestVideomakerV2Unified(unittest.TestCase):
                 res_strict = scene_auditor.audit_scene_visual_with_vision(
                     [dummy_jpg], {"scene_id": "sc_01", "text": "teste", "location": "park", "visual_action": "run"},
                     strict_vision=True,
+                    audit_profile="strict",
                 )
                 self.assertFalse(res_strict["ok"])
                 self.assertTrue(res_strict.get("vision_unavailable"))
@@ -667,15 +668,15 @@ class TestVideomakerV2Unified(unittest.TestCase):
                  mock.patch.object(vs, "resolve_chirp3_oauth_paths", return_value=(None, oauth_tok, "ingles-514519")), \
                  mock.patch("urllib.request.urlopen", side_effect=_fake_urlopen):
                 used_n, _ = vs._synthesize_chirp3_hd("Narracao teste", "narrador", out_nar, state_file=usage_file, token_path=oauth_tok)
-            self.assertEqual(used_n, "chirp3_hd:pt-BR-Chirp3-HD-Zephyr")
+            self.assertEqual(used_n, "chirp3_hd:pt-BR-Chirp3-HD-Puck")
             self.assertEqual(captured["headers"]["authorization"], "Bearer tok_user_oauth")
             self.assertEqual(captured["headers"]["x-goog-user-project"], "ingles-514519")
-            self.assertEqual(captured["payload"]["voice"]["name"], "pt-BR-Chirp3-HD-Zephyr")
+            self.assertEqual(captured["payload"]["voice"]["name"], "pt-BR-Chirp3-HD-Puck")
 
         # audit_voice_consistency aceita Chirp 3 HD travado e reprova troca de voz
         self.assertEqual(
             audit_voice_consistency([
-                {"scene_id": "sc_01", "speaker": "narrador", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Zephyr"},
+                {"scene_id": "sc_01", "speaker": "narrador", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Puck"},
                 {"scene_id": "sc_02", "speaker": "frida", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Sulafat"},
                 {"scene_id": "sc_03", "speaker": "luna", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Leda"},
             ]),
@@ -683,7 +684,7 @@ class TestVideomakerV2Unified(unittest.TestCase):
         )
         self.assertTrue(
             audit_voice_consistency([
-                {"scene_id": "sc_01", "speaker": "narrador", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Puck"},
+                {"scene_id": "sc_01", "speaker": "narrador", "voice": "chirp3_hd:pt-BR-Chirp3-HD-Zephyr"},
             ])
         )
         with tempfile.TemporaryDirectory() as td:
@@ -1269,6 +1270,127 @@ class TestVideomakerV2Unified(unittest.TestCase):
             self.assertTrue(rep["bad_opening"])
             self.assertGreater(rep["written_laughs"], 10)
             self.assertIn("condensar_roteiro_3_atos_frida_luna", rep["recommended_actions"])
+
+
+    def test_light_audit_releases_usable_media_but_blocks_crude(self):
+        """Perfil light (padrao) libera acao divergente; so bloqueia defeito tosco."""
+        import json
+        import tempfile
+        from unittest import mock
+
+        from PIL import Image
+
+        import core.scene_auditor as sa
+
+        def _vision(payload: dict):
+            resp = mock.MagicMock()
+            resp.__enter__.return_value = resp
+            resp.read.return_value = json.dumps({
+                "candidates": [{"content": {"parts": [{"text": json.dumps(payload)}]}}]
+            }).encode("utf-8")
+            return resp
+
+        with tempfile.TemporaryDirectory() as td:
+            img = Path(td) / "frame.jpg"
+            Image.new("RGB", (640, 360), (150, 180, 200)).save(img, quality=90)
+            scene = {"scene_id": "sc_08", "text": "Luna se sacode", "location": "praia", "visual_action": "shake"}
+
+            action_mismatch = {
+                "matches_narration": False, "matches_location": True, "matches_characters": True,
+                "matches_story_props": True, "has_collage_or_split": False, "has_visible_text": False,
+                "reason": "Luna esta parada, sem o sacodir descrito",
+            }
+            with mock.patch.object(sa, "_get_google_keys", return_value=["k1"]), \
+                 mock.patch("urllib.request.urlopen", return_value=_vision(action_mismatch)):
+                strict = sa.audit_scene_visual_with_vision([img], scene, audit_profile="strict")
+                light = sa.audit_scene_visual_with_vision([img], scene, audit_profile="light")
+            self.assertFalse(strict["ok"])
+            self.assertTrue(light["ok"])
+            self.assertIn("narration", light["relaxed_checks"])
+            self.assertEqual(light["audit_profile"], "light")
+
+            crude = {
+                "matches_narration": True, "matches_location": True, "matches_characters": True,
+                "matches_story_props": True, "has_collage_or_split": False, "has_visible_text": True,
+                "reason": "marca d'agua gigante no centro",
+            }
+            with mock.patch.object(sa, "_get_google_keys", return_value=["k1"]), \
+                 mock.patch("urllib.request.urlopen", return_value=_vision(crude)):
+                blocked = sa.audit_scene_visual_with_vision([img], scene, audit_profile="light")
+            self.assertFalse(blocked["ok"])
+
+    def test_viral_research_structure_and_fallback(self):
+        """Pesquisa de virais extrai ESTRUTURA e nunca vaza titulo/fala copiada ao roteirista."""
+        from core.viral_research import (
+            analyze_humor_structure,
+            build_prompt_section,
+            build_queries,
+            parse_view_count,
+        )
+
+        self.assertEqual(parse_view_count("6.455.922 visualizações"), 6_455_922)
+        self.assertEqual(parse_view_count("1.9M views"), 1_900_000)
+        self.assertEqual(parse_view_count("256.859 visualizações"), 256_859)
+        self.assertEqual(parse_view_count("1,2 mi visualizações"), 1_200_000)
+
+        videos = [{
+            "title": "Dogs First Time at the Beach Funny Compilation",
+            "snippet": "funny fails",
+            "views": 5_000_000,
+        }]
+        analysis = analyze_humor_structure(videos)
+        names = {s["signal"] for s in analysis["signals"]}
+        self.assertIn("first_time", names)
+        self.assertIn("rapid_compilation", names)
+
+        section = build_prompt_section({
+            "found_viral": True, "viral_count": 1, "humor": analysis, "suggestion": None,
+        })
+        self.assertIn("USE A ESTRUTURA", section)
+        self.assertIn("PROIBIDO copiar", section)
+        self.assertNotIn("Dogs First Time", section)
+
+        fallback = build_prompt_section({
+            "found_viral": False, "viral_count": 0,
+            "humor": {"signals": [], "structure": {}},
+            "suggestion": "Nenhum vídeo acima de 1M encontrado. Sugestão: gancho e contraste.",
+        })
+        self.assertIn("Nenhum vídeo acima de 1M", fallback)
+        self.assertIn("Gancho", fallback)
+        queries = build_queries("Frida e Luna primeiro dia de praia muito engraçado")
+        self.assertEqual(len(queries), 4)
+        self.assertTrue(any("dog" in q and "beach" in q for q in queries))
+
+    def test_comedy_timing_fields_and_multi_foley(self):
+        """Regra 16: catchphrase e comedy_beat sobrevivem a normalizacao e geram ate 3 foleys."""
+        from core.audio_fx import MAX_COMEDY_FOLEYS, _infer_semantic_foleys
+        from core.script_engine import normalize_script_records
+
+        raw = {
+            "title": "O Primeiro Dia de Praia da Frida e Luna",
+            "catchphrase": "Eu não comi, só provei... de novo!",
+            "scenes": [{
+                "scene_id": "sc_01",
+                "act": 1,
+                "speaker": "luna",
+                "text": "Eita! A areia me mordeu...",
+                "location": "Praia ensolarada",
+                "visual_action": "Luna pula na areia com as patinhas",
+                "sfx": "cartoon boing",
+                "comedy_beat": "Luna pula na areia → cartoon boing → slide whistle de susto → pausa de riso",
+                "avatar_mode": "luna",
+            }],
+        }
+        norm = normalize_script_records(raw)
+        self.assertEqual(norm["catchphrase"], "Eu não comi, só provei... de novo!")
+        self.assertIn("cartoon boing", norm["scenes"][0]["comedy_beat"])
+
+        hits = _infer_semantic_foleys(norm["scenes"][0])
+        self.assertLessEqual(len(hits), MAX_COMEDY_FOLEYS)
+        self.assertGreaterEqual(len(hits), 2)
+        self.assertTrue(any("boing" in h.lower() for h, _v in hits))
+        self.assertTrue(any("whistle" in h.lower() for h, _v in hits))
+        self.assertTrue(all(0 < v <= 0.35 for _h, v in hits))
 
 
 if __name__ == "__main__":

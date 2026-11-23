@@ -34,6 +34,29 @@ from core.media_studio import (  # noqa: E402
 )
 from core.script_engine import _get_google_keys, normalize_script_records  # noqa: E402
 
+# Perfis de auditoria. "light" libera o que e minimamente utilizavel (gerar video/image custa credito/dinheiro);
+# so bloqueia o que e realmente tosco. "strict" mantem a regra antiga, fail-closed em todas as checagens.
+AUDIT_PROFILES = ("light", "strict")
+_HARD_BLOCK_TOKENS = (
+    "marca d'água", "marca d'agua", "watermark", "legenda", "subtitle", "balão", "balao",
+    "speech bubble", "colagem", "split screen", "humano", "human", "palito", "stick figure",
+    "estúdio", "estudio", "plantação", "plantacao", "fazenda", "caverna", "trem", "escrav",
+    "raça diferente", "raca diferente", "cachorro desconhecido", "terceiro cão", "terceiro cao",
+    "charlie chaplin", "fake", "texto gigante",
+)
+
+
+def _is_hard_block(reason: str, matches_characters: bool, matches_location: bool) -> bool:
+    """Light profile: so considera bloqueio os defeitos gravissimos listados acima."""
+    low = (reason or "").lower()
+    if any(tok in low for tok in _HARD_BLOCK_TOKENS):
+        return True
+    if not matches_characters and any(tok in low for tok in ("sem frida", "sem luna", "ausente", "errada", "troca")):
+        return True
+    if not matches_location and any(tok in low for tok in ("outro episódio", "outro episodio", "completamente")):
+        return True
+    return False
+
 
 def _probe_dur(path: Path) -> float:
     try:
@@ -213,8 +236,10 @@ def audit_scene_visual_with_vision(
     clip_variant: str = "",
     audio_heard_pt: str = "",
     is_video_keyframes: bool = False,
+    audit_profile: str = "light",
 ) -> dict[str, Any]:
     """Audita cena (imagem ou frames de video) contra narracao PT, personagens e consistencia de objeto."""
+    profile = audit_profile if audit_profile in AUDIT_PROFILES else "light"
     valid_frames = [p for p in frame_paths if p.exists() and p.stat().st_size > 2000]
     if not valid_frames:
         return {"checked": False, "ok": False, "reason": "nenhum frame valido encontrado", "fix_prompt_hint": ""}
@@ -381,14 +406,23 @@ def audit_scene_visual_with_vision(
                         res["has_visible_text"] = False
                     props_ok = bool(res.get("matches_story_props", True)) if props_desc else True
                     res["matches_story_props"] = props_ok
-                    ok = (
-                        bool(res.get("matches_narration", True))
-                        and bool(res.get("matches_location", True))
-                        and bool(res.get("matches_characters", True))
-                        and props_ok
-                        and not collage_flag
-                        and not text_flag
-                    )
+                    narration_ok = bool(res.get("matches_narration", True))
+                    location_ok = bool(res.get("matches_location", True))
+                    chars_ok = bool(res.get("matches_characters", True))
+                    hard = collage_flag or intrusive_text
+                    if profile == "strict":
+                        ok = narration_ok and location_ok and chars_ok and props_ok and not collage_flag and not text_flag
+                    else:
+                        # Perfil light: só bloqueia defeitos gravíssimos. Ação/objeto/pausa diferentes são
+                        # aceitos porque o материал já foi pago e descartá-lo desperdiça crédito.
+                        ok = not hard and not _is_hard_block(str(res.get("reason") or ""), chars_ok, location_ok)
+                        res["relaxed_checks"] = [
+                            name for name, passed in (
+                                ("narration", narration_ok), ("location", location_ok),
+                                ("characters", chars_ok), ("props", props_ok),
+                            ) if not passed
+                        ]
+                    res["audit_profile"] = profile
                     res["checked"] = True
                     res["ok"] = ok
                     return res
@@ -400,8 +434,9 @@ def audit_scene_visual_with_vision(
             time.sleep(3.0)
     return {
         "checked": False,
-        "ok": not strict_vision,
+        "ok": not strict_vision or profile == "light",
         "vision_unavailable": True,
+        "audit_profile": profile,
         "reason": f"Vision QA indisponivel ({last_err})",
         "fix_prompt_hint": "",
     }
@@ -424,6 +459,7 @@ def generate_and_audit_scenes(
     max_new_veo_per_scene: int | None = None,
     strict_vision: bool = True,
     stop_on_scene_failure: bool = True,
+    audit_profile: str = "light",
 ) -> dict[str, Any]:
     """Gera e audita CENA POR CENA (imagem + Veo) antes de passar para a proxima cena; regenera se nao fizer sentido."""
     images_dir.mkdir(parents=True, exist_ok=True)
@@ -672,6 +708,7 @@ def generate_and_audit_scenes(
                 strict_vision=strict_vision,
                 clip_variant=str(clip.get("prompt_variant") or ""),
                 audio_heard_pt=heard_by_scene.get(sid, ""),
+                audit_profile=audit_profile,
             )
             final_vis = vis
             if vis.get("ok", False):
@@ -824,6 +861,7 @@ def generate_and_audit_scenes(
                             strict_vision=strict_vision,
                             audio_heard_pt=heard_by_scene.get(sid, ""),
                             is_video_keyframes=True,
+                            audit_profile=audit_profile,
                         )
                     if v_vis.get("ok", False):
                         v_approved = True
@@ -943,6 +981,7 @@ def main() -> int:
     ap.add_argument("--project-dir", required=True, help="Diretorio do projeto em projects/<slug>")
     ap.add_argument("--auto-fix", action="store_true", help="Regenera automaticamente cenas reprovadas antes de avancar")
     ap.add_argument("--max-retries", type=int, default=3)
+    ap.add_argument("--audit-profile", choices=AUDIT_PROFILES, default="light", help="light libera o utilizavel e so bloqueia defeitos toscos; strict mantem o fail-closed total")
     args = ap.parse_args()
 
     proj_dir = Path(args.project_dir)
@@ -961,6 +1000,7 @@ def main() -> int:
         videos_dir=proj_dir / "assets" / "videos",
         auto_fix=args.auto_fix,
         max_retries=args.max_retries,
+        audit_profile=args.audit_profile,
     )
     print(
         f"Auditoria Cena-a-Cena: APPROVED={rep['approved']} | Cenas={rep['scenes_audited']} | "

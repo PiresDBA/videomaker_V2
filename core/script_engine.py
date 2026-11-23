@@ -37,7 +37,7 @@ Escreva uma história ORIGINAL de 3 a 4 minutos para o canal "Frida e Luna" no f
 
 REGRAS OBRIGATÓRIAS DE RETENÇÃO, EMOÇÃO E ESTRUTURA:
 1. CONTAGEM ESTRITA DE PALAVRAS: a soma total de palavras do campo "text" de todas as cenas DEVE ficar entre 450 e 550 palavras.
-2. GANCHO IMEDIATO (0-5s): É PROIBIDO começar com saudações ("Bom dia", "Oi pessoal", "Sejam bem-vindos", etc.). A cena 1 já abre dentro da ação/surpresa nos primeiros 5 segundos.
+2. GANCHO IMEDIATO (0-3s) E ENERGIA MÁXIMA: É PROIBIDO começar com saudações ("Bom dia", "Oi pessoal", "Sejam bem-vindos", etc.) ou qualquer intro lenta. A cena 1 já abre no PRIMEIRO SEGUNDO com a reação surpresa e risonha à areia/à água ("Eita! A areia me mordeu!"), em voz agitada e feliz. A narração DE TODAS as cenas deve soar como uma brincadeira animada: ritmo acelerado, interjeições entusiasmadas e sorriso na voz do início ao fim — nunca tom sério, jornalístico ou monótono.
 3. DIÁLOGO VIVO FRIDA x LUNA: Divida a narrativa em bate-bola ágil entre Frida (doce, calma, sensata) e Luna (agitada, curiosa, dramática), usando o Narrador só para pontes de ação. Evite blocos longos de monólogo.
 4. OPEN LOOPS E 3 ATOS COM CONFLITO REAL:
    - Ato 1 (act=1): Gancho explosivo + objetivo/mistério + pequeno gancho de curiosidade no fim do ato.
@@ -53,6 +53,10 @@ REGRAS OBRIGATÓRIAS DE RETENÇÃO, EMOÇÃO E ESTRUTURA:
    - LUNA é obrigatoriamente uma filhote jovem de Dachshund (Salsicha) miniatura de pelo liso marrom-chocolate (chocolate-brown) com marcações caramelo e correntinha dupla dourada com pingentes de coração — NUNCA Cocker Spaniel, nunca labrador.
 9. CONTINUIDADE DE PERSONAGENS SECUNDÁRIOS: Sempre que houver outro personagem recorrente na história (ex.: chihuahua Pipoca, gato Pingo, pombo, esquilo), declare-o na lista de topo "secondary_characters": [{"name": "NomeCurto", "description": "Descrição visual 3D Disney/Pixar completa e fixa do personagem (espécie, raça, cor exata da pelagem/penas, olhos, acessório)"}] e inclua o campo "characters": ["Frida", "Luna", "NomeCurto"] em TODA cena em que ele aparecer, referenciando @NomeCurto e repetindo suas características físicas em "visual_action".
 10. CONSISTÊNCIA DE OBJETOS-CHAVE DA HISTÓRIA (POR VÍDEO): Todo objeto central que se repete ao longo do episódio (ex.: caminha nova, bola favorita, mochila, caixa misteriosa) DEVE ser declarado na lista de topo "story_props": [{"name": "NomeObjeto", "description": "Descrição visual exata e imutável do objeto (forma, cor, material, estampa, tamanho)"}] e mantido idêntico do início ao fim deste vídeo. Quando um vídeo novo começar, os objetos e personagens secundários são zerados para a nova história — apenas Frida e Luna são personagens fixos globais.
+11. COMEDIA DE VERDADE (MISSÃO PRINCIPAL DESTE EPISÓDIO): NÃO narre de forma neutra. Escreva piada física, exagero e mal-entendido — o público deve rir a cada 10 segundos. Use interjeições curtas ("Ai!", "Olha só!", "Eita!", "Opaaa!"), reticências para o respiro do riso ("...") e travessões para a virada ("—"). Frida é a sensata que avisa; Luna é a impulsiva que cria o caos. Defina no topo uma "catchphrase" engraçada e curta (ex.: "Eu não comi, só provei... de novo!") e faça a Luna repeti-la em 3 cenas diferentes, sempre numa situação nova — esse é o callback que faz o público rir. NUNCA escreva "hahaha", "kkkk" ou risada em letras (o TTS soa robótico; a risada vem da emoção e do SFX).
+12. TIMING DE PIADA (CAMPO OBRIGATÓRIO "comedy_beat"): Toda cena DEVE trazer "comedy_beat" com 1 frase curta no formato "ação → som → pausa". Ex.: "Luna pula na areia → cartoon boing → pausa de 0,6s e olhar pra câmera"; "Frida abre a concha → cartoon fanfare → pausa de riso". Escolha sons cartoon curtos em inglês (2 a 3 palavras): "cartoon boing", "cartoon giggle", "cartoon fanfare", "slide whistle", "rubber duck squeak", "cartoon crunch bite", "cartoon splash", "cartoon sneeze", "mallet celesta". O campo "sfx" deve ser o som PRINCIPAL dessa piada (um desses termos curtos), nunca um termo técnico longo.
+13. RESPIRO CÔMICO: após cada piada forte, escreva a ação com uma pausa explícita no texto (reticências) para o efeito e o riso acontecerem. Alternar gag físico (pulo, queda, espuma, areia, onda) com gag de palavra (mal-entendido, repetição da catchphrase, exagero) a cada 2 cenas.
+14. FÓRMULA DE RETENÇÃO DOS VÍDEOS DE PRAIA MAIS VISTOS (aplique com ideias ORIGINAIS — nunca copie cenas, frases ou roteiros de nenhum vídeo): (a) reação de primeira vez nos primeiros 3 segundos — surpresa física imediata; (b) dupla em contraste: a sensata/cautelosa (Frida) contra a impulsiva/exagerada (Luna) — o choque de personalidades é o motor do riso; (c) um plano que NÃO sai como planejado: Frida faz um plano esperto e ele falha de 3 formas diferentes e crescentes; (d) escada de gags físicos em sequência rápida: pulo → susto → corrida → queda → areia voando → onda → resgate; (e) cada gag ganha um som cartoon no instante exato e um respiro curto de 0,5s para o riso; (f) a catchphrase da Luna retorna 3 vezes em situações diferentes, sempre pior; (g) final feliz e quente com abraço e moral em 1 frase. Nunca deixe mais de 2 cenas seguidas sem piada ou reação física.
 
 FORMATOS DE SAÍDA (APENAS JSON puro, sem markdown):
 {
@@ -61,6 +65,7 @@ FORMATOS DE SAÍDA (APENAS JSON puro, sem markdown):
   "description": "Descrição curta otimizada para YouTube",
   "tags": ["frida e luna", "historia infantil"],
   "target_minutes": 3.5,
+  "catchphrase": "Frase curta e engraçada repetida 3 vezes em situações diferentes",
   "secondary_characters": [],
   "story_props": [{"name": "Caminha", "description": "Round plush red velvet dog bed embroidered with small golden hearts"}],
   "scenes": [
@@ -68,11 +73,12 @@ FORMATOS DE SAÍDA (APENAS JSON puro, sem markdown):
       "scene_id": "sc_01",
       "act": 1,
       "speaker": "narrador | frida | luna | secundario",
-      "emotion_direction": "tom energético de abertura",
-      "text": "1 ou 2 frases curtas.",
+      "emotion_direction": "tom energético e risonho de abertura",
+      "text": "1 ou 2 frases curtas com interjeição e reticências.",
       "location": "Exact scene environment",
       "visual_action": "Concrete expressive 3D visual action",
-      "sfx": "whoosh_fast/crisp ou termo curto ingles ou null",
+      "sfx": "cartoon boing",
+      "comedy_beat": "ação → cartoon boing → pausa de 0,6s e olhar pra câmera",
       "avatar_mode": "frida | luna | duo | none"
     }
   ]
@@ -157,6 +163,7 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
             if not chars:
                 chars = ["Frida", "Luna"]
 
+        comedy_beat = " ".join(str(sc.get("comedy_beat") or "").split())
         scenes_out.append({
             "scene_id": sid,
             "act": int(act),
@@ -166,6 +173,7 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
             "location": " ".join(str(sc.get("location") or "").split()),
             "visual_action": act_clean,
             "sfx": sc.get("sfx") if sc.get("sfx") else None,
+            "comedy_beat": comedy_beat,
             "avatar_mode": avatar_mode,
             "avatar_pip": avatar_mode != "none",
             "characters": chars,
@@ -178,6 +186,7 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
         "description": " ".join(str(data.get("description") or title).split()),
         "tags": list(data.get("tags") or ["frida e luna", "cachorros falantes", "animacao 3d"]),
         "target_minutes": float(data.get("target_minutes") or 3.5),
+        "catchphrase": " ".join(str(data.get("catchphrase") or "").split()),
         "secondary_characters": sec_chars_out,
         "story_props": props_out,
         "scenes": scenes_out,
@@ -340,6 +349,7 @@ def generate_script(
     max_attempts: int = 3,
     min_words: int = SCRIPT_MIN_WORDS,
     max_words: int = SCRIPT_MAX_WORDS,
+    humor_prompt: str = "",
 ) -> dict[str, Any]:
     """Gera roteiro via Gemini API (com fallback para gemini_fetch.py web) validando schema."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -348,6 +358,8 @@ def generate_script(
 
     for attempt in range(1, max_attempts + 1):
         prompt = f"{SYSTEM_PROMPT}\n\nMETA DE PALAVRAS DO ROTEIRO: entre {min_words} e {max_words} palavras.\nTEMA DO EPISÓDIO: {theme_prompt}"
+        if humor_prompt and humor_prompt.strip():
+            prompt += f"\n\n{humor_prompt.strip()}"
         if feedback:
             prompt += f"\n\nCORREÇÃO OBRIGATÓRIA DA TENTATIVA ANTERIOR:\n{feedback}"
 

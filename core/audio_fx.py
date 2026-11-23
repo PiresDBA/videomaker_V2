@@ -36,6 +36,26 @@ EARSHOT_DEFAULTS = {
     "shutter": ("ui_pop/soft", None),
 }
 
+# Regra 16: ate 3 foleys cartoon por cena, colados no instante da piada.
+MAX_COMEDY_FOLEYS = 3
+
+# Dicas explicitas de som dentro do campo "comedy_beat" do roteiro.
+_COMEDY_BEAT_SOUNDS: tuple[tuple[str, str], ...] = (
+    ("boing", "cartoon boing"),
+    ("giggle", "cartoon giggle"),
+    ("risadinha", "cartoon giggle"),
+    ("fanfare", "cartoon fanfare"),
+    ("whistle", "slide whistle"),
+    ("apito", "slide whistle"),
+    ("squeak", "rubber duck squeak"),
+    ("crunch", "cartoon crunch bite"),
+    ("splash", "cartoon splash"),
+    ("sneeze", "cartoon sneeze"),
+    ("celesta", "mallet/celesta"),
+    ("glock", "mallet/glock"),
+    ("pop", "ui_pop/boop"),
+)
+
 # Regras semanticas de foley estilo desenho animado classico (Pica-Pau / Tom & Jerry / Snoopy)
 SEMANTIC_FOLEY_RULES: tuple[tuple[str, str, str, float], ...] = (
     (r"gato|pingo|cat|miado|garras|cochilo|dorminhoco", "cartoon cat meow", "freesound", 0.32),
@@ -64,6 +84,16 @@ SEMANTIC_FOLEY_RULES: tuple[tuple[str, str, str, float], ...] = (
     (r"sol|p[oô]r\s+do\s+sol|sunset|aprendeu|abra[cç]|carinho|amig|beij", "mallet/glock", "earshot", 0.26),
     (r"piada|bobo|rir|rindo|risad|engra[cç]|divert", "cartoon giggle", "freesound", 0.28),
     (r"aben[cç]|acenar|tchau|beijos|like|inscrev", "cartoon kiss", "freesound", 0.27),
+    # Praia / primeiro dia de praia — gags fisicos e sonoros bem casados com a acao
+    (r"areia|sand|praia|beach|concha|shell|casco", "cartoon sand shuffle", "freesound", 0.30),
+    (r"onda|mar[aá]?|wave|surf|mergulh|splash|resping", "cartoon splash", "freesound", 0.32),
+    (r"protetor|solar|sunscreen|lo[cç][aã]o|creme|bronze", "slide whistle", "freesound", 0.28),
+    (r"escorreg|desliz|tobog[aã]|ladeira|morro", "slide whistle", "freesound", 0.30),
+    (r"biqu[íi]ni|shorts|roupa|trocar|vesti", "cartoon giggle", "freesound", 0.27),
+    (r"p[aá]ssaro|gaivota|seagull|gaviota", "cartoon bird whistle", "freesound", 0.29),
+    (r"frio|gelad|calafrio|estremec", "cartoon teeth chatter", "freesound", 0.28),
+    (r"quente|calor|sol escaldante|suor", "cartoon fanfare", "freesound", 0.27),
+    (r"olhar pra c[aâ]mera|pausa de riso|respiro|risadinha|sorri", "cartoon giggle", "freesound", 0.27),
 )
 
 
@@ -174,23 +204,38 @@ def _snap_to_nearest_pause(target_s: float, pauses: list[dict[str, float]], max_
 
 
 def _infer_semantic_foleys(clip: dict[str, Any]) -> list[tuple[str, float]]:
-    """Extrai ate 2 camadas leves de sonoplastia infantil a partir do texto e acao da cena."""
-    hay = f"{clip.get('text', '')} {clip.get('visual_action', '')}".lower()
+    """Extrai ate 3 foleys cartoon: som do roteiro + timing da piada + acao da cena."""
+    hay = " ".join(str(clip.get(k) or "") for k in ("text", "visual_action", "comedy_beat")).lower()
     hits: list[tuple[str, float]] = []
     seen_hints: set[str] = set()
-    if clip.get("sfx"):
-        h = str(clip["sfx"]).strip()
-        seen_hints.add(h.lower())
-        hits.append((h, 0.30))
 
+    # 1) Som principal escrito no roteiro (aceita um ou mais termos separados por virgula/;)
+    for h in re.split(r"[,;|]+", str(clip.get("sfx") or "")):
+        h = h.strip().strip('"').strip("'")
+        if h and h.lower() not in seen_hints and h.lower() not in ("null", "none", "nenhum"):
+            seen_hints.add(h.lower())
+            hits.append((h, 0.30))
+        if len(hits) >= MAX_COMEDY_FOLEYS:
+            break
+
+    # 2) Sons explicitos no timing da piada ("acao -> cartoon boing -> pausa")
+    cb = str(clip.get("comedy_beat") or "").lower()
+    for kw, hint in _COMEDY_BEAT_SOUNDS:
+        if len(hits) >= MAX_COMEDY_FOLEYS:
+            break
+        if re.search(r"\b" + re.escape(kw) + r"\b", cb) and hint.lower() not in seen_hints:
+            seen_hints.add(hint.lower())
+            hits.append((hint, 0.29))
+
+    # 3) Foleys semanticos pelo texto/acao da cena
     for rx, query, _orig, vol in SEMANTIC_FOLEY_RULES:
-        if len(hits) >= 2:
+        if len(hits) >= MAX_COMEDY_FOLEYS:
             break
         if query.lower() not in seen_hints and re.search(rx, hay, re.I):
             seen_hints.add(query.lower())
             hits.append((query, vol))
 
-    # Se nenhuma regra bateu mas ha troca de personagem/dialogo, coloca micro-pop leve e natural
+    # Micro-pop de presenca quando nada bateu (mantem a cena viva sem atropelar)
     if not hits:
         spk = str(clip.get("speaker") or "narrador").lower()
         if spk == "frida":
@@ -199,7 +244,7 @@ def _infer_semantic_foleys(clip: dict[str, Any]) -> list[tuple[str, float]]:
             hits.append(("ui_pop/boop", 0.17))
         else:
             hits.append(("ui_pop/soft", 0.15))
-    return hits
+    return hits[:MAX_COMEDY_FOLEYS]
 
 
 def _find_pause_slot_for_window(
@@ -260,12 +305,14 @@ def build_sfx_stem(
                 "text": clip.get("text", ""),
                 "visual_action": clip.get("visual_action", ""),
                 "sfx": clip.get("sfx"),
+                "comedy_beat": clip.get("comedy_beat", ""),
             }
             scenes_meta.append(by_sid[sid])
         else:
             by_sid[sid]["end"] = max(by_sid[sid]["end"], float(clip["end"]))
 
     last_act: int | None = None
+    last_event_ts = -1.0
     for idx_sc, sc in enumerate(scenes_meta):
         sc_start = sc["start"]
         sc_end = sc["end"]
@@ -278,30 +325,50 @@ def build_sfx_stem(
         if gap_e - gap_s >= 0.24:
             local_pauses.append({"start": gap_s, "end": gap_e, "dur": gap_e - gap_s})
 
+        # Transicao de ato: assobio antes da virada (fora do limite de 3 foleys da cena)
         act = sc.get("act", 1)
+        act_transition_used = False
         if last_act is not None and act != last_act:
             path_trans, _ = resolve_sfx_file("slide whistle")
             if path_trans:
                 slot_act = _find_pause_slot_for_window(max(0.0, sc_start - 0.8), sc_start + 0.15, local_pauses, min_slot_s=0.22, prefer_end=False)
                 if slot_act:
                     events.append((slot_act[0], path_trans, min(sfx_volume, 0.26), slot_act[1]))
+                    last_event_ts = slot_act[0]
+                    act_transition_used = True
         last_act = act
 
-        # Escolhe apenas 1 foley semantico relevante e encaixa dentro da pausa real (pos-fala ou respiracao)
-        hits = _infer_semantic_foleys(sc)
+        # Regra 16: ate 3 foleys por cena, cada um na pausa real mais proxima do instante da piada.
+        budget = MAX_COMEDY_FOLEYS - (1 if act_transition_used else 0)
+        hits = _infer_semantic_foleys(sc)[:budget]
         if not hits:
             continue
-        hint, base_vol = hits[0]
-        path_sfx, _ = resolve_sfx_file(hint)
-        if not path_sfx:
-            continue
 
-        slot = _find_pause_slot_for_window(sc_start, max(sc_end, next_start), local_pauses, min_slot_s=0.25, prefer_end=True)
-        if slot is not None:
-            events.append((slot[0], path_sfx, min(sfx_volume, base_vol), slot[1]))
-        elif not local_pauses:
-            # Fallback apenas se nao houver narration_wav (ex: teste unitario sintetico sem WAV)
-            events.append((round(max(0.0, sc_end - 0.35), 3), path_sfx, min(sfx_volume, base_vol), 0.8))
+        windows = (
+            (max(0.0, sc_start - 0.7), sc_start + 0.18, False),          # reacao/antecipacao
+            (sc_start, max(sc_end, sc_start + 0.25), False),            # instante da acao
+            (max(sc_end, sc["audio_end"]), next_start + 0.25, True),    # respiro apos a piada
+        )
+        for j, (hint, base_vol) in enumerate(hits):
+            path_sfx, _ = resolve_sfx_file(hint)
+            if not path_sfx:
+                continue
+            w_start, w_end, prefer_end = windows[min(j, len(windows) - 1)]
+            slot = _find_pause_slot_for_window(w_start, w_end, local_pauses, min_slot_s=0.22, prefer_end=prefer_end)
+            if slot is None:
+                if not local_pauses:
+                    # Fallback sintetico quando nao ha WAV de narracao (testes unitarios)
+                    slot = (round(max(0.0, sc_end - 0.35 + j * 0.20), 3), 0.7)
+                elif j == 0:
+                    # Ultimo recurso: pausa logo apos a fala (protegida por sidechaincompress na mixagem)
+                    slot = (round(max(0.0, sc["audio_end"]), 3), 0.6)
+                else:
+                    continue
+            ts = round(slot[0] + j * 0.07, 3)
+            if ts - last_event_ts < 0.15:
+                continue
+            last_event_ts = ts
+            events.append((ts, path_sfx, min(sfx_volume, base_vol), slot[1]))
 
     # Camada suave de ambiencia (passarinhos/brisa CC0) se a maioria for parque/natureza
     all_loc = " ".join(str(c.get("location") or "") for c in visual_clips).lower()
