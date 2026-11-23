@@ -51,6 +51,7 @@
     {"id": "list_voices_paths", "path": "work/list_voices_paths.py", "category": "voz", "target": "localizacao de WAVs", "purpose": "Lista cena/personagem/voz e caminho relativo de cada WAV do episodio.", "cmd": "python work/list_voices_paths.py", "mutating": false, "credentials": false},
     {"id": "diag_sc26", "path": "work/diag_sc26.py", "category": "voz", "target": "inteligibilidade sc_26", "purpose": "Transcreve sc_26 com/sem VAD para diagnosticar fala ininteligivel.", "cmd": "python work/diag_sc26.py", "mutating": false, "credentials": true},
     {"id": "patch_sc26", "path": "work/patch_sc26.py", "category": "roteiro", "target": "frases com grudacao", "purpose": "Corrige o texto do sc_26 e invalida so o TTS dessa cena.", "cmd": "python work/patch_sc26.py", "mutating": true, "credentials": false},
-    {"id": "test_sc26", "path": "work/test_sc26.py", "category": "voz", "target": "QA apos reescrita", "purpose": "Valida a nova fala do sc_26 com Luninha + Whisper.", "cmd": "python work/test_sc26.py", "mutating": false, "credentials": true}
+    {"id": "test_sc26", "path": "work/test_sc26.py", "category": "voz", "target": "QA apos reescrita", "purpose": "Valida a nova fala do sc_26 com Luninha + Whisper.", "cmd": "python work/test_sc26.py", "mutating": false, "credentials": true},
+    {"id": "diag_sc04", "path": "work/diag_sc04.py", "category": "voz", "target": "corte no final sc_04", "purpose": "Compara texto, duracao e transcricao do final do sc_04 (bruto vs final).", "cmd": "python work/diag_sc04.py", "mutating": false, "credentials": true}
   ]
 }

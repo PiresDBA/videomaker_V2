@@ -1,6 +1,6 @@
 # CONTRATO DO MOTOR VIDEOMAKER V2 (PORTÁTIL E AUTOCONTIDO)
 
-Este documento define a arquitetura, a estrutura de pastas autocontida e as **21 Regras Imutáveis** do motor **Videomaker v2** (`Frida & Luna`), garantindo portabilidade total entre máquinas e zero regressões por agentes ou edições manuais.
+Este documento define a arquitetura, a estrutura de pastas autocontida e as **22 Regras Imutáveis** do motor **Videomaker v2** (`Frida & Luna`), garantindo portabilidade total entre máquinas e zero regressões por agentes ou edições manuais.
 
 ---
 
@@ -50,7 +50,7 @@ videomaker_v2/
 
 ---
 
-## 2. As 21 Regras Imutáveis do Contrato
+## 2. As 22 Regras Imutáveis do Contrato
 
 1. **100% Autocontido e Portátil:** O motor nunca depende de projetos externos para funcionar. Caminhos priorizam diretórios internos (`bin/`, `.credentials/`, `.chrome-flow-accounts/`, `assets/`, `vendor/`).
 2. **Cânone Visual Criança / Pré-Adolescente 3D Disney-Pixar (`config.py`, `script_engine.py` & `flow_continuity.py`):** Frida (obrigatoriamente **Buldogue Inglesa caramelo-dourada** com colar de pérolas; nunca Golden Retriever) e Luna (obrigatoriamente **Dachshund/Salsicha marrom-chocolate** com correntinhas douradas; nunca Cocker Spaniel) possuem idade visual padrão de **até 1 ano no máximo** (equivalente a **criança de 5–10 anos** em animação 3D estilizada). `validate_script_schema` reprova raças incorretas e `build_image_prompt` injeta a Bíblia Visual seletivamente pelos personagens da cena.
@@ -77,6 +77,7 @@ videomaker_v2/
 19. **REGRA DE OURO — Auditoria Light de Mídia Paga (NÃO DESPERDIÇAR CRÉDITO):** Vídeo Veo e imagem já gerados custaram crédito/dinheiro; o perfil padrão de auditoria é `light` (`--audit-profile light`, também em `core/scene_auditor.py`), que **aprova** o material utilizável mesmo com pequena divergência de ação, objeto ou posição. Só bloqueia defeitos **toscos**: colagem/split, marca d'água/legenda/balão de fala, figuras humanas/stick figures em animação de cães, cenário de outro episódio, raça trocada ou personagem ausente. O perfil `strict` restaura o fail-closed total e continua disponível (`--audit-profile strict`). Toda aprovação light registra `audit_profile` e `relaxed_checks` no resultado para rastreabilidade.
 20. **REGRA DE OURO — Montagem Rica de Imagens e Água (ECONOMIA DE VÍDEO):** Imagens custam 0 créditos e podem ser geradas ilimitadamente. O pacing DEVE usar `RICH_IMAGE_MONTAGE=True` com `IMAGE_MONTAGE_BEAT_SECONDS≈1.7` para criar 3–5 sub-clips por cena, encadeados por `_concat_segments_with_smooth_xfade` — a troca suave dá impressão de movimento ("slow motion") sem pagar vídeo Veo. Cada sub-clip continua com `<= 5,0 s` e recebe overlay contextual; cenas de praia/água usam o overlay `water` (gotas caindo). A sonoplastia de praia inclui **ambiência de mar contínua** (`ocean waves`) e foley `cartoon splash` nas cenas em que a personagem se molha.
 21. **REGRA DE OURO — Voice Studio como Primeira Opção de Voz:** `--tts-provider` e `synthesize_all_scenes` têm `default="voice_studio"`. As vozes locais travadas são `Simone-feliz` (narradora), `Frida` (Frida) e `Luninha` (Luna), chamadas via CLI `voicestudio speak --voice <nome>`. Se o CLI/voz falhar, o pipeline faz **fallback automático para o Chirp 3 HD travado** (Puck/Sulafat/Leda). Edge TTS continua proibido. `audit_voice_consistency` aceita `voice_studio:<nome>` desde que corresponda ao personagem.
+22. **REGRA DE OURO — EARSHOT É OS OUVIDOS DA APLICAÇÃO:** todo tipo de auditoria, validação ou julgamento de áudio (voz, SFX, BGM, mix, loudness, sincronia, cortes, ruído, naturalidade) DEVE usar `bin/earshot.exe` (`measure`, `critique`, `timeline`, `sheet`, `compare`, `ab`). O agente não tem ouvidos: earshot é o seu substituto auditivo e a autoridade máxima em áudio. É proibido usar outros aplicativos como árbitro de áudio — `ffmpeg`/`ffprobe` apenas fazem conversão e medem metadados brutos. Todo relatório de áudio deve citar números do earshot (LUFS, dBTP, onsets/s, sync, veredito) e a ferramenta deve ser executada antes de aprovar qualquer entrega.
 
 ---
 

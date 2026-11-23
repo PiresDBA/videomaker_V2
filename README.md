@@ -16,6 +16,18 @@ Pipeline completo e independente dentro de `E:\videos\videomaker_v2`, sem depend
 - `core/legacy_auditor.py` — Auditoria e importação em lote dos projetos legados (`--batch-scan`, `--legacy-dir`) reaproveitando imagens limpas e recriando apenas o necessário.
 - `core/self_audit.py` — Auto-auditoria final obrigatória (`artifacts/final_audit_report.json`) validando roteiro, áudio, imagens, proporções e sincronia A/V (com suporte a Gemini Vision `--vision-audit`).
 
+## Auditoria de áudio — os ouvidos do aplicativo
+
+**Earshot é os ouvidos do Videomaker v2.** Toda auditoria, validação ou julgamento de áudio (voz, SFX, mix, sincronia, loudness, cortes, ruído, naturalidade) DEVE ser feito com `bin/earshot.exe` (`measure`, `critique`, `timeline`, `sheet`, `compare`, `ab`). Não use outros aplicativos como árbitro de áudio — `ffmpeg`/`ffprobe` servem apenas para conversão e metadados brutos.
+
+```powershell
+$env:PATH = "E:\videos\videomaker_v2\bin;" + $env:PATH
+earshot critique <video_ou_audio> --json
+earshot measure <wav> --json
+```
+
+O resultado deve ser citado com números (LUFS, dBTP, onsets/s, sync, veredito). Ver Regra 22 do `CONTRATO_MOTOR_V2.md`.
+
 ## Exemplos de Uso
 
 ```powershell

@@ -168,6 +168,13 @@ def check_contract() -> list[str]:
         errors.append("HOOK VIOLADO: montagem rica de imagens e overlay water ausentes (Regra 20).")
     if "ocean waves seaside" not in afx2_txt or "cartoon splash" not in afx2_txt:
         errors.append("HOOK VIOLADO: sonoplastia de mar/splash ausente (Regra 20).")
+    # Regra 22: earshot e os ouvidos da aplicacao — unico arbitro de audio.
+    contrato_txt = (ROOT / "CONTRATO_MOTOR_V2.md").read_text(encoding="utf-8", errors="replace")
+    readme_txt = (ROOT / "README.md").read_text(encoding="utf-8", errors="replace")
+    if "EARSHOT É OS OUVIDOS DA APLICAÇÃO" not in contrato_txt or "ouvidos do aplicativo" not in readme_txt.lower():
+        errors.append("HOOK VIOLADO: Regra 22 (earshot como ouvidos) ausente do contrato/manual.")
+    if "def run_earshot_critique" not in afx2_txt:
+        errors.append("HOOK VIOLADO: audio_fx.py deve manter run_earshot_critique (Regra 22).")
     if '"narrador": "Simone-feliz"' not in cfg_txt or '"luna": "Luninha"' not in cfg_txt:
         errors.append("HOOK VIOLADO: VOICE_STUDIO_VOICES deve manter Simone-feliz/Luninha/Frida (Regra 21).")
     if "is_video_scene" not in va_txt:
