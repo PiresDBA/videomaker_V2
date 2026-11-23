@@ -54,6 +54,20 @@ def slugify(text: str, max_len: int = 44) -> str:
     return slug[:max_len].strip("-") or "projeto"
 
 
+def recommend_target_minutes(video_count: int, image_count: int) -> float:
+    """Regra 26: se ha material de sobra, permite episodio longo (retencao = receita)."""
+    from config import (
+        ADAPTIVE_DURATION, LONG_EPISODE_TARGET_MINUTES, MIN_IMAGES_FOR_LONG_EPISODE,
+        MIN_VIDEOS_FOR_LONG_EPISODE, SHORT_EPISODE_TARGET_MINUTES,
+    )
+
+    if not ADAPTIVE_DURATION:
+        return SHORT_EPISODE_TARGET_MINUTES
+    if video_count >= MIN_VIDEOS_FOR_LONG_EPISODE and image_count >= MIN_IMAGES_FOR_LONG_EPISODE:
+        return LONG_EPISODE_TARGET_MINUTES
+    return SHORT_EPISODE_TARGET_MINUTES
+
+
 def should_generate_new_veo(
     skip_veo: bool,
     target_veo: int,
@@ -243,6 +257,13 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     if getattr(args, "target_minutes", None):
         script_data["target_minutes"] = float(args.target_minutes)
+    else:
+        # Regra 26: recomenda duracao automatica pelo material disponivel ja reaproveitado.
+        n_vid = len([p for p in videos_dir.glob("*.mp4") if p.stat().st_size > 50_000]) if videos_dir.exists() else 0
+        n_img = len(list(images_dir.glob("*.jpg"))) if images_dir.exists() else 0
+        recommended = recommend_target_minutes(n_vid, n_img)
+        script_data["target_minutes"] = recommended
+        print(f"[Regra26] Material: {n_vid} videos + {n_img} imagens -> target {recommended} min", flush=True)
     if getattr(args, "thumb_hook", ""):
         script_data["thumb_hook"] = " ".join(args.thumb_hook.split()).upper()
     if getattr(args, "character_age_mode", "child") == "baby":

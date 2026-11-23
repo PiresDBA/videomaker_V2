@@ -168,6 +168,13 @@ FLOW_VIDEO_ONLY = True
 
 SHORT_MIN_SECONDS = 30.0
 SHORT_MAX_SECONDS = 40.0
+
+# Regra 26: duracao adaptativa. Se ha material suficiente, o limite curto NAO se aplica.
+ADAPTIVE_DURATION = True
+MIN_VIDEOS_FOR_LONG_EPISODE = 10       # videos Veo/imagem reaproveitaveis
+MIN_IMAGES_FOR_LONG_EPISODE = 60       # imagens aprovadas/reaproveitaveis
+LONG_EPISODE_TARGET_MINUTES = 15.0     # teto quando ha material de sobra (retencao = receita)
+SHORT_EPISODE_TARGET_MINUTES = 3.5     # padrao quando o material e escasso
 SHORT_TARGET_SECONDS = 35.0
 SHORT_WIDTH = 1080
 SHORT_HEIGHT = 1920

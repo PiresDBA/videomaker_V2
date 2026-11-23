@@ -1533,6 +1533,15 @@ class TestVideomakerV2Unified(unittest.TestCase):
             existing_base_sids=["sc_01"], force=True,
         ))
 
+    def test_adaptive_duration_by_material(self):
+        """Regra 26: com material de sobra, permite episodio longo; com pouco, curto."""
+        import pipeline_v2 as pv
+        from config import LONG_EPISODE_TARGET_MINUTES, SHORT_EPISODE_TARGET_MINUTES
+
+        self.assertEqual(pv.recommend_target_minutes(12, 80), LONG_EPISODE_TARGET_MINUTES)
+        self.assertEqual(pv.recommend_target_minutes(5, 20), SHORT_EPISODE_TARGET_MINUTES)
+        self.assertEqual(pv.recommend_target_minutes(0, 0), SHORT_EPISODE_TARGET_MINUTES)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

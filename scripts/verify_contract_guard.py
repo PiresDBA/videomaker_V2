@@ -194,6 +194,12 @@ def check_contract() -> list[str]:
     va2b_txt = (ROOT / "core" / "video_assembler.py").read_text(encoding="utf-8", errors="replace")
     if "render_cta_subscribe_overlay" not in va2b_txt or "cta_subscribe.mov" not in va2b_txt:
         errors.append("HOOK VIOLADO: overlay CTA nao integrado no assemble_video (Regra 25).")
+    # Regra 26: pipeline redondo, voz local, duracao adaptativa
+    if "def recommend_target_minutes" not in pipe_txt or "ADAPTIVE_DURATION" not in cfg_txt:
+        errors.append("HOOK VIOLADO: duracao adaptativa por material ausente (Regra 26).")
+    vs2_txt = (ROOT / "core" / "voice_studio.py").read_text(encoding="utf-8", errors="replace")
+    if "voicestudio" not in vs2_txt.lower() or "edge" in cfg_txt.lower() and "edge_tts" in cfg_txt.lower():
+        errors.append("HOOK VIOLADO: voz local Voice Studio nao preservada (Regra 26).")
     fc_txt = (ROOT / "core" / "flow_continuity.py").read_text(encoding="utf-8", errors="replace")
     if "def set_flow_agent_mode" not in fc_txt or "def generate_flow_image_batch" not in fc_txt:
         errors.append("HOOK VIOLADO: modo agente do Flow para lote de imagens ausente (Regra 23).")
