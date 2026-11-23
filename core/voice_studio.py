@@ -238,6 +238,11 @@ def validate_audio_with_whisper(
     model = _get_whisper(model_name)
     segs, _ = model.transcribe(audio_np, language="pt", vad_filter=True, word_timestamps=False)
     heard_text = " ".join(s.text.strip() for s in segs).strip()
+    if not heard_text:
+        # Vozes infantis/expressivas podem ser inteiramente cortadas pelo VAD.
+        # Segunda passada sem VAD evita reprovar audio perfeitamente audível.
+        segs, _ = model.transcribe(audio_np, language="pt", vad_filter=False, word_timestamps=False)
+        heard_text = " ".join(s.text.strip() for s in segs).strip()
 
     exp_tokens = _norm_for_compare(expected_text)
     heard_tokens = _norm_for_compare(heard_text)
