@@ -104,7 +104,8 @@ def audit_voice_consistency(tts_timings: list[dict[str, Any]]) -> list[str]:
         short_v = raw_v.split("-")[-1].strip() if "Chirp3-HD-" in raw_v else raw_v
         if voice.startswith("voice_studio:"):
             # Vozes locais (Regra 21): Luninha/Frida/Simone-feliz sao as travadas
-            short_v = VOICE_STUDIO_VOICES.get(spk, VOICE_STUDIO_VOICES["narrador"])
+            expected = VOICE_STUDIO_VOICES.get(spk, VOICE_STUDIO_VOICES["narrador"])
+            short_v = raw_v
         seen_by_speaker.setdefault(spk, set()).add(short_v)
         if short_v != expected:
             errors.append(

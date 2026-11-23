@@ -64,8 +64,6 @@ PHONETIC_PT_RULES: tuple[tuple[str, str], ...] = (
     (r"\bpiadas\b", "piádas"),
     (r"\bgatinha\b", "cachorrinha"),
     (r"\bgatinho\b", "cachorro"),
-    (r"\bc[oó]cegas\b", "có-ce-gas"),
-    (r"\bc[oó]cega\b", "cósega"),
 )
 
 _WHISPER_MODEL = None
@@ -638,12 +636,19 @@ def _synthesize_chirp3_hd(
     return f"chirp3_hd:{chirp_voice}", "chirp3_hd"
 
 
-def _to_wav_norm(src_audio: Path, wav_path: Path) -> float:
-    """Converte para WAV 44.1kHz stereo normalizado em -16 LUFS."""
+def _to_wav_norm(src_audio: Path, wav_path: Path, tail_s: float = 0.0) -> float:
+    """Converte para WAV 44.1kHz stereo normalizado em -16 LUFS.
+
+    tail_s > 0 acrescenta silêncio no fim (evita a sensação de corte abrupt
+    quando o gerador local encerra a fala de forma abrupta).
+    """
     wav_path.parent.mkdir(parents=True, exist_ok=True)
+    af = "loudnorm=I=-16:TP=-1.5:LRA=11"
+    if tail_s > 0:
+        af += f",apad=pad_dur={float(tail_s):.2f}"
     subprocess.run(
         [FFMPEG_EXE, "-y", "-v", "error", "-i", str(src_audio),
-         "-ar", "44100", "-ac", "2", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
+         "-ar", "44100", "-ac", "2", "-af", af,
          "-c:a", "pcm_s16le", str(wav_path)],
         check=True,
     )
@@ -780,7 +785,7 @@ def synthesize_all_scenes(
                         used_voice, emo_mode = _synthesize_voice_studio(
                             tts_text, speaker, vs_raw, emo_dir, attempt
                         )
-                        dur = _to_wav_norm(vs_raw, wav_path)
+                        dur = _to_wav_norm(vs_raw, wav_path, tail_s=0.45)
                         converted = True
                     except Exception as vs_exc:
                         print(f"  [VOICE-STUDIO] {sid} fallback Chirp 3 HD: {str(vs_exc)[:120]}", flush=True)
@@ -824,7 +829,7 @@ def synthesize_all_scenes(
                 if enable_whisper_qa:
                     qa_report = validate_audio_with_whisper(
                         wav_path, orig_text,
-                        min_similarity=0.50 if prov == "voice_studio" else 0.78,
+                        min_similarity=0.62 if prov == "voice_studio" else 0.78,
                     )
                 else:
                     qa_report = {"ok": True, "similarity": 1.0, "reason": "qa_desativado"}
