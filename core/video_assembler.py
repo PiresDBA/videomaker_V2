@@ -710,6 +710,30 @@ def export_short_9_16(
     )
 
 
+def _concat_segments_plain(rendered_segments: list[Path], out_mp4: Path) -> Path:
+    """Concatena segmentos com cortes secos (sem xfade) — rapido e sem risco de colapso de timeline."""
+    if len(rendered_segments) == 1:
+        import shutil
+
+        shutil.copy2(rendered_segments[0], out_mp4)
+        return out_mp4
+    out_mp4.parent.mkdir(parents=True, exist_ok=True)
+    list_file = out_mp4.with_suffix(".concat.txt")
+    list_file.write_text(
+        "".join(f"file '{str(p.resolve()).replace(chr(39), chr(39)*2)}'\n" for p in rendered_segments),
+        encoding="utf-8",
+    )
+    try:
+        subprocess.run(
+            [FFMPEG_EXE, "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(list_file),
+             "-c", "copy", str(out_mp4)],
+            check=True,
+        )
+    finally:
+        list_file.unlink(missing_ok=True)
+    return out_mp4
+
+
 def _concat_segments_with_smooth_xfade(
     rendered_segments: list[Path],
     visual_clips: list[dict[str, Any]],
@@ -818,6 +842,7 @@ def assemble_video(
     cpu_workers: int | None = None,
     disable_nvenc: bool = False,
     reuse_clips: bool = False,
+    no_xfade: bool = False,
 ) -> tuple[Path, Path]:
     """Monta 16:9 final com Ken Burns, overlays contextuais, Dual-Avatar PiP, SFX, BGM por ato e LUFS alvo."""
     clips_dir = work_dir / "clips"
@@ -903,13 +928,17 @@ def assemble_video(
             rendered_segments = list(clip_ex.map(_render_subclip, visual_clips))
 
     base_video = work_dir / "base_video_16x9.mp4"
-    _concat_segments_with_smooth_xfade(
-        rendered_segments,
-        visual_clips,
-        base_video,
-        work_dir=work_dir,
-        allow_nvenc=allow_gpu,
-    )
+    if no_xfade:
+        # Modo rapido: concat direto sem溶解 (evita 22 lotes de xfade, ~40min -> ~1min).
+        _concat_segments_plain(rendered_segments, base_video)
+    else:
+        _concat_segments_with_smooth_xfade(
+            rendered_segments,
+            visual_clips,
+            base_video,
+            work_dir=work_dir,
+            allow_nvenc=allow_gpu,
+        )
 
     total_dur = probe_duration(base_video)
     nar_wav = work_dir / "narration_master.wav"

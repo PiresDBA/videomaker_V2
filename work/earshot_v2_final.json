@@ -1,0 +1,1690 @@
+{
+ "path": "E:\\videos\\videomaker_v2\\projects\\primeiro-dia-de-praia-2\\output\\primeiro-dia-de-praia-2_16x9.mp4",
+ "video": "E:\\videos\\videomaker_v2\\projects\\primeiro-dia-de-praia-2\\output\\primeiro-dia-de-praia-2_16x9.mp4",
+ "duration": 186.676,
+ "profile_n": 7,
+ "lossy": true,
+ "profile": "bundled launch films",
+ "verdict": "close",
+ "score": 0.818,
+ "in_range": 16,
+ "scored": 21,
+ "critical_issues": 0,
+ "major_issues": 1,
+ "partial": [
+  "realness",
+  "music presence"
+ ],
+ "actions": [
+  {
+   "weight": "major",
+   "metric": "hit_rate",
+   "action": "too many salient hits (2.02/s, refs 0.10 /s .. 1.66 /s): keep the biggest for reveals, soften the rest by 3-6 dB"
+  },
+  {
+   "weight": "minor",
+   "metric": "band_sub",
+   "action": "thin bottom: add a sub layer (sub drop or kick) under reveals, or pick music with real low end (-33.8 dB share, refs -16.2 dB .. -4.1 dB)"
+  },
+  {
+   "weight": "minor",
+   "metric": "side_to_mid_db",
+   "action": "nearly mono (side -25.9 dB vs mid; refs -14.5 dB .. -5.0 dB): use stereo music and ambience, pan SFX with the motion"
+  },
+  {
+   "weight": "minor",
+   "metric": "band_low",
+   "action": "weak low end: the music has no body; choose a fuller track or add a low layer (bass, low hits) (-11.4 dB share, refs -6.7 dB .. -2.1 dB)"
+  },
+  {
+   "weight": "minor",
+   "metric": "band_mid",
+   "action": "honky or harsh mids: cut 1-3 kHz on the loudest layer by 2 dB (-7.5 dB share, refs -19.1 dB .. -10.5 dB)"
+  }
+ ],
+ "tips": [
+  "8 of 130 visual events get no sound at all (no onset within 100 ms, no whoosh / riser peak within 300 ms, no level peak within 150 ms; the matcher earshot timeline uses): 0:32.20, 0:38.33, 0:41.20, 0:53.57, 0:56.70, 1:17.07, 1:32.53, 3:03.63; give the ones that matter a whoosh into the cut, a hit or a UI click, or keep one as a deliberate stop-down; 14 more are met only by a level peak (a soft swell, or just the bed: check 0:32.07, 0:34.20, 0:37.27, 0:37.53 (+10 more) on the sheet)"
+ ],
+ "metrics": [
+  {
+   "metric": "lufs_i",
+   "label": "integrated loudness",
+   "group": "loudness",
+   "value": -13.9,
+   "unit": "LUFS",
+   "range": [
+    -16.0,
+    -9.0
+   ],
+   "basis": "web",
+   "median": -14.8,
+   "typical": [
+    -19.32,
+    -9.16
+   ],
+   "status": "ok",
+   "weight": "critical",
+   "why": "how loud the film plays next to other launch videos: X, LinkedIn and site autoplay do not normalise, YouTube turns masters above -14 LUFS down"
+  },
+  {
+   "metric": "true_peak",
+   "label": "true peak",
+   "group": "loudness",
+   "value": -1.9,
+   "unit": "dBTP",
+   "range": [
+    null,
+    0.0
+   ],
+   "basis": "decoded lossy",
+   "median": 0.6,
+   "typical": [
+    -0.26,
+    1.52
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "a master above -1 dBTP clips once encoded to AAC / MP3 (a decoded lossy file above 0 dBTP already clips on playback): crackle on the biggest hits"
+  },
+  {
+   "metric": "p_real",
+   "label": "realness (p_real)",
+   "group": "realness",
+   "value": null,
+   "unit": "p",
+   "range": [
+    0.77,
+    null
+   ],
+   "basis": "realness model",
+   "median": null,
+   "typical": null,
+   "status": "n.a.",
+   "weight": "critical",
+   "why": "the reference launch films use real recordings and produced music; next to them, code-synthesized sound reads as cheap and generic"
+  },
+  {
+   "metric": "music_frac",
+   "label": "music presence",
+   "group": "music",
+   "value": null,
+   "unit": "share",
+   "range": [
+    0.62,
+    null
+   ],
+   "basis": "references",
+   "median": 1.0,
+   "typical": [
+    0.802,
+    1.0
+   ],
+   "status": "n.a.",
+   "weight": "critical",
+   "why": "the references are music-led: one continuous track carries the energy and hides edit seams"
+  },
+  {
+   "metric": "cuts_with_sound",
+   "label": "onset on visual events +-100ms",
+   "group": "sync",
+   "value": 0.66,
+   "unit": "share",
+   "range": [
+    0.45,
+    null
+   ],
+   "basis": "references",
+   "median": 0.81,
+   "typical": [
+    0.56,
+    0.934
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "a cut or big visual change with no sound under it feels dead; viewers expect sound on motion",
+   "chance": 0.7
+  },
+  {
+   "metric": "lra",
+   "label": "loudness range",
+   "group": "loudness",
+   "value": 1.5,
+   "unit": "LU",
+   "range": [
+    0.7,
+    13.2
+   ],
+   "basis": "references",
+   "median": 5.5,
+   "typical": [
+    2.66,
+    9.08
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "how much the loudness swings: launch films keep the body consistently strong"
+  },
+  {
+   "metric": "crest_lu",
+   "label": "loudest 3 s above integrated",
+   "group": "loudness",
+   "value": 1.0,
+   "unit": "LU",
+   "range": [
+    0.6000000000000001,
+    4.0
+   ],
+   "basis": "references",
+   "median": 2.3,
+   "typical": [
+    1.16,
+    3.32
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "how far the loudest 3 s stick out above the average level"
+  },
+  {
+   "metric": "first_sound_s",
+   "label": "time to first sound",
+   "group": "arc",
+   "value": 0.08,
+   "unit": "s",
+   "range": [
+    null,
+    0.58
+   ],
+   "basis": "references",
+   "median": 0.13,
+   "typical": [
+    0.052,
+    0.402
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "silence at the start loses autoplay viewers: the references sound at once"
+  },
+  {
+   "metric": "end_silence_s",
+   "label": "dead air at the end",
+   "group": "ending",
+   "value": 0.01,
+   "unit": "s",
+   "range": [
+    null,
+    2.15
+   ],
+   "basis": "references",
+   "median": 0.04,
+   "typical": [
+    0.02,
+    1.162
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "dead air after the sound stops makes the ending feel unfinished"
+  },
+  {
+   "metric": "max_gap_s",
+   "label": "longest silent gap inside",
+   "group": "arc",
+   "value": 0.34,
+   "unit": "s",
+   "range": [
+    null,
+    1.91
+   ],
+   "basis": "references",
+   "median": 0.02,
+   "typical": [
+    0.0,
+    0.688
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "a silent hole mid-film reads as a mistake unless it is a deliberate stop-down"
+  },
+  {
+   "metric": "final_lu",
+   "label": "final moment vs integrated",
+   "group": "ending",
+   "value": 2.4,
+   "unit": "LU",
+   "range": [
+    -3.7,
+    7.1
+   ],
+   "basis": "references",
+   "median": 0.2,
+   "typical": [
+    -1.42,
+    5.18
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "the logo / end-card moment should land at body level or above, not fade away"
+  },
+  {
+   "metric": "onset_rate",
+   "label": "onset density",
+   "group": "density",
+   "value": 4.1,
+   "unit": "/s",
+   "range": [
+    2.16,
+    8.520000000000001
+   ],
+   "basis": "references",
+   "median": 5.66,
+   "typical": [
+    3.27,
+    6.876
+   ],
+   "status": "ok",
+   "weight": "major",
+   "why": "rhythmic activity: too sparse feels empty, too dense feels cluttered"
+  },
+  {
+   "metric": "hit_rate",
+   "label": "salient hit density",
+   "group": "density",
+   "value": 2.02,
+   "unit": "/s",
+   "range": [
+    0.05,
+    1.8599999999999999
+   ],
+   "basis": "references",
+   "median": 1.25,
+   "typical": [
+    0.748,
+    1.6
+   ],
+   "status": "high",
+   "weight": "major",
+   "why": "punch: salient hits mark the key moments; without them nothing lands",
+   "actions": [
+    "too many salient hits (2.02/s, refs 0.10 /s .. 1.66 /s): keep the biggest for reveals, soften the rest by 3-6 dB"
+   ]
+  },
+  {
+   "metric": "intro_lu",
+   "label": "opening level (first 10%)",
+   "group": "arc",
+   "value": -0.3,
+   "unit": "LU",
+   "range": [
+    -19.0,
+    3.7
+   ],
+   "basis": "references",
+   "median": -1.1,
+   "typical": [
+    -8.08,
+    0.58
+   ],
+   "status": "ok",
+   "weight": "minor",
+   "why": "how the film opens: the references open close to body level (one builds up)"
+  },
+  {
+   "metric": "end_lu",
+   "label": "closing level (last 10%)",
+   "group": "arc",
+   "value": -0.3,
+   "unit": "LU",
+   "range": [
+    -15.8,
+    1.2
+   ],
+   "basis": "references",
+   "median": -3.0,
+   "typical": [
+    -11.96,
+    -0.66
+   ],
+   "status": "ok",
+   "weight": "minor",
+   "why": "how the last 10 % sit against the body"
+  },
+  {
+   "metric": "fade_s",
+   "label": "final fade / ring-out length",
+   "group": "ending",
+   "value": 0.26,
+   "unit": "s",
+   "range": [
+    null,
+    3.04
+   ],
+   "basis": "references",
+   "median": 0.27,
+   "typical": [
+    0.092,
+    2.288
+   ],
+   "status": "ok",
+   "weight": "minor",
+   "why": "launch films end on a sting or a hard out; long fade-outs lose the button"
+  },
+  {
+   "metric": "band_sub",
+   "label": "sub 20-60 Hz share",
+   "group": "spectrum",
+   "value": -33.8,
+   "unit": "dB",
+   "range": [
+    -17.7,
+    -2.5999999999999996
+   ],
+   "basis": "references",
+   "median": -6.6,
+   "typical": [
+    -12.36,
+    -4.58
+   ],
+   "status": "low",
+   "weight": "minor",
+   "why": "sub (20-60 Hz) weight under hits and music",
+   "actions": [
+    "thin bottom: add a sub layer (sub drop or kick) under reveals, or pick music with real low end (-33.8 dB share, refs -16.2 dB .. -4.1 dB)"
+   ]
+  },
+  {
+   "metric": "band_low",
+   "label": "low 60-250 Hz share",
+   "group": "spectrum",
+   "value": -11.4,
+   "unit": "dB",
+   "range": [
+    -8.2,
+    -0.6000000000000001
+   ],
+   "basis": "references",
+   "median": -4.2,
+   "typical": [
+    -5.92,
+    -2.34
+   ],
+   "status": "low",
+   "weight": "minor",
+   "why": "low end body (60-250 Hz)",
+   "actions": [
+    "weak low end: the music has no body; choose a fuller track or add a low layer (bass, low hits) (-11.4 dB share, refs -6.7 dB .. -2.1 dB)"
+   ]
+  },
+  {
+   "metric": "band_lowmid",
+   "label": "low-mid 250-1k share",
+   "group": "spectrum",
+   "value": -1.3,
+   "unit": "dB",
+   "range": [
+    -18.3,
+    -0.19999999999999996
+   ],
+   "basis": "references",
+   "median": -5.3,
+   "typical": [
+    -16.38,
+    -3.2
+   ],
+   "status": "ok",
+   "weight": "minor",
+   "why": "low-mids (250 Hz-1 kHz): too much = muddy, too little = hollow"
+  },
+  {
+   "metric": "band_mid",
+   "label": "mid 1-4 kHz share",
+   "group": "spectrum",
+   "value": -7.5,
+   "unit": "dB",
+   "range": [
+    -20.6,
+    -9.0
+   ],
+   "basis": "references",
+   "median": -12.4,
+   "typical": [
+    -15.92,
+    -10.68
+   ],
+   "status": "high",
+   "weight": "minor",
+   "why": "mids (1-4 kHz): where clicks and voice cut through phone speakers",
+   "actions": [
+    "honky or harsh mids: cut 1-3 kHz on the loudest layer by 2 dB (-7.5 dB share, refs -19.1 dB .. -10.5 dB)"
+   ]
+  },
+  {
+   "metric": "band_presence",
+   "label": "presence 4-8 kHz share",
+   "group": "spectrum",
+   "value": -19.7,
+   "unit": "dB",
+   "range": [
+    -31.8,
+    -11.6
+   ],
+   "basis": "references",
+   "median": -17.8,
+   "typical": [
+    -30.24,
+    -13.52
+   ],
+   "status": "ok",
+   "weight": "minor",
+   "why": "presence (4-8 kHz): bite of transients, clicks and typing"
+  },
+  {
+   "metric": "band_air",
+   "label": "air 8-16 kHz share",
+   "group": "spectrum",
+   "value": -24.3,
+   "unit": "dB",
+   "range": [
+    -35.7,
+    -9.7
+   ],
+   "basis": "references",
+   "median": -23.6,
+   "typical": [
+    -31.86,
+    -14.74
+   ],
+   "status": "ok",
+   "weight": "minor",
+   "why": "air (8-16 kHz): openness; missing air sounds muffled or low-bitrate"
+  },
+  {
+   "metric": "side_to_mid_db",
+   "label": "stereo width (side vs mid)",
+   "group": "stereo",
+   "value": -25.9,
+   "unit": "dB",
+   "range": [
+    -15.5,
+    -4.0
+   ],
+   "basis": "references",
+   "median": -8.5,
+   "typical": [
+    -11.8,
+    -5.78
+   ],
+   "status": "low",
+   "weight": "minor",
+   "why": "stereo width: near-mono sounds small, too wide collapses on phones",
+   "actions": [
+    "nearly mono (side -25.9 dB vs mid; refs -14.5 dB .. -5.0 dB): use stereo music and ambience, pan SFX with the motion"
+   ]
+  },
+  {
+   "metric": "speech_frac",
+   "label": "voice / speech presence",
+   "group": "music",
+   "value": null,
+   "unit": "share",
+   "range": [
+    null,
+    1.0
+   ],
+   "basis": "references",
+   "median": 0.83,
+   "typical": [
+    0.0,
+    1.0
+   ],
+   "status": "n.a.",
+   "weight": "info",
+   "why": "voice share (4 of 7 references have a voice-over, 3 are music-only)"
+  },
+  {
+   "metric": "tempo",
+   "label": "tempo",
+   "group": "music",
+   "value": 129,
+   "unit": "BPM",
+   "range": [
+    108.0,
+    136.0
+   ],
+   "basis": "references",
+   "median": 123.0,
+   "typical": [
+    115.2,
+    136.0
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "music tempo"
+  },
+  {
+   "metric": "peak_pos",
+   "label": "position of the loudest 3 s",
+   "group": "arc",
+   "value": 0.74,
+   "unit": "0-1",
+   "range": [
+    0.03,
+    0.88
+   ],
+   "basis": "references",
+   "median": 0.75,
+   "typical": [
+    0.096,
+    0.826
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "where the loudest moment sits"
+  },
+  {
+   "metric": "tail_s",
+   "label": "final hit ring-out",
+   "group": "ending",
+   "value": 3.69,
+   "unit": "s",
+   "range": [
+    0.13,
+    3.58
+   ],
+   "basis": "references",
+   "median": 2.99,
+   "typical": [
+    1.065,
+    3.58
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "how long the final hit rings out"
+  },
+  {
+   "metric": "stopdowns_min",
+   "label": "stop-downs",
+   "group": "density",
+   "value": 14.8,
+   "unit": "/min",
+   "range": [
+    null,
+    18.3
+   ],
+   "basis": "references",
+   "median": 1.2,
+   "typical": [
+    0.0,
+    9.06
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "short drop-outs before hits (4 of 7 references use them)"
+  },
+  {
+   "metric": "cut_rate",
+   "label": "visual events (cuts, big changes)",
+   "group": "sync",
+   "value": 0.7,
+   "unit": "/s",
+   "range": [
+    0.3,
+    1.6
+   ],
+   "basis": "references",
+   "median": 0.63,
+   "typical": [
+    0.306,
+    1.42
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "edit pace (visual events per second)"
+  },
+  {
+   "metric": "cut_hit_frac",
+   "label": "visual events with a salient hit +-100 ms",
+   "group": "sync",
+   "value": 0.42,
+   "unit": "share",
+   "range": [
+    0.03,
+    0.53
+   ],
+   "basis": "references",
+   "median": 0.29,
+   "typical": [
+    0.078,
+    0.488
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "visual events with a salient hit (references: near chance)",
+   "chance": 0.41
+  },
+  {
+   "metric": "cut_frame_sync",
+   "label": "visual events with an onset +-1 frame",
+   "group": "sync",
+   "value": 0.23,
+   "unit": "share",
+   "range": [
+    0.28,
+    0.67
+   ],
+   "basis": "references",
+   "median": 0.44,
+   "typical": [
+    0.34,
+    0.592
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "visual events with an onset within one frame (references: near chance)",
+   "chance": 0.33
+  },
+  {
+   "metric": "cuts_on_beat",
+   "label": "visual events on the beat grid +-70 ms",
+   "group": "sync",
+   "value": 0.29,
+   "unit": "share",
+   "range": [
+    0.18,
+    0.52
+   ],
+   "basis": "references",
+   "median": 0.22,
+   "typical": [
+    0.198,
+    0.448
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "visual events on the beat grid (references: near chance)",
+   "chance": 0.31
+  },
+  {
+   "metric": "brightness_hz",
+   "label": "brightness (median spectral centroid)",
+   "group": "spectrum",
+   "value": 2136,
+   "unit": "Hz",
+   "range": [
+    1169.0,
+    3633.0
+   ],
+   "basis": "references",
+   "median": 1966.0,
+   "typical": [
+    1183.4,
+    3030.0
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "perceived brightness of the mix"
+  },
+  {
+   "metric": "correlation",
+   "label": "L/R correlation",
+   "group": "stereo",
+   "value": 0.99,
+   "unit": "r",
+   "range": [
+    0.52,
+    0.93
+   ],
+   "basis": "references",
+   "median": 0.75,
+   "typical": [
+    0.58,
+    0.864
+   ],
+   "status": "info",
+   "weight": "info",
+   "why": "L/R correlation (1 = mono)"
+  }
+ ],
+ "reference_match": null,
+ "events": {
+  "visual": [
+   7.167,
+   12.9,
+   18.233,
+   24.233,
+   31.4,
+   31.533,
+   31.667,
+   31.8,
+   31.933,
+   32.067,
+   32.2,
+   32.333,
+   32.467,
+   32.6,
+   34.2,
+   35.667,
+   37.133,
+   37.267,
+   37.4,
+   37.533,
+   37.667,
+   37.8,
+   37.933,
+   38.067,
+   38.2,
+   38.333,
+   39.833,
+   41.2,
+   42.567,
+   43.933,
+   45.533,
+   47.133,
+   48.733,
+   50.333,
+   53.567,
+   55.133,
+   56.7,
+   56.833,
+   56.967,
+   57.1,
+   57.233,
+   57.367,
+   57.5,
+   57.633,
+   57.767,
+   57.9,
+   58.033,
+   59.433,
+   60.833,
+   62.2,
+   62.367,
+   62.533,
+   62.7,
+   62.867,
+   63.033,
+   63.2,
+   63.367,
+   63.533,
+   63.7,
+   63.867,
+   65.467,
+   67.067,
+   68.667,
+   70.067,
+   71.467,
+   72.867,
+   74.267,
+   75.667,
+   77.067,
+   78.467,
+   79.867,
+   81.4,
+   82.933,
+   84.467,
+   86.0,
+   87.633,
+   89.267,
+   90.9,
+   92.533,
+   93.933,
+   95.333,
+   96.733,
+   98.133,
+   99.7,
+   101.267,
+   102.833,
+   104.4,
+   105.867,
+   107.333,
+   108.8,
+   110.267,
+   111.867,
+   113.467,
+   115.067,
+   116.667,
+   118.133,
+   119.6,
+   121.067,
+   122.533,
+   123.933,
+   125.333,
+   126.733,
+   129.533,
+   132.4,
+   133.833,
+   135.267,
+   138.267,
+   139.767,
+   141.267,
+   144.133,
+   147.0,
+   150.333,
+   152.0,
+   153.667,
+   156.6,
+   158.067,
+   159.533,
+   159.8,
+   162.533,
+   165.533,
+   167.033,
+   168.367,
+   171.033,
+   172.367,
+   174.033,
+   177.367,
+   179.033,
+   180.567,
+   183.633,
+   185.167
+  ],
+  "visual_without_onset": [
+   24.233,
+   31.667,
+   32.067,
+   32.2,
+   37.8,
+   38.333,
+   39.833,
+   41.2,
+   43.933,
+   45.533,
+   53.567,
+   56.7,
+   57.367,
+   57.633,
+   57.767,
+   59.433,
+   60.833,
+   63.033,
+   63.867,
+   67.067,
+   68.667,
+   72.867,
+   74.267,
+   77.067,
+   86.0,
+   87.633,
+   93.933,
+   96.733,
+   98.133,
+   104.4,
+   111.867,
+   119.6,
+   121.067,
+   122.533,
+   141.267,
+   144.133,
+   147.0,
+   162.533,
+   165.533,
+   167.033,
+   172.367,
+   174.033,
+   179.033,
+   180.567
+  ],
+  "visual_without_any_sound": [
+   32.2,
+   38.333,
+   41.2,
+   53.567,
+   56.7,
+   77.067,
+   92.533,
+   183.633
+  ],
+  "visual_without_hit": [
+   12.9,
+   18.233,
+   24.233,
+   31.667,
+   32.067,
+   32.2,
+   32.467,
+   35.667,
+   37.267,
+   37.4,
+   37.8,
+   37.933,
+   38.333,
+   39.833,
+   41.2,
+   42.567,
+   43.933,
+   45.533,
+   47.133,
+   50.333,
+   53.567,
+   56.833,
+   57.367,
+   57.633,
+   57.767,
+   57.9,
+   58.033,
+   59.433,
+   60.833,
+   62.2,
+   62.7,
+   62.867,
+   63.033,
+   63.2,
+   63.533,
+   63.867,
+   65.467,
+   67.067,
+   68.667,
+   70.067,
+   74.267,
+   77.067,
+   82.933,
+   87.633,
+   92.533,
+   93.933,
+   95.333,
+   98.133,
+   99.7,
+   102.833,
+   104.4,
+   105.867,
+   110.267,
+   111.867,
+   113.467,
+   118.133,
+   119.6,
+   121.067,
+   122.533,
+   123.933,
+   126.733,
+   132.4,
+   135.267,
+   141.267,
+   144.133,
+   152.0,
+   153.667,
+   158.067,
+   162.533,
+   165.533,
+   167.033,
+   172.367,
+   174.033,
+   179.033,
+   180.567,
+   183.633
+  ],
+  "hits": [
+   0.104,
+   0.736,
+   0.91,
+   1.266,
+   1.538,
+   3.716,
+   3.992,
+   4.824,
+   5.496,
+   6.198,
+   6.528,
+   7.246,
+   7.618,
+   8.072,
+   8.794,
+   9.078,
+   9.62,
+   10.132,
+   10.364,
+   10.726,
+   11.174,
+   11.56,
+   12.08,
+   13.164,
+   13.318,
+   13.862,
+   14.164,
+   14.858,
+   15.34,
+   15.664,
+   16.068,
+   16.456,
+   17.014,
+   17.328,
+   17.794,
+   18.636,
+   19.218,
+   20.06,
+   20.722,
+   20.98,
+   21.28,
+   21.8,
+   22.576,
+   23.398,
+   23.542,
+   24.404,
+   24.654,
+   25.436,
+   25.608,
+   26.634,
+   26.962,
+   27.39,
+   27.688,
+   28.04,
+   28.374,
+   28.714,
+   29.16,
+   29.48,
+   29.772,
+   30.376,
+   31.19,
+   31.44,
+   31.896,
+   32.304,
+   32.636,
+   32.948,
+   33.552,
+   34.276,
+   34.446,
+   34.608,
+   34.746,
+   34.874,
+   35.836,
+   36.262,
+   36.43,
+   37.062,
+   37.624,
+   38.132,
+   38.758,
+   39.332,
+   39.7,
+   39.992,
+   40.544,
+   40.832,
+   41.098,
+   41.404,
+   42.136,
+   42.766,
+   43.066,
+   43.468,
+   44.36,
+   44.652,
+   44.864,
+   45.874,
+   46.166,
+   46.472,
+   46.714,
+   47.262,
+   47.802,
+   48.244,
+   48.674,
+   49.188,
+   49.504,
+   49.848,
+   50.888,
+   51.604,
+   52.102,
+   52.318,
+   53.84,
+   54.33,
+   55.034,
+   55.622,
+   56.61,
+   57.066,
+   57.25,
+   57.508,
+   58.28,
+   58.496,
+   59.028,
+   59.286,
+   59.534,
+   60.178,
+   60.466,
+   60.722,
+   60.976,
+   61.266,
+   61.876,
+   62.354,
+   62.464,
+   63.334,
+   63.726,
+   64.068,
+   64.842,
+   65.098,
+   65.584,
+   65.892,
+   66.854,
+   67.182,
+   67.556,
+   67.806,
+   68.072,
+   68.782,
+   69.178,
+   69.654,
+   69.934,
+   70.184,
+   70.7,
+   70.884,
+   71.248,
+   71.518,
+   71.862,
+   72.398,
+   72.89,
+   73.156,
+   73.53,
+   74.594,
+   75.428,
+   75.738,
+   76.274,
+   76.812,
+   77.618,
+   77.774,
+   78.422,
+   79.092,
+   79.584,
+   79.964,
+   81.352,
+   81.764,
+   81.992,
+   82.29,
+   82.67,
+   83.368,
+   83.884,
+   84.518,
+   84.938,
+   85.304,
+   86.044,
+   86.404,
+   86.712,
+   87.114,
+   87.47,
+   87.918,
+   88.312,
+   88.55,
+   88.926,
+   89.312,
+   89.892,
+   90.43,
+   90.982,
+   91.216,
+   91.764,
+   92.644,
+   93.066,
+   93.352,
+   93.578,
+   94.212,
+   94.76,
+   95.044,
+   95.818,
+   96.41,
+   96.758,
+   96.978,
+   97.502,
+   97.95,
+   98.27,
+   98.67,
+   99.802,
+   100.412,
+   100.534,
+   101.008,
+   101.21,
+   101.6,
+   101.898,
+   102.17,
+   102.698,
+   103.128,
+   103.596,
+   104.152,
+   104.652,
+   105.408,
+   106.302,
+   106.472,
+   107.254,
+   107.522,
+   108.458,
+   108.744,
+   109.218,
+   109.578,
+   110.506,
+   110.81,
+   111.106,
+   111.76,
+   112.064,
+   112.402,
+   113.156,
+   113.82,
+   113.996,
+   114.758,
+   115.06,
+   115.778,
+   116.026,
+   116.736,
+   117.078,
+   117.356,
+   117.846,
+   118.262,
+   118.862,
+   119.154,
+   119.904,
+   120.222,
+   120.434,
+   121.194,
+   121.502,
+   121.852,
+   122.716,
+   123.196,
+   124.104,
+   124.508,
+   124.78,
+   125.252,
+   125.53,
+   126.342,
+   126.92,
+   127.768,
+   128.13,
+   128.644,
+   129.626,
+   129.884,
+   130.068,
+   130.996,
+   131.818,
+   132.688,
+   133.082,
+   133.762,
+   133.984,
+   134.244,
+   134.71,
+   135.658,
+   136.354,
+   136.942,
+   137.404,
+   137.754,
+   138.308,
+   138.644,
+   139.132,
+   139.712,
+   140.218,
+   141.04,
+   141.388,
+   141.89,
+   142.578,
+   143.162,
+   143.726,
+   144.316,
+   145.038,
+   145.578,
+   146.096,
+   146.942,
+   147.328,
+   147.568,
+   148.118,
+   148.898,
+   149.246,
+   149.534,
+   149.788,
+   150.376,
+   150.648,
+   151.564,
+   152.886,
+   154.044,
+   154.292,
+   154.82,
+   155.098,
+   155.416,
+   155.564,
+   156.128,
+   156.558,
+   157.018,
+   157.16,
+   157.58,
+   158.27,
+   158.836,
+   159.494,
+   159.874,
+   160.698,
+   161.18,
+   161.456,
+   162.24,
+   162.674,
+   163.31,
+   163.602,
+   164.366,
+   164.906,
+   165.292,
+   165.782,
+   166.05,
+   166.324,
+   166.856,
+   167.276,
+   167.524,
+   167.808,
+   168.306,
+   168.986,
+   169.3,
+   169.774,
+   170.112,
+   170.702,
+   171.046,
+   171.216,
+   171.538,
+   172.94,
+   173.26,
+   174.446,
+   174.884,
+   175.402,
+   176.482,
+   176.712,
+   176.85,
+   177.038,
+   177.416,
+   178.424,
+   178.832,
+   179.182,
+   179.534,
+   180.344,
+   180.884,
+   181.394,
+   182.118,
+   183.258,
+   183.834,
+   184.216,
+   184.674,
+   185.082,
+   185.404,
+   185.69,
+   185.902,
+   186.462
+  ],
+  "stopdowns": [
+   [
+    2.7,
+    0.9,
+    24.0
+   ],
+   [
+    5.56,
+    0.36,
+    21.8
+   ],
+   [
+    6.94,
+    0.22,
+    19.1
+   ],
+   [
+    12.5,
+    0.22,
+    19.4
+   ],
+   [
+    13.58,
+    0.2,
+    15.9
+   ],
+   [
+    23.62,
+    0.34,
+    21.7
+   ],
+   [
+    25.98,
+    0.48,
+    23.5
+   ],
+   [
+    38.4,
+    0.2,
+    17.8
+   ],
+   [
+    43.6,
+    0.46,
+    20.3
+   ],
+   [
+    46.8,
+    0.18,
+    17.4
+   ],
+   [
+    50.26,
+    0.38,
+    15.0
+   ],
+   [
+    52.98,
+    0.74,
+    20.7
+   ],
+   [
+    64.48,
+    0.2,
+    22.9
+   ],
+   [
+    72.54,
+    0.18,
+    24.2
+   ],
+   [
+    74.9,
+    0.44,
+    23.8
+   ],
+   [
+    76.92,
+    0.26,
+    24.3
+   ],
+   [
+    87.54,
+    0.28,
+    21.3
+   ],
+   [
+    89.52,
+    0.28,
+    18.9
+   ],
+   [
+    91.96,
+    0.6,
+    23.8
+   ],
+   [
+    98.94,
+    0.62,
+    23.4
+   ],
+   [
+    101.34,
+    0.18,
+    26.9
+   ],
+   [
+    106.9,
+    0.24,
+    25.3
+   ],
+   [
+    111.22,
+    0.38,
+    13.2
+   ],
+   [
+    113.4,
+    0.26,
+    19.7
+   ],
+   [
+    116.46,
+    0.22,
+    15.9
+   ],
+   [
+    118.38,
+    0.18,
+    26.7
+   ],
+   [
+    122.32,
+    0.22,
+    14.7
+   ],
+   [
+    123.52,
+    0.28,
+    17.5
+   ],
+   [
+    125.66,
+    0.22,
+    21.6
+   ],
+   [
+    129.12,
+    0.3,
+    21.5
+   ],
+   [
+    134.86,
+    0.34,
+    15.5
+   ],
+   [
+    136.5,
+    0.32,
+    20.3
+   ],
+   [
+    138.86,
+    0.18,
+    27.3
+   ],
+   [
+    142.22,
+    0.28,
+    18.2
+   ],
+   [
+    144.8,
+    0.16,
+    20.3
+   ],
+   [
+    148.26,
+    0.24,
+    18.5
+   ],
+   [
+    149.96,
+    0.32,
+    21.7
+   ],
+   [
+    153.18,
+    0.56,
+    24.1
+   ],
+   [
+    159.02,
+    0.42,
+    36.1
+   ],
+   [
+    171.94,
+    0.5,
+    24.4
+   ],
+   [
+    173.9,
+    0.34,
+    23.7
+   ],
+   [
+    176.06,
+    0.34,
+    23.1
+   ],
+   [
+    178.64,
+    0.18,
+    25.6
+   ],
+   [
+    180.02,
+    0.24,
+    24.7
+   ],
+   [
+    181.48,
+    0.54,
+    29.9
+   ],
+   [
+    183.5,
+    0.28,
+    20.7
+   ]
+  ]
+ },
+ "arc": {
+  "film": [
+   -0.0,
+   -0.4,
+   -0.2,
+   -0.3,
+   -0.3,
+   -0.2,
+   -0.2,
+   -0.3,
+   -0.2,
+   -0.6,
+   0.1
+  ],
+  "refs_median": [
+   -1.3,
+   -0.8,
+   0.3,
+   -0.3,
+   -0.2,
+   0.2,
+   0.0,
+   -0.4,
+   0.9,
+   -0.3,
+   -7.4
+  ],
+  "refs_p10": [
+   -12.4,
+   -5.1,
+   -4.8,
+   -2.9,
+   -3.0,
+   -0.8,
+   -2.7,
+   -2.4,
+   -3.3,
+   -5.8,
+   -12.2
+  ],
+  "refs_p90": [
+   1.3,
+   -0.1,
+   1.0,
+   0.7,
+   0.4,
+   1.3,
+   0.8,
+   1.4,
+   2.0,
+   0.7,
+   -2.5
+  ]
+ },
+ "realness": null,
+ "seconds": 54.9,
+ "not_measured": {
+  "skipped by --fast": [
+   "p_real",
+   "music_frac"
+  ]
+ },
+ "summary": "primeiro-dia-de-praia-2_16x9.mp4 vs 7 reference films (bundled launch films): close (partial: realness and music presence not checked) - 16 of 21 scored metrics in range (weighted 82%), 0 critical and 1 major issues. Fix first: too many salient hits (2.02/s, refs 0.10 /s .. 1.66 /s): keep the biggest for reveals, soften the rest by 3-6 dB. Not measured: p_real, music_frac (skipped by --fast).",
+ "text": "earshot critique: primeiro-dia-de-praia-2_16x9.mp4 (186.7 s) vs 7 reference films (bundled launch films)\nVERDICT: close (partial: realness and music presence not checked) - 16 of 21 scored metrics in range (weighted 82%), 0 critical and 1 major issues.\n  (run without --fast before shipping: realness and music presence are critical checks)\nFIX FIRST (most important first):\n  1. [major] too many salient hits (2.02/s, refs 0.10 /s .. 1.66 /s): keep the biggest for reveals, soften the rest by 3-6 dB\n  2. [minor] thin bottom: add a sub layer (sub drop or kick) under reveals, or pick music with real low end (-33.8 dB share, refs -16.2 dB .. -4.1 dB)\n  3. [minor] nearly mono (side -25.9 dB vs mid; refs -14.5 dB .. -5.0 dB): use stereo music and ambience, pan SFX with the motion\n  4. [minor] weak low end: the music has no body; choose a fuller track or add a low layer (bass, low hits) (-11.4 dB share, refs -6.7 dB .. -2.1 dB)\n  5. [minor] honky or harsh mids: cut 1-3 kHz on the loudest layer by 2 dB (-7.5 dB share, refs -19.1 dB .. -10.5 dB)\n  tip: 8 of 130 visual events get no sound at all (no onset within 100 ms, no whoosh / riser peak within 300 ms, no level peak within 150 ms; the matcher earshot timeline uses): 0:32.20, 0:38.33, 0:41.20, 0:53.57, 0:56.70, 1:17.07, 1:32.53, 3:03.63; give the ones that matter a whoosh into the cut, a hit or a UI click, or keep one as a deliberate stop-down; 14 more are met only by a level peak (a soft swell, or just the bed: check 0:32.07, 0:34.20, 0:37.27, 0:37.53 (+10 more) on the sheet)\nNOT MEASURED: p_real, music_frac (skipped by --fast)\nSCORECARD                                      value   ok range                        ref median  status\n  loudness integrated loudness             -13.9 LUFS   -16.0 LUFS .. -9.0 LUFS (web)   -14.8 LUFS  ok\n  loudness true peak                        -1.9 dBTP   <= 0.0 dBTP (decoded lossy)       0.6 dBTP  ok\n  realness realness (p_real)                     n.a.   >= 0.77 (realness model)                    n.a.\n  music    music presence                        n.a.   >= 62%                                100%  n.a.\n  sync     onset on visual events +-100ms         66%   >= 45%                                 81%  ok\n  loudness loudness range                      1.5 LU   0.7 LU .. 13.2 LU                   5.5 LU  ok\n  loudness loudest 3 s above integrated        1.0 LU   0.6 LU .. 4.0 LU                    2.3 LU  ok\n  arc      time to first sound                 0.08 s   <= 0.58 s                           0.13 s  ok\n  ending   dead air at the end                 0.01 s   <= 2.15 s                           0.04 s  ok\n  arc      longest silent gap inside           0.34 s   <= 1.91 s                           0.02 s  ok\n  ending   final moment vs integrated          2.4 LU   -3.7 LU .. 7.1 LU                   0.2 LU  ok\n  density  onset density                      4.10 /s   2.16 /s .. 8.52 /s                 5.66 /s  ok\n  density  salient hit density                2.02 /s   0.05 /s .. 1.86 /s                 1.25 /s  high (major)\n  arc      opening level (first 10%)          -0.3 LU   -19.0 LU .. 3.7 LU                 -1.1 LU  ok\n  arc      closing level (last 10%)           -0.3 LU   -15.8 LU .. 1.2 LU                 -3.0 LU  ok\n  ending   final fade / ring-out length        0.26 s   <= 3.04 s                           0.27 s  ok\n  spectrum sub 20-60 Hz share                -33.8 dB   -17.7 dB .. -2.6 dB                -6.6 dB  low (minor)\n  spectrum low 60-250 Hz share               -11.4 dB   -8.2 dB .. -0.6 dB                 -4.2 dB  low (minor)\n  spectrum low-mid 250-1k share               -1.3 dB   -18.3 dB .. -0.2 dB                -5.3 dB  ok\n  spectrum mid 1-4 kHz share                  -7.5 dB   -20.6 dB .. -9.0 dB               -12.4 dB  high (minor)\n  spectrum presence 4-8 kHz share            -19.7 dB   -31.8 dB .. -11.6 dB              -17.8 dB  ok\n  spectrum air 8-16 kHz share                -24.3 dB   -35.7 dB .. -9.7 dB               -23.6 dB  ok\n  stereo   stereo width (side vs mid)        -25.9 dB   -15.5 dB .. -4.0 dB                -8.5 dB  low (minor)\nLOUDNESS ARC (LU vs integrated at 0%, 10% .. 100% of the film; not scored):\n  this film      -0.0   -0.4   -0.2   -0.3   -0.3   -0.2   -0.2   -0.3   -0.2   -0.6   +0.1\n  refs median    -1.3   -0.8   +0.3   -0.3   -0.2   +0.2   +0.0   -0.4   +0.9   -0.3   -7.4\nNOT SCORED (style choices, shown for context):\n  tempo                                                         129 BPM   refs p10-p90 115 BPM .. 136 BPM\n  position of the loudest 3 s                                      0.74   refs p10-p90 0.10 .. 0.83\n  final hit ring-out                                             3.69 s   refs p10-p90 1.06 s .. 3.58 s\n  stop-downs                                                  14.8 /min   refs p10-p90 0.0 /min .. 9.1 /min\n  visual events (cuts, big changes)                             0.70 /s   refs p10-p90 0.31 /s .. 1.42 /s\n  visual events with a salient hit +-100 ms            42% (chance 41%)   refs p10-p90 8% .. 49%\n  visual events with an onset +-1 frame                23% (chance 33%)   refs p10-p90 34% .. 59%\n  visual events on the beat grid +-70 ms               29% (chance 31%)   refs p10-p90 20% .. 45%\n  brightness (median spectral centroid)                         2136 Hz   refs p10-p90 1183 Hz .. 3030 Hz\n  L/R correlation                                                  0.99   refs p10-p90 0.58 .. 0.86"
+}
