@@ -143,14 +143,16 @@ def write_pop_ass(
 def _zoompan_filter(preset: str, duration: float, fps: int = VIDEO_FPS) -> str:
     frames = max(2, int(round(duration * fps)))
     n_denom = max(1, frames - 1)
+    # Movimento SUAVE (Regra 28): 6-8% de zoom/pan em 1,5-2s. O 12% antigo, somado
+    # a dissolves curtos, dava a sensacao de "tremendo dos lados".
     if preset == "zoom_in":
-        z_expr, x_expr, y_expr = f"1.0+0.12*(on/{n_denom})", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+        z_expr, x_expr, y_expr = f"1.0+0.08*(on/{n_denom})", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
     elif preset == "zoom_out":
-        z_expr, x_expr, y_expr = f"1.12-0.12*(on/{n_denom})", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+        z_expr, x_expr, y_expr = f"1.08-0.08*(on/{n_denom})", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
     elif preset == "pan_left":
-        z_expr, x_expr, y_expr = "1.10", f"(iw-iw/zoom)*(1.0-(on/{n_denom}))", "ih/2-(ih/zoom/2)"
+        z_expr, x_expr, y_expr = "1.06", f"(iw-iw/zoom)*(1.0-(on/{n_denom}))", "ih/2-(ih/zoom/2)"
     else:
-        z_expr, x_expr, y_expr = "1.10", f"(iw-iw/zoom)*(on/{n_denom})", "ih/2-(ih/zoom/2)"
+        z_expr, x_expr, y_expr = "1.06", f"(iw-iw/zoom)*(on/{n_denom})", "ih/2-(ih/zoom/2)"
 
     return (
         f"scale={VIDEO_WIDTH*2}:{VIDEO_HEIGHT*2}:force_original_aspect_ratio=increase,"
@@ -773,9 +775,12 @@ def _concat_segments_with_smooth_xfade(
             nxt_dur = items[idx][1]
             out_lbl = "[vout]" if idx == len(items) - 1 else f"[x{idx}]"
             if f > 0.04:
-                # offset = ponto ONDE o fade comeca = fim do acumulado - duracao do fade.
-                # O xfade sobrepoe f segundos: a duracao resultante e cum_dur + nxt_dur - f.
-                off = max(0.0, cum_dur - f)
+                # SINCRONIA (Regra 13): o xfade comeca no FIM do conteudo real do
+                # primeiro clipe (offset = cum_dur). O clipe anterior recebeu
+                # `tpad` de f segundos, entao o dissolve acontece sobre o quadro
+                # congelado — a duracao total NAO encurta e a narracao/SFX
+                # continuam exatamente onde foram planejados.
+                off = max(0.0, cum_dur)
                 filters.append(f"{prev}[s{idx}]xfade=transition=fade:duration={f:.3f}:offset={off:.3f}{out_lbl}")
                 cum_dur = off + nxt_dur
             else:
@@ -824,6 +829,30 @@ def _concat_segments_with_smooth_xfade(
 
     _merge_batch(stage_items, out_mp4)
     return out_mp4
+
+
+def retime_visual_clips(visual_clips: list[dict[str, Any]], rendered_segments: list[Path]) -> None:
+    """Alinha narracao/SFX/avatares aos tempos REAIS dos segmentos renderizados.
+
+    O xfade nao encurta mais a timeline, mas cada segmento pode sair com 1-2
+    frames de diferenca do planejado. Acumular esse erro em 170 clips daria
+    segundos de dessincronia no final do video — entao recalculamos aqui.
+    """
+    durs = [max(0.25, probe_duration(p)) for p in rendered_segments]
+    scene_start: dict[str, float] = {}
+    cursor = 0.0
+    for i, c in enumerate(visual_clips):
+        sid = c["scene_id"]
+        if sid not in scene_start:
+            scene_start[sid] = round(cursor, 3)
+        rel = float(c.get("start") or 0.0) - float(c.get("scene_audio_start") or 0.0)
+        start = round(scene_start[sid] + rel, 3)
+        dur = float(c.get("duration") or 0.0)
+        c["start"] = start
+        c["end"] = round(start + dur, 3)
+        c["scene_audio_start"] = scene_start[sid]
+        if i < len(durs):
+            cursor += durs[i]
 
 
 def assemble_video(
@@ -956,6 +985,7 @@ def assemble_video(
         )
 
     total_dur = probe_duration(base_video)
+    retime_visual_clips(visual_clips, rendered_segments)
     nar_wav = work_dir / "narration_master.wav"
     nar_sc_wav = work_dir / "narration_soundcraft.wav"
     sfx_wav = work_dir / "sfx_master.wav"
@@ -968,6 +998,17 @@ def assemble_video(
         nar_mastered, sfx_wav, total_dur, mix_m4a,
         bgm_wav=chosen_bgm, bgm_volume=bgm_volume, target_lufs=target_lufs,
     )
+
+    # Regra 25 (revisada 2026-11-24): CTA em VIDEO com chroma key.
+    # like-sem-som.mp4 no meio; like-com-som.mp4 nos ultimos 10s (com audio).
+    from core.cta_video_overlay import mix_cta_audio, plan_ctas
+
+    plan = plan_ctas(proj_dir=work_dir.parent, total_dur=total_dur, visual_clips=visual_clips)
+    final_audio = mix_m4a
+    if plan.get("enabled") and plan.get("audio_wav"):
+        final_audio = work_dir / "final_mix_with_cta.m4a"
+        mix_cta_audio(mix_m4a, plan["audio_wav"], float(plan["events"][-1]["timeline_start"]),
+                      total_dur, final_audio)
 
     write_synced_srt(visual_clips, out_srt)
     ass_16_9 = work_dir / "captions_pop.ass"
@@ -982,40 +1023,15 @@ def assemble_video(
     else:
         sparkles_mov = None
 
-    # Regra 25: overlay de CTA infantil (joinha + sininho + SUBSCRIBE) no final do video.
-    # Usa o arquivo mestre permanente em assets/reference/overlays/ (reutilizavel em todos os episodios);
-    # se nao existir, gera um local como fallback. Pode entrar em qualquer ponto do video.
-    from config import BASE_DIR as _BASE
-
-    cta_master = _BASE / "assets" / "reference" / "overlays" / "cta_subscribe.mov"
-    cta_mov = avatar_dir / "cta_subscribe.mov"
-    cta_dur = min(5.0, total_dur)
-    # Regra 25: o CTA transparente pode subir no MEIO do video (independente da cena),
-    # alem do video de despedida no final. Alvo ~40% da duracao total (ex.: 2.5min num video de 6min).
-    cta_start = max(0.0, min(total_dur * 0.40, total_dur - cta_dur - 1.0))
-    if cta_dur >= 2.0:
-        try:
-            if cta_master.exists():
-                import shutil
-
-                shutil.copy2(cta_master, cta_mov)
-            else:
-                from core.cta_overlay import render_cta_subscribe_overlay
-
-                render_cta_subscribe_overlay(cta_mov, duration=cta_dur)
-        except Exception as exc:
-            print(f"  [CTA] aviso: nao preparou overlay de subscribe: {str(exc)[:120]}", flush=True)
-            cta_mov = None
-    else:
-        cta_mov = None
-
+    # CTA em video (Regra 25 revisada): o overlay animado antigo (.mov de joinha)
+    # continua VETADO; entram os videos de referencia com chroma key.
     out_mp4.parent.mkdir(parents=True, exist_ok=True)
 
-    if (not overlays and not burn_captions
-            and not (sparkles_mov and sparkles_mov.exists())
-            and not (cta_mov and cta_mov.exists())):
+    cta_events = [e for e in plan.get("events", []) if Path(e["path"]).exists()]
+    if (not overlays and not burn_captions and not cta_events
+            and not (sparkles_mov and sparkles_mov.exists())):
         subprocess.run(
-            [FFMPEG_EXE, "-y", "-v", "error", "-i", str(base_video), "-i", str(mix_m4a),
+            [FFMPEG_EXE, "-y", "-v", "error", "-i", str(base_video), "-i", str(final_audio),
              "-c:v", "copy", "-c:a", "copy", "-shortest", "-movflags", "+faststart", str(out_mp4)],
             check=True,
         )
@@ -1033,15 +1049,6 @@ def assemble_video(
         prev = nxt
         in_idx += 1
 
-    if cta_mov and cta_mov.exists():
-        cmd += ["-itsoffset", f"{cta_start:.3f}", "-i", str(cta_mov)]
-        nxt = "[vcta]"
-        filters.append(
-            f"{prev}[{in_idx}:v]overlay=0:0:enable='between(t,{cta_start:.3f},{cta_start + cta_dur:.3f})':eof_action=pass{nxt}"
-        )
-        prev = nxt
-        in_idx += 1
-
     for idx, (st, en, x_expr, y_expr, mov_path) in enumerate(overlays):
         cmd += ["-itsoffset", f"{st:.3f}", "-i", str(mov_path)]
         nxt = f"[v{idx}]"
@@ -1051,12 +1058,25 @@ def assemble_video(
         prev = nxt
         in_idx += 1
 
+    # CTA fica ACIMA do video e dos avatares, e ABAIXO apenas das legendas.
+    for idx, ev in enumerate(cta_events):
+        st = float(ev["timeline_start"])
+        en = st + float(ev["duration"])
+        cmd += ["-itsoffset", f"{st:.3f}", "-i", str(ev["path"])]
+        nxt = f"[vcta{idx}]"
+        filters.append(
+            f"{prev}[{in_idx}:v]overlay=x={int(ev['x'])}:y={int(ev['y'])}:"
+            f"enable='between(t,{st:.3f},{en:.3f})':eof_action=pass{nxt}"
+        )
+        prev = nxt
+        in_idx += 1
+
     if burn_captions:
         nxt = "[vcap]"
         filters.append(f"{prev}ass={ass_16_9.name}{nxt}")
         prev = nxt
 
-    cmd += ["-i", str(mix_m4a)]
+    cmd += ["-i", str(final_audio)]
     audio_idx = in_idx
     _run_h264_ffmpeg(
         cmd + ["-filter_complex", ";".join(filters), "-map", prev, "-map", f"{audio_idx}:a"],

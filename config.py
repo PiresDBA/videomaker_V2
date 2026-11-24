@@ -17,6 +17,9 @@ ENV_FILE = BASE_DIR / ".env"
 
 AVATARS_DIR = ASSETS_DIR / "avatars"
 REFERENCE_DIR = ASSETS_DIR / "reference"
+GOODBYE_DIR = REFERENCE_DIR / "goodbye"          # despedida canonica (Regra 25)
+GOODBYE_VIDEO_NAME = "despedida_subscribe.mp4"
+GOODBYE_VIDEO_PATH = GOODBYE_DIR / GOODBYE_VIDEO_NAME
 MUSIC_DIR = ASSETS_DIR / "music"
 SFX_CACHE_DIR = ASSETS_DIR / "sfx_cache"
 
@@ -134,13 +137,19 @@ RICH_IMAGE_MONTAGE = True
 IMAGE_MONTAGE_BEAT_SECONDS = 1.7
 IMAGE_MONTAGE_MAX_PARTS = 5
 
-# Rajada (burst): 10 quadros quase idênticos derivados da mesma imagem aprovada,
-# encadeados com xfade curto => ilusão de slow motion feita só com imagens (0 crédito).
+# Slow-motion de imagem parada (Regra 28): a MESMA imagem base em todas as partes
+# da cena, Ken Burns diferente em cada uma e dissolve LONGO entre elas. Nunca mais
+# flipbook de 10 quadros de 0,14s (aquilo tremia e o olho não via a imagem).
 BURST_MONTAGE = True
-BURST_FRAMES = 10
-BURST_FRAME_SECONDS = 0.35
-BURST_XFADE_SECONDS = 0.12
+BURST_FRAMES = 10          # prompt do Agente do Flow (lote de quadros)
+BURST_FRAME_SECONDS = 0.7  # cada quadro precisa durar >= 0,6s
+BURST_XFADE_SECONDS = 0.55 # dissolve suave entre os quadros
+SLOWMO_XFADE_SECONDS = 0.55
 BURST_MAX_SCENES = 5  # no maximo 5 cenas de alto impacto por video (evita excesso de slow motion)
+
+# Regra 29: a historia e CONTADA por narracao; personagens entram de vez em quando.
+NARRATION_MIN_RATIO = 0.55  # >= 55% das cenas com narrador
+NARRATION_MAX_CONSECUTIVE = 2  # nunca mais de 2 cenas seguidas so de personagem
 BURST_KEYWORDS = (
     "pul", "salt", "onda", "molh", "sacod", "corr", "voa", "mergulh", "escorreg",
     "patin", "queda", "caiu", "lanç", "joga", "bate", "estour", "fog", "fug",

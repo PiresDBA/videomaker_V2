@@ -9,9 +9,12 @@ from typing import Any
 
 from PIL import Image
 
-from config import FFPROBE_EXE, MAX_IMAGE_SECONDS, SHORT_HEIGHT, SHORT_WIDTH, THUMB_HEIGHT, THUMB_WIDTH, VIDEO_HEIGHT, VIDEO_WIDTH
+from config import (
+    FFPROBE_EXE, MAX_IMAGE_SECONDS, NARRATION_MAX_CONSECUTIVE, NARRATION_MIN_RATIO,
+    SHORT_HEIGHT, SHORT_WIDTH, THUMB_HEIGHT, THUMB_WIDTH, VIDEO_HEIGHT, VIDEO_WIDTH,
+)
 from core.audio_fx import detect_pauses_in_wav, run_earshot_critique
-from core.delivery_audit import audit_delivery
+from core.delivery_audit import audit_delivery, clip_has_video
 from core.legacy_auditor import audit_image_with_vision
 from core.media_studio import detect_split_collage
 from core.scene_auditor import audit_voice_consistency
@@ -45,6 +48,37 @@ def _probe_media(path: Path) -> dict[str, Any]:
         }
     except Exception as exc:
         return {"exists": True, "error": str(exc)[:140]}
+
+
+def narration_issues(scenes: list[dict[str, Any]]) -> list[str]:
+    """Regra 29: a historia e contada pelo narrador; personagens so comentam.
+
+    Devolve a lista de problemas (vazia = aprovado). Funcao pura para testar.
+    """
+    if not scenes:
+        return []
+
+    def _spk(sc: dict[str, Any]) -> str:
+        return str(sc.get("speaker") or "narrador").strip().lower()
+
+    out: list[str] = []
+    narr = sum(1 for s in scenes if _spk(s) == "narrador")
+    ratio = narr / len(scenes)
+    if ratio < NARRATION_MIN_RATIO:
+        out.append(
+            f"narracao: apenas {narr}/{len(scenes)} cenas narradas "
+            f"({ratio:.0%} < {NARRATION_MIN_RATIO:.0%}) — historia precisa de narrador"
+        )
+    run = 0
+    for s in scenes:
+        run = run + 1 if _spk(s) != "narrador" else 0
+        if run > NARRATION_MAX_CONSECUTIVE:
+            out.append(
+                f"narracao: {run} cenas seguidas so de personagens "
+                f"(max {NARRATION_MAX_CONSECUTIVE}) — o narrador desaparece da historia"
+            )
+            break
+    return out
 
 
 def run_final_audit(
@@ -85,6 +119,10 @@ def run_final_audit(
             image_failures.append(f"{c['clip_id']}: duracao {c['duration']}s > {MAX_IMAGE_SECONDS}s")
         im_p = images_dir / f"{c['clip_id']}.jpg"
         if not im_p.exists():
+            # Cena com vídeo Veo é renderizada pelo MP4, não por um JPG.
+            # Com reuse_clips o JPG auxiliar nem chega a ser gerado — não é defeito.
+            if clip_has_video(c, images_dir):
+                continue
             image_failures.append(f"{c['clip_id']}: imagem ausente")
             continue
         with Image.open(im_p) as im:
@@ -102,11 +140,20 @@ def run_final_audit(
 
     # 3b. PORTA DE ENTREGA OBRIGATORIA (Regras 9 e 13) — compara os FRAMES RENDERIZADOS
     #     com as imagens/videos designados de cada cena. Nao depende de Vision API.
-    #     Pega contaminacao por colheita velha, rajada que treme e CTA/despedida ausente.
+    #     So roda em EPISODIOS REAIS (projeto sob ROOT/projects); testes sinteticos
+    #     em pastas temporarias nao sao entregas e nao passam por aqui.
+    projects_root = Path(__file__).resolve().parent.parent / "projects"
+    in_projects = str(proj_dir.resolve()).startswith(str(projects_root.resolve()))
     delivery_rep: dict[str, Any] = {"approved": True, "issues": [], "frames_checked": 0}
-    if out_16_9.exists() and out_16_9.stat().st_size > 1000:
+    if in_projects and out_16_9.exists() and out_16_9.stat().st_size > 1000:
         delivery_rep = audit_delivery(proj_dir, out_16_9, visual_clips, images_dir)
         issues.extend(f"delivery: {e}" for e in delivery_rep.get("issues", []))
+
+    # 3c. NARRACAO DOMINANTE (Regra 29): a historia e contada pelo narrador;
+    #     Frida e Luna entram de vez em quando. Dialogo demais deixa a historia
+    #     "sem pe nem cabeca" (feedback direto do usuario em 2026-11-24).
+    if in_projects and script_data.get("scenes"):
+        issues.extend(narration_issues(script_data["scenes"]))
 
     # 4. Video 16:9 e Short 9:16
     v16 = _probe_media(out_16_9)

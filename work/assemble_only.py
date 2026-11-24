@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from config import CPU_WORKERS  # noqa: E402
+from config import CPU_WORKERS, TARGET_VEO_VIDEOS  # noqa: E402
 from core.self_audit import run_final_audit  # noqa: E402
 from core.video_assembler import assemble_video  # noqa: E402
 
@@ -47,7 +47,8 @@ def main() -> int:
         target_lufs=-14.0,
         cpu_workers=CPU_WORKERS,
         reuse_clips=True,
-        no_xfade=True,
+        # Regra 28: dissolve suave OBRIGATORIO (o atalho antigo usava corte seco).
+        no_xfade=False,
     )
     print(f"[assemble-only] MP4 gerado ({out.stat().st_size / 1e6:.1f} MB). Auditando...", flush=True)
 
@@ -66,7 +67,7 @@ def main() -> int:
         out_short=None,
         thumbs_dir=output_dir / "thumbs",
         vision_check=False,
-        min_veo_videos=0,
+        min_veo_videos=int(TARGET_VEO_VIDEOS),
     )
     print(f"[assemble-only] AUDITORIA: APPROVED={audit['approved']} | Issues={audit['issues_count']}", flush=True)
     if not audit["approved"]:

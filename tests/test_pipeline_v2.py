@@ -1429,13 +1429,13 @@ class TestVideomakerV2Unified(unittest.TestCase):
         }]}
         timings = [{"scene_id": "sc_99", "duration": 8.0, "wav_path": ""}]
         clips, prompts = build_pacing_plan(script, timings)
-        # Regra 20: burst injeta quadros extras; conta so os clips de montagem base.
-        base_clips = [c for c in clips if not c.get("burst_from")]
-        self.assertGreaterEqual(len(base_clips), 3)
-        self.assertLessEqual(len(base_clips), IMAGE_MONTAGE_MAX_PARTS)
+        # Regra 28: NAO existem quadros extras — todas as partes sao a MESMA imagem
+        # base, com Ken Burns diferente e dissolve longo (slow-motion suave).
+        self.assertGreaterEqual(len(clips), 3)
+        self.assertLessEqual(len(clips), IMAGE_MONTAGE_MAX_PARTS)
         self.assertTrue(all(float(c["duration"]) <= 5.0 for c in clips))
-        self.assertEqual(len(prompts), len(base_clips))
-        self.assertGreater(len(clips), len(base_clips))  # rajada presente
+        self.assertEqual(len(prompts), len(clips))
+        self.assertTrue(all(float(c["xfade_duration"]) >= 0.35 for c in clips))
 
 
     def test_burst_montage_prompt_and_frames(self):
@@ -1462,9 +1462,12 @@ class TestVideomakerV2Unified(unittest.TestCase):
             {"scenes": [scene]},
             [{"scene_id": "sc_99", "duration": 6.5, "wav_path": ""}],
         )
-        burst = [c for c in clips if c.get("burst_from")]
-        self.assertGreaterEqual(len(burst), BURST_FRAMES - 1)
-        self.assertTrue(all(float(c["xfade_duration"]) <= 0.2 for c in burst))
+        burst = [c for c in clips if c.get("burst")]
+        self.assertGreaterEqual(len(burst), 2)
+        # Regra 28: slow-motion = mesma foto, quadros longos e dissolve suave.
+        self.assertTrue(all(float(c["xfade_duration"]) >= 0.35 for c in burst))
+        self.assertTrue(all(float(c["duration"]) >= 0.60 for c in burst))
+        self.assertTrue(all("_b_" not in c["clip_id"] for c in burst))
         # Regra 20: cena com video Veo NAO recebe rajada (movimento ja existe)
         clips_video, _ = build_pacing_plan(
             {"scenes": [scene]},
@@ -1557,6 +1560,142 @@ class TestVideomakerV2Unified(unittest.TestCase):
             self.assertGreater(si, 0.99)
             self.assertLess(sd, da.BURST_MAX_SIM)
             self.assertLess(sd, si - 0.1)
+
+    def test_image_assignment_anti_repetition(self):
+        """Regra 27: blacklist respeitada, cota por imagem, sem repetir em cena vizinha
+        e todas as partes da cena usando a MESMA imagem base."""
+        import json
+        from core import image_assignment as ia
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            pool = root / "pool"
+            pool.mkdir()
+            rows = []
+            for i in range(8):
+                p = pool / f"img{i}.jpg"
+                Image.new("RGB", (64, 64), (20 * i + 10, 90, 160)).save(p)
+                rows.append({"sha256": ia.sha256(p), "name": p.name, "path": str(p),
+                             "theme": "geral", "keywords": []})
+            index = root / "approved.json"
+            index.write_text(json.dumps({"images": rows}), encoding="utf-8")
+            bl = root / "blacklist.json"
+            bl.write_text(json.dumps({"sha256": [rows[0]["sha256"]], "video_sha256": []}),
+                          encoding="utf-8")
+
+            pacing = []
+            for n in range(1, 13):
+                for part in (1, 2):
+                    pacing.append({"clip_id": f"sc_{n:02d}_p{part}", "scene_id": f"sc_{n:02d}",
+                                   "text": "praia areia sol", "visual_action": "", "location": "praia",
+                                   "duration": 2.0})
+            imgs = root / "images"
+            rep = ia.assign_images(root, pacing, imgs, index_path=index, blacklist_path=bl)
+
+            self.assertNotIn(rows[0]["sha256"], rep["reuse"], "imagem vetada nao pode ser usada")
+            for sha, sids in rep["reuse"].items():
+                self.assertLessEqual(len(sids), 2, f"{sha[:8]} estourou a cota")
+
+            prev = None
+            for sid in sorted(rep["scenes"]):
+                sha = rep["scenes"][sid].get("sha256")
+                self.assertNotEqual(sha, prev, f"imagem repetida em cena vizinha ({sid})")
+                prev = sha
+
+            for n in range(1, 13):
+                self.assertEqual(ia.sha256(imgs / f"sc_{n:02d}_p1.jpg"),
+                                 ia.sha256(imgs / f"sc_{n:02d}_p2.jpg"),
+                                 f"cena sc_{n:02d} usou imagens diferentes entre as partes")
+
+    def test_pacing_slowmo_no_flipbook(self):
+        """Regra 28: quadros longos (>= 0,6s), dissolve >= 0,35s e nenhum frame extra _b_."""
+        script = {"scenes": [
+            {"scene_id": f"sc_{i:02d}", "act": 1, "speaker": "narrador",
+             "text": "a onda pula e corre na praia", "visual_action": "pula",
+             "location": "praia", "sfx": "cartoon splash"}
+            for i in range(1, 7)
+        ]}
+        durs = [6.0, 3.2, 4.0, 2.0, 5.5, 1.2]
+        timings = [{"scene_id": f"sc_{i:02d}", "duration": d, "wav_path": "x.wav"}
+                   for i, d in zip(range(1, 7), durs)]
+        clips, _ = build_pacing_plan(script, timings)
+
+        by_scene: dict[str, list[dict]] = {}
+        for c in clips:
+            by_scene.setdefault(c["scene_id"], []).append(c)
+        for sid, parts in by_scene.items():
+            for p in parts:
+                self.assertGreaterEqual(p["duration"], 0.6, f"{sid} tem quadro curto demais")
+            if len(parts) > 1:
+                for p in parts:
+                    self.assertGreaterEqual(p["xfade_duration"], 0.35,
+                                            f"{sid} dissolve curto demais")
+        self.assertTrue(all("_b_" not in c["clip_id"] for c in clips),
+                        "nao pode existir frame extra _b_ (flipbook)")
+
+    def test_narration_dominant_rule(self):
+        """Regra 29: >= 55% de cenas narradas e no maximo 2 cenas seguidas de personagem."""
+        from core.self_audit import narration_issues
+
+        ok = ([{"speaker": "narrador"}] * 20 + [{"speaker": "frida"}] * 2
+              + [{"speaker": "narrador"}] + [{"speaker": "luna"}] * 2
+              + [{"speaker": "narrador"}] * 5)
+        self.assertEqual(narration_issues(ok), [])
+
+        bad_ratio = [{"speaker": "frida"}] * 10 + [{"speaker": "narrador"}] * 5
+        self.assertTrue(any("cenas narradas" in e for e in narration_issues(bad_ratio)))
+
+        bad_run = ([{"speaker": "narrador"}] * 10 + [{"speaker": "frida"}] * 3
+                   + [{"speaker": "narrador"}] * 10)
+        self.assertTrue(any("seguidas" in e for e in narration_issues(bad_run)))
+
+    def test_cta_video_overlay_chroma_key_and_timing(self):
+        """Regra 25 revisada: chroma key 0.28/0.12, meio ~50%, fim <=10s, audio -13dB."""
+        import json
+        import subprocess
+
+        from config import FFMPEG_EXE
+        from core import cta_video_overlay as cta
+
+        self.assertAlmostEqual(cta.CTA_SIMILARITY, 0.28)
+        self.assertAlmostEqual(cta.CTA_BLEND, 0.12)
+        self.assertTrue(cta.CTA_AUDIO_MUTED,
+                        "o CTA final tem que ficar sem voz (a narradora ja faz o pedido)")
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            src_v = root / "sem.mp4"
+            src_a = root / "com.mp4"
+            vfilter = ("color=c=0x00FF00:s=320x180:r=24:d=12,"
+                       "drawbox=x=60:y=120:w=200:h=40:color=red:t=fill")
+            for out, with_audio in ((src_v, False), (src_a, True)):
+                cmd = [FFMPEG_EXE, "-y", "-v", "error", "-f", "lavfi", "-i", vfilter]
+                if with_audio:
+                    cmd += ["-f", "lavfi", "-i", "sine=frequency=440:duration=12"]
+                cmd += ["-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p"]
+                if with_audio:
+                    cmd += ["-c:a", "aac", "-shortest"]
+                cmd += [str(out)]
+                subprocess.run(cmd, check=True, capture_output=True)
+
+            clips = [{"scene_id": f"sc_{i:02d}", "start": float(i) * 6.0} for i in range(20)]
+            plan = cta.plan_ctas(root, 120.0, clips, silent_ref=src_v, sounded_ref=src_a)
+            self.assertTrue(plan["enabled"])
+            self.assertEqual(len(plan["events"]), 2)
+            mid, final = plan["events"]
+            self.assertEqual(mid["position"], "middle")
+            self.assertEqual(final["position"], "final")
+            self.assertAlmostEqual(mid["timeline_start"], 60.0, delta=6.5)
+            self.assertGreaterEqual(120.0 - final["timeline_start"], 0.0)
+            self.assertLessEqual(120.0 - final["timeline_start"], 10.5)
+            self.assertEqual(final["width"], int(cta.VIDEO_WIDTH * cta.CTA_WIDTH_RATIO))
+            self.assertGreater(final["y"], int(cta.VIDEO_HEIGHT * 0.5))
+            for ev in plan["events"]:
+                self.assertTrue(Path(ev["path"]).exists())
+
+            data = json.loads((root / "work" / "cta" / "cta_plan.json").read_text(encoding="utf-8"))
+            self.assertEqual(data["sources"], {"middle": "like-sem-som.mp4", "final": "like-com-som.mp4"})
+            self.assertTrue(data["audio_muted"])
 
     def test_adaptive_duration_by_material(self):
         """Regra 26: com material de sobra, permite episodio longo; com pouco, curto."""

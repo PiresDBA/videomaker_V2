@@ -184,16 +184,39 @@ def check_contract() -> list[str]:
     pace_txt = (ROOT / "core" / "pacing_planner.py").read_text(encoding="utf-8", errors="replace")
     if "video_scene_ids" not in pace_txt or "burst_scenes_used < BURST_MAX_SCENES" not in pace_txt:
         errors.append("HOOK VIOLADO: rajada nao respeita cenas com Veo / limite (Regra 20).")
-    # Regra 25: anti-regeneracao de Veo em melhorias + overlay CTA transparente
+    # Regra 25 (revisada 2026-11-24): anti-regeneracao de Veo + CTA em VIDEO com chroma key.
+    # O overlay .mov antigo segue VETADO; entram like-sem-som.mp4 (meio) e like-com-som.mp4 (final).
     pipe_txt = (ROOT / "pipeline_v2.py").read_text(encoding="utf-8", errors="replace")
     if "def should_generate_new_veo" not in pipe_txt or "generate_new_veo = should_generate_new_veo" not in pipe_txt:
         errors.append("HOOK VIOLADO: trava anti-regeneracao de Veo ausente (Regra 25).")
-    cta_txt = (ROOT / "core" / "cta_overlay.py").read_text(encoding="utf-8", errors="replace")
-    if "render_cta_subscribe_overlay" not in cta_txt or "qtrle" not in cta_txt:
-        errors.append("HOOK VIOLADO: overlay CTA transparente ausente (Regra 25).")
     va2b_txt = (ROOT / "core" / "video_assembler.py").read_text(encoding="utf-8", errors="replace")
-    if "render_cta_subscribe_overlay" not in va2b_txt or "cta_subscribe.mov" not in va2b_txt:
-        errors.append("HOOK VIOLADO: overlay CTA nao integrado no assemble_video (Regra 25).")
+    if "cta_subscribe.mov" in va2b_txt or "render_cta_subscribe_overlay" in va2b_txt:
+        errors.append(
+            "HOOK VIOLADO: overlay CTA .mov antigo VETADO ainda em uso (Regra 25) — "
+            "usar core/cta_video_overlay.py com os videos like-*.mp4."
+        )
+    cta_txt = (ROOT / "core" / "cta_video_overlay.py").read_text(encoding="utf-8", errors="replace")
+    for sym in ("colorkey=0x00FF00", "CTA_SIMILARITY = 0.28", "CTA_BLEND = 0.12",
+                "CTA_AUDIO_MUTED = True", "like-sem-som.mp4", "like-com-som.mp4", "def plan_ctas"):
+        if sym not in cta_txt:
+            errors.append(f"HOOK VIOLADO: CTA em video sem a trava '{sym}' (Regra 25).")
+    if "despill=green" in cta_txt:
+        errors.append("HOOK VIOLADO: despill agressivo no CTA estraga o sino amarelo (Regra 25).")
+    if "plan_ctas" not in va2b_txt or "mix_cta_audio" not in va2b_txt:
+        errors.append("HOOK VIOLADO: CTA em video nao integrado no assemble_video (Regra 25).")
+    # Regras 27-29: anti-repeticao de imagem, slow-motion sem estrobo e narracao dominante
+    ia_path = ROOT / "core" / "image_assignment.py"
+    if not ia_path.exists() or "def assign_images" not in ia_path.read_text(encoding="utf-8", errors="replace"):
+        errors.append("HOOK VIOLADO: core/image_assignment.py (cota/anti-repeticao) ausente (Regra 27).")
+    if "SLOWMO_XFADE_SECONDS" not in cfg_txt or "scene_is_burst" not in pace_txt:
+        errors.append("HOOK VIOLADO: slow-motion de imagem parada ausente (Regra 28).")
+    da_txt = (ROOT / "core" / "delivery_audit.py").read_text(encoding="utf-8", errors="replace")
+    for sym in ("MAX_SCENE_REUSE", "BURST_MIN_FRAME", "BURST_MIN_BASE_SIM", "load_blacklist"):
+        if sym not in da_txt:
+            errors.append(f"HOOK VIOLADO: porta de entrega sem a trava '{sym}' (Regras 27/28).")
+    sa2_txt = (ROOT / "core" / "self_audit.py").read_text(encoding="utf-8", errors="replace")
+    if "NARRATION_MIN_RATIO" not in sa2_txt:
+        errors.append("HOOK VIOLADO: auditoria de narracao dominante ausente (Regra 29).")
     # Regra 26: pipeline redondo, voz local, duracao adaptativa
     if "def recommend_target_minutes" not in pipe_txt or "ADAPTIVE_DURATION" not in cfg_txt:
         errors.append("HOOK VIOLADO: duracao adaptativa por material ausente (Regra 26).")

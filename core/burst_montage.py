@@ -37,9 +37,12 @@ def build_burst_prompt(scene: dict[str, Any], n: int = 10) -> str:
 
 
 def derive_burst_frames(src: Path, out_dir: Path, n: int = 10, base_name: str = "burst") -> list[Path]:
-    """Fallback sem custo: deriva N quadros quase idênticos de uma única imagem aprovada.
+    """Fallback sem custo: deriva N quadros QUASE IDÊNTICOS de uma única imagem aprovada.
 
-    Micro-zoom + deslocamento progressivo => aparência de movimento sem gerar novas imagens no Flow.
+    Regra 28 (correção do "tremendo dos lados"): variação de zoom de apenas 4%,
+    sempre centralizada — os quadros precisam parecer o MESMO enquadramento com um
+    mínimo de movimento. Nunca usar deslocamento lateral/zoom forte: aquilo virava
+    trepidação quando o pacing encadeava 10 quadros de 0,14s.
     """
     src = Path(src)
     out_dir = Path(out_dir)
@@ -51,12 +54,10 @@ def derive_burst_frames(src: Path, out_dir: Path, n: int = 10, base_name: str = 
     out: list[Path] = []
     for i in range(n):
         t = i / max(1, n - 1)
-        zoom = 1.0 + 0.06 * t
+        zoom = 1.0 + 0.04 * t
         cw, ch = int(w / zoom), int(h / zoom)
-        cx = int((w - cw) * (0.35 + 0.30 * t))
-        cy = int((h - ch) * (0.5 - 0.16 * t))
-        cx = max(0, min(w - cw, cx))
-        cy = max(0, min(h - ch, cy))
+        cx = max(0, min(w - cw, (w - cw) // 2))
+        cy = max(0, min(h - ch, (h - ch) // 2))
         frame = im.crop((cx, cy, cx + cw, cy + ch)).resize((w, h), Image.Resampling.LANCZOS)
         p = out_dir / f"{base_name}_{i + 1:02d}.jpg"
         frame.save(p, "JPEG", quality=93)

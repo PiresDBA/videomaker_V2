@@ -10,63 +10,645 @@
     "nucleo": "Bateria unitária, guardião do contrato e recuperação/revoice"
   },
   "entries": [
-    {"id": "unit_all", "path": "tests/test_pipeline_v2.py", "category": "nucleo", "target": "motor completo", "purpose": "Bateria unitaria e ponta a ponta (roteiro, TTS, pacing, short, Veo, pesquisa viral, auditoria light).", "cmd": "python tests/test_pipeline_v2.py", "mutating": false, "credentials": false},
-    {"id": "contract_guard", "path": "scripts/verify_contract_guard.py", "category": "nucleo", "target": "invariantes do contrato", "purpose": "Valida regras imutaveis, sintaxe e seguranca Git do staging.", "cmd": "python scripts/verify_contract_guard.py", "mutating": false, "credentials": false},
-    {"id": "flow_recover", "path": "scripts/recover_flow_media.py", "category": "nucleo", "target": "Google Flow", "purpose": "Recupera e audita midia ja gerada nas 5 contas (use --no-apply para so inspecionar).", "cmd": "python scripts/recover_flow_media.py --project-dir <proj> --no-apply", "mutating": true, "credentials": true},
-    {"id": "revoice_republish", "path": "scripts/revoice_and_republish.py", "category": "nucleo", "target": "troca de narração", "purpose": "Revoz e republica episodio sem re-render (Regra 15).", "cmd": "python scripts/revoice_and_republish.py <args>", "mutating": true, "credentials": true},
-
-    {"id": "voices_infantis", "path": "work/testar_voices_infantis.py", "category": "voz", "target": "voice_studio / Chirp 3 HD", "purpose": "Testa vozes candidatas a narradora infantil no MESMO texto.", "cmd": "python work/testar_voices_infantis.py", "mutating": false, "credentials": true},
-    {"id": "voices_emocionais", "path": "work/teste_voices_emocionais.py", "category": "voz", "target": "voice_studio", "purpose": "Amostras de voz COM emoção via Chirp 3 HD (sem Gemini-TTS).", "cmd": "python work/teste_voices_emocionais.py", "mutating": false, "credentials": true},
-    {"id": "voices_final", "path": "work/teste_vozes_final.py", "category": "voz", "target": "casting final", "purpose": "4 vozes no mesmo texto com gatilhos de humor, isolando emoção.", "cmd": "python work/teste_vozes_final.py", "mutating": false, "credentials": true},
-    {"id": "chirp_voices", "path": "work/test_chirp3_voices.py", "category": "voz", "target": "Chirp 3 HD", "purpose": "Uma frase por voz pt-BR; checa disponibilidade e combustivel da cota.", "cmd": "python work/test_chirp3_voices.py", "mutating": false, "credentials": true},
-    {"id": "listar_chirp", "path": "work/listar_vozes_chirp3.py", "category": "voz", "target": "Cloud TTS", "purpose": "Lista todas as vozes pt-BR (GET, nao consome caracteres).", "cmd": "python work/listar_vozes_chirp3.py", "mutating": false, "credentials": true},
-    {"id": "diagnostico_cota", "path": "work/diagnostico_cota.py", "category": "voz", "target": "cotas TTS", "purpose": "Mostra qual API/modelo esta sendo chamado e o erro 429 completo.", "cmd": "python work/diagnostico_cota.py", "mutating": false, "credentials": true},
-    {"id": "amostra_cena1", "path": "work/amostra_cena1.py", "category": "voz", "target": "amostrapiloto sc_01", "purpose": "Roteiro engraçado + voz + SFX cartoon da cena 1 (versao inicial).", "cmd": "python work/amostra_cena1.py", "mutating": false, "credentials": true},
-    {"id": "amostra_cena1_v2", "path": "work/amostra_cena1_v2.py", "category": "voz", "target": "amostrapiloto sc_01", "purpose": "Versao 2 da amostra com gatilhos de humor + SFX.", "cmd": "python work/amostra_cena1_v2.py", "mutating": false, "credentials": true},
-    {"id": "amostra_emocao_forte", "path": "work/amostra_emoção_forte.py", "category": "voz", "target": "emocao TTS", "purpose": "Teste com risada exagerada escrita (reprovado: TTS robotizado).", "cmd": "python work/amostra_emocao_forte.py", "mutating": false, "credentials": true},
-    {"id": "amostra_puck", "path": "work/amostra_puck_emoção.py", "category": "voz", "target": "casting narradora", "purpose": "Amostra final Puck SEM risada escrita (aprovada pelo usuario).", "cmd": "python work/amostra_puck_emocao.py", "mutating": false, "credentials": true},
-
-    {"id": "join_main_audio", "path": "work/join_main_audio.py", "category": "audio", "target": "faixa 16:9", "purpose": "Junta narração nova ao video 16:9 (versao inicial).", "cmd": "python work/join_main_audio.py", "mutating": true, "credentials": false},
-    {"id": "join_main_audio_clean", "path": "work/join_main_audio_clean.py", "category": "audio", "target": "faixa 16:9", "purpose": "Junta 25 WAVs sequencialmente SEM amix e com loudnorm -14 LUFS (Regra 15).", "cmd": "python work/join_main_audio_clean.py", "mutating": true, "credentials": false},
-    {"id": "join_short_sounds", "path": "work/join_short_sounds.py", "category": "audio", "target": "Shorts", "purpose": "Junta som novo aos Shorts.", "cmd": "python work/join_short_sounds.py", "mutating": true, "credentials": false},
-    {"id": "fix_short_sounds", "path": "work/fix_short_sounds.py", "category": "audio", "target": "Shorts 02 e 03", "purpose": "Corrige Shorts mudos (-91 dB) e reauedita com volumedetect.", "cmd": "python work/fix_short_sounds.py", "mutating": true, "credentials": false},
-    {"id": "bgm_praia", "path": "work/make_bgm_praia.py", "category": "audio", "target": "BGM original", "purpose": "Gera o loop musical original do episodio da praia (126 BPM).", "cmd": "python work/make_bgm_praia.py", "mutating": true, "credentials": false},
-
-    {"id": "encurtar_script", "path": "work/encurtar_script.py", "category": "roteiro", "target": "contagem de palavras", "purpose": "Encurta textos para 450-550 palavras mantendo pontuação de piada.", "cmd": "python work/encurtar_script.py", "mutating": true, "credentials": false},
-    {"id": "rewrite_script", "path": "work/rewrite_script.py", "category": "roteiro", "target": "roteiro 25 cenas", "purpose": "Reescreve textos com pontuação de piada, sem risada escrita.", "cmd": "python work/rewrite_script.py", "mutating": true, "credentials": false},
-    {"id": "restaurar_textos", "path": "work/restaurar_textos.py", "category": "roteiro", "target": "roteiro aprovado", "purpose": "Restaura versao de 568 palavras aprovada e ajusta limite.", "cmd": "python work/restaurar_textos.py", "mutating": true, "credentials": false},
-
-    {"id": "check_missing_images", "path": "work/check_missing_images.py", "category": "imagem", "target": "pacing x imagens", "purpose": "Compara imagens pedidas pelo pacing com existentes e procura no legado.", "cmd": "python work/check_missing_images.py", "mutating": false, "credentials": false},
-    {"id": "make_missing_images", "path": "work/make_missing_images.py", "category": "imagem", "target": "sub-angulos _p2/_p3", "purpose": "Deriva subangulos do _p1 com crop/zoom (sem Flow).", "cmd": "python work/make_missing_images.py", "mutating": true, "credentials": false},
-    {"id": "ensure_all_images", "path": "work/ensure_all_images.py", "category": "imagem", "target": "todos os _pN", "purpose": "Garante todos os sub-clips do pacing a partir do _p1 (sem CDP).", "cmd": "python work/ensure_all_images.py", "mutating": true, "credentials": false},
-    {"id": "harvest_flow", "path": "work/harvest_all_flow_media.py", "category": "imagem", "target": "5 contas Flow", "purpose": "Colhe TODOS os videos/imagens das contas para referencia, sem Vision QA.", "cmd": "python work/harvest_all_flow_media.py", "mutating": true, "credentials": true},
-    {"id": "analyze_harvest", "path": "work/analyze_v2.py", "category": "imagem", "target": "aproveitamento", "purpose": "Compara colheita com o usado (hash + pHash + cor) e gera relatorios/shortlist.", "cmd": "python work/analyze_v2.py", "mutating": true, "credentials": false},
-    {"id": "probe_agent_mode", "path": "work/probe_agent_mode.py", "category": "imagem", "target": "DOM do Agente do Flow", "purpose": "Inspeciona o DOM do Flow para localizar o botao 'Agente do Flow' (Regra 23).", "cmd": "python work/probe_agent_mode.py", "mutating": false, "credentials": true},
-    {"id": "test_flow_batch_mode", "path": "work/test_flow_batch_mode.py", "category": "imagem", "target": "seletor de quantidade", "purpose": "Confirma que o painel Imagem va ate x4 (x10/x20 nao existem).", "cmd": "python work/test_flow_batch_mode.py", "mutating": false, "credentials": true},
-    {"id": "test_burst_batch", "path": "work/test_burst_batch.py", "category": "imagem", "target": "rajada de 10 imagens", "purpose": "Liga o Agente do Flow, anexa referencia e gera 10 imagens numeradas em sequencia (Regra 23).", "cmd": "python work/test_burst_batch.py", "mutating": true, "credentials": true},
-    {"id": "cta_preview", "path": "work/cta_preview.py", "category": "imagem", "target": "overlay CTA transparente", "purpose": "Gera contato visual do overlay de subscribe (joinha+sininho) sobre fundo-colorido (Regra 25).", "cmd": "python work/cta_preview.py", "mutating": true, "credentials": false},
-    {"id": "prepare_v6", "path": "work/prepare_v6.py", "category": "imagem", "target": "projeto v6 com todos os videos", "purpose": "Reanalisa colheita, filtra videos do tema, dedupe por SHA e copia projeto 2 -> v6 com videos do v5 e do Flow, incluindo despedida perfeita em sc_30.", "cmd": "python work/prepare_v6.py", "mutating": true, "credentials": false},
-    {"id": "waving_contact", "path": "work/waving_contact.py", "category": "imagem", "target": "video de despedida", "purpose": "Contact sheet dos videos de 'waving' para escolher o de despedida com 4 patas e botao SUBSCRIBE (Regra 25).", "cmd": "python work/waving_contact.py", "mutating": false, "credentials": false},
-    {"id": "goodbye_contact", "path": "work/goodbye_contact.py", "category": "imagem", "target": "despedidas com confete", "purpose": "Contact sheet das 3 despedidas boas (confetti + living room + SUBSCRIBE) para juntar no final (Regra 25).", "cmd": "python work/goodbye_contact.py", "mutating": false, "credentials": false},
-    {"id": "analise_v6_roteiro", "path": "work/analise_v6_roteiro.md", "category": "nucleo", "target": "roteiro v6 x midia", "purpose": "Relatorio leitura-only: cobertura de 16 videos, lacunas de imagens, parecer Regra 26 e plano de CTA/despedida.", "cmd": "(relatorio - ver arquivo)", "mutating": false, "credentials": false},
-    {"id": "auditoria_sonoplastia", "path": "work/auditoria_sonoplastia.md", "category": "audio", "target": "earshot v5/v6", "purpose": "Auditoria Earshot: score 0.867 v5, Boing 0.96 no SFX, eventos cartoon localizados e meta -14 LUFS (Regra 22).", "cmd": "bin/earshot.exe critique <mix> --fast", "mutating": false, "credentials": false},
-    {"id": "fill_images_harvest", "path": "work/fill_images_from_harvest.py", "category": "imagem", "target": "imagens faltantes", "purpose": "Preenche _pN das cenas sem imagem a partir da colheita + derivacao local, evitando o Flow (Regra 26).", "cmd": "python work/fill_images_from_harvest.py <proj>", "mutating": true, "credentials": false},
-    {"id": "assemble_only", "path": "work/assemble_only.py", "category": "video", "target": "montagem final 16:9", "purpose": "Monta o video direto dos artifacts prontos (pacing+clips+audio), reaproveitando clips, sem Flow/watchdog (Regra 26), MAS com a auditoria final obrigatoria (Regras 9/13).", "cmd": "python work/assemble_only.py <slug>", "mutating": true, "credentials": false},
-    {"id": "fix_burst_xfade", "path": "work/fix_burst_xfade.py", "category": "video", "target": "xfade de rajada", "purpose": "Zera xfade_duration dos clips de burst no pacing (evita colapso da timeline no xfade).", "cmd": "python work/fix_burst_xfade.py [slugs...]", "mutating": true, "credentials": false},
-    {"id": "delivery_audit", "path": "core/delivery_audit.py", "category": "nucleo", "target": "porta de entrega obrigatoria", "purpose": "Auditoria visual LOCAL do MP4 final: whitelist SHA, frame x cena, rajada sem tremidacao e CTA/despedida. Reprova antes de entregar/publicar (Regras 9/13).", "cmd": "python core/delivery_audit.py <slug> [--build-index]", "mutating": false, "credentials": false},
-    {"id": "build_v6_images", "path": "work/build_v6_images.py", "category": "imagem", "target": "reconstrucao de imagens aprovadas", "purpose": "Reconstrói 171 imagens so com o pool aprovado (v5+v6), imagens distintas por cena (rajada real), sem colheita velha.", "cmd": "python work/build_v6_images.py [slug]", "mutating": true, "credentials": false},
-    {"id": "audit_frames_v2", "path": "work/audit_frames_v2.py", "category": "imagem", "target": "auditoria visual quadro a quadro", "purpose": "Extrai 1 frame por cena do MP4 e monta folhas de contato com a narração (diagnostico da regressao v2).", "cmd": "python work/audit_frames_v2.py", "mutating": false, "credentials": false},
-
-    {"id": "diag_lipsync", "path": "work/diag_lipsync.py", "category": "video", "target": "sincronia labial", "purpose": "Diagnostica boca/audio dos avatares (Regra 17).", "cmd": "python work/diag_lipsync.py", "mutating": false, "credentials": false},
-    {"id": "publicar_shorts", "path": "work/publicar_shorts.py", "category": "video", "target": "YouTube PT", "purpose": "Publica os 3 Shorts 9:16 no canal.", "cmd": "python work/publicar_shorts.py", "mutating": true, "credentials": true},
-    {"id": "voice_studio_integration", "path": "work/test_voice_studio_integration.py", "category": "voz", "target": "Voice Studio (Regra 21)", "purpose": "Sintetiza 1 cena com Luninha e confirma voice_studio:<nome> no timing.", "cmd": "python work/test_voice_studio_integration.py", "mutating": false, "credentials": true},
-    {"id": "make_script_v2", "path": "work/make_script_v2.py", "category": "roteiro", "target": "roteiro com gancho", "purpose": "Gera roteiro novo com cold-open de youtuber, 30 cenas e CTA final com SUBSCRIBE.", "cmd": "python work/make_script_v2.py", "mutating": true, "credentials": true},
-    {"id": "test_cocegas", "path": "work/test_cocegas.py", "category": "voz", "target": "pronuncia Voice Studio", "purpose": "Compara grafias de 'cocegas' com Luninha + Whisper para escolher a melhor.", "cmd": "python work/test_cocegas.py", "mutating": false, "credentials": true},
-    {"id": "diag_truncamento", "path": "work/diag_truncamento.py", "category": "voz", "target": "duracao TTS", "purpose": "Compara duracao do WAV bruto do Voice Studio com o normalizado (detecta cortes).", "cmd": "python work/diag_truncamento.py", "mutating": false, "credentials": false},
-    {"id": "list_voices_paths", "path": "work/list_voices_paths.py", "category": "voz", "target": "localizacao de WAVs", "purpose": "Lista cena/personagem/voz e caminho relativo de cada WAV do episodio.", "cmd": "python work/list_voices_paths.py", "mutating": false, "credentials": false},
-    {"id": "diag_sc26", "path": "work/diag_sc26.py", "category": "voz", "target": "inteligibilidade sc_26", "purpose": "Transcreve sc_26 com/sem VAD para diagnosticar fala ininteligivel.", "cmd": "python work/diag_sc26.py", "mutating": false, "credentials": true},
-    {"id": "patch_sc26", "path": "work/patch_sc26.py", "category": "roteiro", "target": "frases com grudacao", "purpose": "Corrige o texto do sc_26 e invalida so o TTS dessa cena.", "cmd": "python work/patch_sc26.py", "mutating": true, "credentials": false},
-    {"id": "test_sc26", "path": "work/test_sc26.py", "category": "voz", "target": "QA apos reescrita", "purpose": "Valida a nova fala do sc_26 com Luninha + Whisper.", "cmd": "python work/test_sc26.py", "mutating": false, "credentials": true},
-    {"id": "diag_sc04", "path": "work/diag_sc04.py", "category": "voz", "target": "corte no final sc_04", "purpose": "Compara texto, duracao e transcricao do final do sc_04 (bruto vs final).", "cmd": "python work/diag_sc04.py", "mutating": false, "credentials": true}
+    {
+      "id": "unit_all",
+      "path": "tests/test_pipeline_v2.py",
+      "category": "nucleo",
+      "target": "motor completo",
+      "purpose": "Bateria unitaria e ponta a ponta (roteiro, TTS, pacing, short, Veo, pesquisa viral, auditoria light).",
+      "cmd": "python tests/test_pipeline_v2.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "contract_guard",
+      "path": "scripts/verify_contract_guard.py",
+      "category": "nucleo",
+      "target": "invariantes do contrato",
+      "purpose": "Valida regras imutaveis, sintaxe e seguranca Git do staging.",
+      "cmd": "python scripts/verify_contract_guard.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "flow_recover",
+      "path": "scripts/recover_flow_media.py",
+      "category": "nucleo",
+      "target": "Google Flow",
+      "purpose": "Recupera e audita midia ja gerada nas 5 contas (use --no-apply para so inspecionar).",
+      "cmd": "python scripts/recover_flow_media.py --project-dir <proj> --no-apply",
+      "mutating": true,
+      "credentials": true
+    },
+    {
+      "id": "revoice_republish",
+      "path": "scripts/revoice_and_republish.py",
+      "category": "nucleo",
+      "target": "troca de narração",
+      "purpose": "Revoz e republica episodio sem re-render (Regra 15).",
+      "cmd": "python scripts/revoice_and_republish.py <args>",
+      "mutating": true,
+      "credentials": true
+    },
+    {
+      "id": "voices_infantis",
+      "path": "work/testar_voices_infantis.py",
+      "category": "voz",
+      "target": "voice_studio / Chirp 3 HD",
+      "purpose": "Testa vozes candidatas a narradora infantil no MESMO texto.",
+      "cmd": "python work/testar_voices_infantis.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "voices_emocionais",
+      "path": "work/teste_voices_emocionais.py",
+      "category": "voz",
+      "target": "voice_studio",
+      "purpose": "Amostras de voz COM emoção via Chirp 3 HD (sem Gemini-TTS).",
+      "cmd": "python work/teste_voices_emocionais.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "voices_final",
+      "path": "work/teste_vozes_final.py",
+      "category": "voz",
+      "target": "casting final",
+      "purpose": "4 vozes no mesmo texto com gatilhos de humor, isolando emoção.",
+      "cmd": "python work/teste_vozes_final.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "chirp_voices",
+      "path": "work/test_chirp3_voices.py",
+      "category": "voz",
+      "target": "Chirp 3 HD",
+      "purpose": "Uma frase por voz pt-BR; checa disponibilidade e combustivel da cota.",
+      "cmd": "python work/test_chirp3_voices.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "listar_chirp",
+      "path": "work/listar_vozes_chirp3.py",
+      "category": "voz",
+      "target": "Cloud TTS",
+      "purpose": "Lista todas as vozes pt-BR (GET, nao consome caracteres).",
+      "cmd": "python work/listar_vozes_chirp3.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "diagnostico_cota",
+      "path": "work/diagnostico_cota.py",
+      "category": "voz",
+      "target": "cotas TTS",
+      "purpose": "Mostra qual API/modelo esta sendo chamado e o erro 429 completo.",
+      "cmd": "python work/diagnostico_cota.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "amostra_cena1",
+      "path": "work/amostra_cena1.py",
+      "category": "voz",
+      "target": "amostrapiloto sc_01",
+      "purpose": "Roteiro engraçado + voz + SFX cartoon da cena 1 (versao inicial).",
+      "cmd": "python work/amostra_cena1.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "amostra_cena1_v2",
+      "path": "work/amostra_cena1_v2.py",
+      "category": "voz",
+      "target": "amostrapiloto sc_01",
+      "purpose": "Versao 2 da amostra com gatilhos de humor + SFX.",
+      "cmd": "python work/amostra_cena1_v2.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "amostra_emocao_forte",
+      "path": "work/amostra_emoção_forte.py",
+      "category": "voz",
+      "target": "emocao TTS",
+      "purpose": "Teste com risada exagerada escrita (reprovado: TTS robotizado).",
+      "cmd": "python work/amostra_emocao_forte.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "amostra_puck",
+      "path": "work/amostra_puck_emoção.py",
+      "category": "voz",
+      "target": "casting narradora",
+      "purpose": "Amostra final Puck SEM risada escrita (aprovada pelo usuario).",
+      "cmd": "python work/amostra_puck_emocao.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "join_main_audio",
+      "path": "work/join_main_audio.py",
+      "category": "audio",
+      "target": "faixa 16:9",
+      "purpose": "Junta narração nova ao video 16:9 (versao inicial).",
+      "cmd": "python work/join_main_audio.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "join_main_audio_clean",
+      "path": "work/join_main_audio_clean.py",
+      "category": "audio",
+      "target": "faixa 16:9",
+      "purpose": "Junta 25 WAVs sequencialmente SEM amix e com loudnorm -14 LUFS (Regra 15).",
+      "cmd": "python work/join_main_audio_clean.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "join_short_sounds",
+      "path": "work/join_short_sounds.py",
+      "category": "audio",
+      "target": "Shorts",
+      "purpose": "Junta som novo aos Shorts.",
+      "cmd": "python work/join_short_sounds.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "fix_short_sounds",
+      "path": "work/fix_short_sounds.py",
+      "category": "audio",
+      "target": "Shorts 02 e 03",
+      "purpose": "Corrige Shorts mudos (-91 dB) e reauedita com volumedetect.",
+      "cmd": "python work/fix_short_sounds.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "bgm_praia",
+      "path": "work/make_bgm_praia.py",
+      "category": "audio",
+      "target": "BGM original",
+      "purpose": "Gera o loop musical original do episodio da praia (126 BPM).",
+      "cmd": "python work/make_bgm_praia.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "encurtar_script",
+      "path": "work/encurtar_script.py",
+      "category": "roteiro",
+      "target": "contagem de palavras",
+      "purpose": "Encurta textos para 450-550 palavras mantendo pontuação de piada.",
+      "cmd": "python work/encurtar_script.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "rewrite_script",
+      "path": "work/rewrite_script.py",
+      "category": "roteiro",
+      "target": "roteiro 25 cenas",
+      "purpose": "Reescreve textos com pontuação de piada, sem risada escrita.",
+      "cmd": "python work/rewrite_script.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "restaurar_textos",
+      "path": "work/restaurar_textos.py",
+      "category": "roteiro",
+      "target": "roteiro aprovado",
+      "purpose": "Restaura versao de 568 palavras aprovada e ajusta limite.",
+      "cmd": "python work/restaurar_textos.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "check_missing_images",
+      "path": "work/check_missing_images.py",
+      "category": "imagem",
+      "target": "pacing x imagens",
+      "purpose": "Compara imagens pedidas pelo pacing com existentes e procura no legado.",
+      "cmd": "python work/check_missing_images.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "make_missing_images",
+      "path": "work/make_missing_images.py",
+      "category": "imagem",
+      "target": "sub-angulos _p2/_p3",
+      "purpose": "Deriva subangulos do _p1 com crop/zoom (sem Flow).",
+      "cmd": "python work/make_missing_images.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "ensure_all_images",
+      "path": "work/ensure_all_images.py",
+      "category": "imagem",
+      "target": "todos os _pN",
+      "purpose": "Garante todos os sub-clips do pacing a partir do _p1 (sem CDP).",
+      "cmd": "python work/ensure_all_images.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "harvest_flow",
+      "path": "work/harvest_all_flow_media.py",
+      "category": "imagem",
+      "target": "5 contas Flow",
+      "purpose": "Colhe TODOS os videos/imagens das contas para referencia, sem Vision QA.",
+      "cmd": "python work/harvest_all_flow_media.py",
+      "mutating": true,
+      "credentials": true
+    },
+    {
+      "id": "analyze_harvest",
+      "path": "work/analyze_v2.py",
+      "category": "imagem",
+      "target": "aproveitamento",
+      "purpose": "Compara colheita com o usado (hash + pHash + cor) e gera relatorios/shortlist.",
+      "cmd": "python work/analyze_v2.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "probe_agent_mode",
+      "path": "work/probe_agent_mode.py",
+      "category": "imagem",
+      "target": "DOM do Agente do Flow",
+      "purpose": "Inspeciona o DOM do Flow para localizar o botao 'Agente do Flow' (Regra 23).",
+      "cmd": "python work/probe_agent_mode.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "test_flow_batch_mode",
+      "path": "work/test_flow_batch_mode.py",
+      "category": "imagem",
+      "target": "seletor de quantidade",
+      "purpose": "Confirma que o painel Imagem va ate x4 (x10/x20 nao existem).",
+      "cmd": "python work/test_flow_batch_mode.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "test_burst_batch",
+      "path": "work/test_burst_batch.py",
+      "category": "imagem",
+      "target": "rajada de 10 imagens",
+      "purpose": "Liga o Agente do Flow, anexa referencia e gera 10 imagens numeradas em sequencia (Regra 23).",
+      "cmd": "python work/test_burst_batch.py",
+      "mutating": true,
+      "credentials": true
+    },
+    {
+      "id": "cta_preview",
+      "path": "work/cta_preview.py",
+      "category": "imagem",
+      "target": "overlay CTA transparente",
+      "purpose": "Gera contato visual do overlay de subscribe (joinha+sininho) sobre fundo-colorido (Regra 25).",
+      "cmd": "python work/cta_preview.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "prepare_v6",
+      "path": "work/prepare_v6.py",
+      "category": "imagem",
+      "target": "projeto v6 com todos os videos",
+      "purpose": "Reanalisa colheita, filtra videos do tema, dedupe por SHA e copia projeto 2 -> v6 com videos do v5 e do Flow, incluindo despedida perfeita em sc_30.",
+      "cmd": "python work/prepare_v6.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "waving_contact",
+      "path": "work/waving_contact.py",
+      "category": "imagem",
+      "target": "video de despedida",
+      "purpose": "Contact sheet dos videos de 'waving' para escolher o de despedida com 4 patas e botao SUBSCRIBE (Regra 25).",
+      "cmd": "python work/waving_contact.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "goodbye_contact",
+      "path": "work/goodbye_contact.py",
+      "category": "imagem",
+      "target": "despedidas com confete",
+      "purpose": "Contact sheet das 3 despedidas boas (confetti + living room + SUBSCRIBE) para juntar no final (Regra 25).",
+      "cmd": "python work/goodbye_contact.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "analise_v6_roteiro",
+      "path": "work/analise_v6_roteiro.md",
+      "category": "nucleo",
+      "target": "roteiro v6 x midia",
+      "purpose": "Relatorio leitura-only: cobertura de 16 videos, lacunas de imagens, parecer Regra 26 e plano de CTA/despedida.",
+      "cmd": "(relatorio - ver arquivo)",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "auditoria_sonoplastia",
+      "path": "work/auditoria_sonoplastia.md",
+      "category": "audio",
+      "target": "earshot v5/v6",
+      "purpose": "Auditoria Earshot: score 0.867 v5, Boing 0.96 no SFX, eventos cartoon localizados e meta -14 LUFS (Regra 22).",
+      "cmd": "bin/earshot.exe critique <mix> --fast",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "fill_images_harvest",
+      "path": "work/fill_images_from_harvest.py",
+      "category": "imagem",
+      "target": "imagens faltantes",
+      "purpose": "Preenche _pN das cenas sem imagem a partir da colheita + derivacao local, evitando o Flow (Regra 26).",
+      "cmd": "python work/fill_images_from_harvest.py <proj>",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "assemble_only",
+      "path": "work/assemble_only.py",
+      "category": "video",
+      "target": "montagem final 16:9",
+      "purpose": "Monta o video direto dos artifacts prontos (pacing+clips+audio), reaproveitando clips, sem Flow/watchdog (Regra 26), MAS com a auditoria final obrigatoria (Regras 9/13).",
+      "cmd": "python work/assemble_only.py <slug>",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "fix_burst_xfade",
+      "path": "work/fix_burst_xfade.py",
+      "category": "video",
+      "target": "xfade de rajada",
+      "purpose": "Zera xfade_duration dos clips de burst no pacing (evita colapso da timeline no xfade).",
+      "cmd": "python work/fix_burst_xfade.py [slugs...]",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "delivery_audit",
+      "path": "core/delivery_audit.py",
+      "category": "nucleo",
+      "target": "porta de entrega obrigatoria",
+      "purpose": "Auditoria visual LOCAL do MP4 final: whitelist SHA, frame x cena, rajada sem tremidacao e CTA/despedida. Reprova antes de entregar/publicar (Regras 9/13).",
+      "cmd": "python core/delivery_audit.py <slug> [--build-index]",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "build_v6_images",
+      "path": "work/build_v6_images.py",
+      "category": "imagem",
+      "target": "reconstrucao de imagens aprovadas",
+      "purpose": "Reconstrói 171 imagens so com o pool aprovado (v5+v6), imagens distintas por cena (rajada real), sem colheita velha.",
+      "cmd": "python work/build_v6_images.py [slug]",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "audit_frames_v2",
+      "path": "work/audit_frames_v2.py",
+      "category": "imagem",
+      "target": "auditoria visual quadro a quadro",
+      "purpose": "Extrai 1 frame por cena do MP4 e monta folhas de contato com a narração (diagnostico da regressao v2).",
+      "cmd": "python work/audit_frames_v2.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "diag_lipsync",
+      "path": "work/diag_lipsync.py",
+      "category": "video",
+      "target": "sincronia labial",
+      "purpose": "Diagnostica boca/audio dos avatares (Regra 17).",
+      "cmd": "python work/diag_lipsync.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "publicar_shorts",
+      "path": "work/publicar_shorts.py",
+      "category": "video",
+      "target": "YouTube PT",
+      "purpose": "Publica os 3 Shorts 9:16 no canal.",
+      "cmd": "python work/publicar_shorts.py",
+      "mutating": true,
+      "credentials": true
+    },
+    {
+      "id": "voice_studio_integration",
+      "path": "work/test_voice_studio_integration.py",
+      "category": "voz",
+      "target": "Voice Studio (Regra 21)",
+      "purpose": "Sintetiza 1 cena com Luninha e confirma voice_studio:<nome> no timing.",
+      "cmd": "python work/test_voice_studio_integration.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "make_script_v2",
+      "path": "work/make_script_v2.py",
+      "category": "roteiro",
+      "target": "roteiro com gancho",
+      "purpose": "Gera roteiro novo com cold-open de youtuber, 30 cenas e CTA final com SUBSCRIBE.",
+      "cmd": "python work/make_script_v2.py",
+      "mutating": true,
+      "credentials": true
+    },
+    {
+      "id": "test_cocegas",
+      "path": "work/test_cocegas.py",
+      "category": "voz",
+      "target": "pronuncia Voice Studio",
+      "purpose": "Compara grafias de 'cocegas' com Luninha + Whisper para escolher a melhor.",
+      "cmd": "python work/test_cocegas.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "diag_truncamento",
+      "path": "work/diag_truncamento.py",
+      "category": "voz",
+      "target": "duracao TTS",
+      "purpose": "Compara duracao do WAV bruto do Voice Studio com o normalizado (detecta cortes).",
+      "cmd": "python work/diag_truncamento.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "list_voices_paths",
+      "path": "work/list_voices_paths.py",
+      "category": "voz",
+      "target": "localizacao de WAVs",
+      "purpose": "Lista cena/personagem/voz e caminho relativo de cada WAV do episodio.",
+      "cmd": "python work/list_voices_paths.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "diag_sc26",
+      "path": "work/diag_sc26.py",
+      "category": "voz",
+      "target": "inteligibilidade sc_26",
+      "purpose": "Transcreve sc_26 com/sem VAD para diagnosticar fala ininteligivel.",
+      "cmd": "python work/diag_sc26.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "patch_sc26",
+      "path": "work/patch_sc26.py",
+      "category": "roteiro",
+      "target": "frases com grudacao",
+      "purpose": "Corrige o texto do sc_26 e invalida so o TTS dessa cena.",
+      "cmd": "python work/patch_sc26.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "test_sc26",
+      "path": "work/test_sc26.py",
+      "category": "voz",
+      "target": "QA apos reescrita",
+      "purpose": "Valida a nova fala do sc_26 com Luninha + Whisper.",
+      "cmd": "python work/test_sc26.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "diag_sc04",
+      "path": "work/diag_sc04.py",
+      "category": "voz",
+      "target": "corte no final sc_04",
+      "purpose": "Compara texto, duracao e transcricao do final do sc_04 (bruto vs final).",
+      "cmd": "python work/diag_sc04.py",
+      "mutating": false,
+      "credentials": true
+    },
+    {
+      "id": "build_v7",
+      "path": "work/build_v7.py",
+      "category": "imagem",
+      "target": "episodio v7 (roteiro narrado)",
+      "purpose": "Constroi o v7: roteiro narrado (>=55% narrador), vozes locais, pacing slow-motion, imagens anti-repeticao e despedida confete+SUBSCRIBE.",
+      "cmd": "python work/build_v7.py --stage all",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "fine_audit",
+      "path": "work/audit_fino_sheets.py",
+      "category": "nucleo",
+      "target": "sub-clip x material designado",
+      "purpose": "Folhas de contato humanas: 1 frame por cena do MP4 final com a narracao da cena (evidencia da auditoria fina).",
+      "cmd": "python work/audit_fino_sheets.py primeiro-dia-de-praia-v7",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "image_assignment",
+      "path": "core/image_assignment.py",
+      "category": "nucleo",
+      "target": "anti-repeticao de imagens",
+      "purpose": "Atribui 1 imagem base por cena com cota MAX_SCENE_REUSE, sem vizinhas repetidas, casamento por tema e blacklist.",
+      "cmd": "python -m unittest tests.test_pipeline_v2 -k image_assignment",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "cta_video_overlay",
+      "path": "core/cta_video_overlay.py",
+      "category": "video",
+      "target": "CTA infantil em video com chroma key",
+      "purpose": "Extrai like-sem-som.mp4 (meio) e like-com-som.mp4 (ultimos 10s), remove o verde com colorkey 0.28/0.12, posiciona no terco inferior e mixa o audio a -13 dB.",
+      "cmd": "python -m unittest tests.test_pipeline_v2 -k cta_video_overlay",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "check_xfade_duration",
+      "path": "work/check_xfade_duration.py",
+      "category": "nucleo",
+      "target": "sincronia narracao x xfade",
+      "purpose": "Confirma que o dissolve suave NAO encurta a timeline (senao a narracao atrasa um fade por cena).",
+      "cmd": "python work/check_xfade_duration.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "audit_fino_sheets",
+      "path": "work/audit_fino_sheets.py",
+      "category": "nucleo",
+      "target": "evidencia humana da auditoria fina",
+      "purpose": "Folhas de contato com 1 frame por cena e a fala correspondente.",
+      "cmd": "python work/audit_fino_sheets.py primeiro-dia-de-praia-v7",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "resume_v7_tts",
+      "path": "work/resume_v7_tts.py",
+      "category": "voz",
+      "target": "retomada de TTS interrompido",
+      "purpose": "Reaproveita falas ja sintetizadas com voz local e refaz somente as pendentes, insistindo na voz travada (sem troca no video).",
+      "cmd": "python work/resume_v7_tts.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "finalize_v7",
+      "path": "work/finalize_v7.py",
+      "category": "nucleo",
+      "target": "montagem final apos TTS",
+      "purpose": "Roda pacing -> imagens curadas -> montagem com auditoria obrigatoria -> folhas de contato.",
+      "cmd": "python work/finalize_v7.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "reaudit_v7",
+      "path": "work/reaudit_v7.py",
+      "category": "nucleo",
+      "target": "reauditoria sem re-render",
+      "purpose": "Reexecuta a auditoria final apos corrigir metadado do indice, restaurando o MP4 de _rejected.",
+      "cmd": "python work/reaudit_v7.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "goodbye_video",
+      "path": "core/goodbye_video.py",
+      "category": "video",
+      "target": "despedida canonica sem audio",
+      "purpose": "Usa assets/reference/goodbye/despedida_subscribe.mp4 como cena final, sem audio (a narracao faz o CTA).",
+      "cmd": "python work/finalize_v7.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "flow_video_contact",
+      "path": "work/flow_video_contact.py",
+      "category": "imagem",
+      "target": "catalogo visual dos videos do Flow",
+      "purpose": "Folhas de contato de todos os videos ja gerados para escolher despedida sem defeito.",
+      "cmd": "python work/flow_video_contact.py",
+      "mutating": false,
+      "credentials": false
+    }
   ]
 }
