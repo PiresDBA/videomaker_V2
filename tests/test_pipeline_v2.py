@@ -1533,6 +1533,31 @@ class TestVideomakerV2Unified(unittest.TestCase):
             existing_base_sids=["sc_01"], force=True,
         ))
 
+    def test_delivery_gate_whitelist_and_burst_detection(self):
+        """Porta de entrega obrigatoria: whitelist por SHA e detector de rajada tremendo."""
+        import tempfile
+        from PIL import Image
+        from core import delivery_audit as da
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            src = root / "aprovada.jpg"
+            Image.new("RGB", (128, 128), (40, 130, 180)).save(src)
+            approved = {da.sha256(src)}
+
+            # whitelist: imagem aprovada passa, intrusa (colheita velha) reprova
+            self.assertEqual(da.check_whitelist(root, approved), [])
+            intrusa = root / "astronauta.jpg"
+            Image.new("RGB", (128, 128), (12, 10, 30)).save(intrusa)
+            self.assertIn("astronauta.jpg", da.check_whitelist(root, approved))
+
+            # similaridade: identico ~1, diferente bem menor (base do detector de trepidacao)
+            si = da.sim(da.signature(src), da.signature(src))
+            sd = da.sim(da.signature(src), da.signature(intrusa))
+            self.assertGreater(si, 0.99)
+            self.assertLess(sd, da.BURST_MAX_SIM)
+            self.assertLess(sd, si - 0.1)
+
     def test_adaptive_duration_by_material(self):
         """Regra 26: com material de sobra, permite episodio longo; com pouco, curto."""
         import pipeline_v2 as pv

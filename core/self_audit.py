@@ -11,6 +11,7 @@ from PIL import Image
 
 from config import FFPROBE_EXE, MAX_IMAGE_SECONDS, SHORT_HEIGHT, SHORT_WIDTH, THUMB_HEIGHT, THUMB_WIDTH, VIDEO_HEIGHT, VIDEO_WIDTH
 from core.audio_fx import detect_pauses_in_wav, run_earshot_critique
+from core.delivery_audit import audit_delivery
 from core.legacy_auditor import audit_image_with_vision
 from core.media_studio import detect_split_collage
 from core.scene_auditor import audit_voice_consistency
@@ -99,6 +100,14 @@ def run_final_audit(
                 image_failures.append(f"{c['clip_id']}: reprovado no Vision ({vis.get('reason')})")
     issues.extend(f"visual: {e}" for e in image_failures)
 
+    # 3b. PORTA DE ENTREGA OBRIGATORIA (Regras 9 e 13) — compara os FRAMES RENDERIZADOS
+    #     com as imagens/videos designados de cada cena. Nao depende de Vision API.
+    #     Pega contaminacao por colheita velha, rajada que treme e CTA/despedida ausente.
+    delivery_rep: dict[str, Any] = {"approved": True, "issues": [], "frames_checked": 0}
+    if out_16_9.exists() and out_16_9.stat().st_size > 1000:
+        delivery_rep = audit_delivery(proj_dir, out_16_9, visual_clips, images_dir)
+        issues.extend(f"delivery: {e}" for e in delivery_rep.get("issues", []))
+
     # 4. Video 16:9 e Short 9:16
     v16 = _probe_media(out_16_9)
     if not v16.get("exists") or v16.get("width") != VIDEO_WIDTH or v16.get("height") != VIDEO_HEIGHT or not v16.get("has_audio"):
@@ -154,6 +163,7 @@ def run_final_audit(
         "short_9x16": v9,
         "earshot_critique": earshot_rep,
         "vision_samples": vision_samples,
+        "delivery_audit": delivery_rep,
     }
     report_path = proj_dir / "artifacts" / "final_audit_report.json"
     report_path.parent.mkdir(parents=True, exist_ok=True)

@@ -15,6 +15,7 @@ Pipeline completo e independente dentro de `E:\videos\videomaker_v2`, sem depend
 - `core/motion_shorts.py` — Gerador de Shorts 9:16 (30–40s) com barra de progresso, Hook animado, legendas Pop coloridas por personagem e suporte opcional ao `Remotion` (`--short-engine remotion`).
 - `core/legacy_auditor.py` — Auditoria e importação em lote dos projetos legados (`--batch-scan`, `--legacy-dir`) reaproveitando imagens limpas e recriando apenas o necessário.
 - `core/self_audit.py` — Auto-auditoria final obrigatória (`artifacts/final_audit_report.json`) validando roteiro, áudio, imagens, proporções e sincronia A/V (com suporte a Gemini Vision `--vision-audit`).
+- `core/delivery_audit.py` — **Porta de entrega obrigatória** (Regras 9 e 13): auditoria visual LOCAL e determinística dos frames renderizados — whitelist por SHA das imagens aprovadas, frame×cena, rajada sem tremidação e despedida/CTA. Reprova o vídeo antes de qualquer entrega, inclusive pelo atalho `assemble_only`.
 
 ## Auditoria de áudio — os ouvidos do aplicativo
 
@@ -27,6 +28,18 @@ earshot measure <wav> --json
 ```
 
 O resultado deve ser citado com números (LUFS, dBTP, onsets/s, sync, veredito). Ver Regra 22 do `CONTRATO_MOTOR_V2.md`.
+
+## Porta de entrega obrigatória (visual)
+
+Nenhum vídeo é entregue sem passar por `core/delivery_audit.py`, acionado dentro de `run_final_audit` tanto no `pipeline_v2.py` quanto no atalho `work/assemble_only.py`. Se reprovar, o MP4 é movido para `output/_rejected/`:
+
+```powershell
+python core/delivery_audit.py primeiro-dia-de-praia-v6
+python core/delivery_audit.py --build-index   # regera o pool aprovado (v5 + v6)
+python work/build_v6_images.py                 # reconstrói imagens só com o pool aprovado
+```
+
+Evidência: `artifacts/delivery_audit_report.json` + folhas de contato em `work/delivery_audit/`.
 
 ## Exemplos de Uso
 

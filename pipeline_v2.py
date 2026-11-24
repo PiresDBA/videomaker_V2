@@ -504,9 +504,15 @@ def run_pipeline(args: argparse.Namespace) -> int:
                 burst_groups.setdefault((str(c["scene_id"]), str(c["burst_from"])), []).append(c)
         for (sid, src_id), bclips in burst_groups.items():
             src_img = images_dir / f"{src_id}.jpg"
-            if src_img.exists():
+            # Regra 26 + anti-regressao: se os quadros da rajada ja existem (imagens
+            # DISTINCTAS aprovadas), NAO sobrescreve com micro-zoom de uma unica foto —
+            # foi isso que produziu o "tremendo dos lados" no v2.
+            ja_tem = all((images_dir / f"{c['clip_id']}.jpg").exists() for c in bclips)
+            if src_img.exists() and not ja_tem:
                 derive_burst_frames(src_img, images_dir, n=len(bclips), base_name=f"{sid}_b")
                 print(f"[BURST] {sid}: {len(bclips)} quadros derivados de {src_id}.jpg", flush=True)
+            elif ja_tem:
+                print(f"[BURST] {sid}: {len(bclips)} quadros aprovados reaproveitados (sem micro-zoom)", flush=True)
     except Exception as exc:
         print(f"[BURST] aviso na derivação: {str(exc)[:160]}", flush=True)
 
