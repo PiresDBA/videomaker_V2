@@ -42,6 +42,7 @@ def main() -> int:
         bgm_volume=0.22,
         target_lufs=-14.0,
         cpu_workers=CPU_WORKERS,
+        reuse_clips=True,
     )
     print(f"[assemble-only] PRONTO: {out} ({out.stat().st_size / 1e6:.1f} MB)", flush=True)
     return 0

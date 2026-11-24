@@ -104,7 +104,10 @@ def build_pacing_plan(
                     base_clip["duration"] = frame_dur
                     base_clip["end"] = round(base_clip["start"] + frame_dur, 3)
                     base_clip["burst"] = True
-                    base_clip["xfade_duration"] = BURST_XFADE_SECONDS
+                    # Rajada = flipbook de cortes secos. xfade curto (0.12s) entre
+                    # frames de ~0.14s colapsa a timeline no xfade do ffmpeg (0.33s
+                    # em vez de 1.18s). O dissolve suave fica so nas transicoes de cena.
+                    base_clip["xfade_duration"] = 0.0
                     for i in range(1, max(2, BURST_FRAMES)):
                         b = dict(base_clip)
                         b["clip_id"] = f"{sid}_b_{i:02d}"

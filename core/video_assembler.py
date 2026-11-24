@@ -817,6 +817,7 @@ def assemble_video(
     overlay_style: str = "auto",
     cpu_workers: int | None = None,
     disable_nvenc: bool = False,
+    reuse_clips: bool = False,
 ) -> tuple[Path, Path]:
     """Monta 16:9 final com Ken Burns, overlays contextuais, Dual-Avatar PiP, SFX, BGM por ato e LUFS alvo."""
     clips_dir = work_dir / "clips"
@@ -890,8 +891,16 @@ def assemble_video(
                 )
         return seg_mp4
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as clip_ex:
-        rendered_segments = list(clip_ex.map(_render_subclip, visual_clips))
+    # Regra 26: se os clips ja estao renderizados e validos, reaproveita (evita re-renderizar 171 clips).
+    rendered_segments: list[Path] = []
+    if reuse_clips:
+        cached = [clips_dir / f"{c['clip_id']}.mp4" for c in visual_clips]
+        if all(p.exists() and p.stat().st_size > 2000 for p in cached):
+            rendered_segments = cached
+            print(f"[assemble] Reaproveitando {len(cached)} clips ja renderizados.", flush=True)
+    if not rendered_segments:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as clip_ex:
+            rendered_segments = list(clip_ex.map(_render_subclip, visual_clips))
 
     base_video = work_dir / "base_video_16x9.mp4"
     _concat_segments_with_smooth_xfade(
