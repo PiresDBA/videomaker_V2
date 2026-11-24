@@ -649,6 +649,26 @@
       "cmd": "python work/flow_video_contact.py",
       "mutating": false,
       "credentials": false
+    },
+    {
+      "id": "publish_v7",
+      "path": "work/publish_v7.py",
+      "category": "video",
+      "target": "publicacao YouTube PT-BR",
+      "purpose": "Publica somente se a auditoria final aprovou; envia thumbnail viral e legenda PT-BR, como publico e todo publico (MadeForKids=False).",
+      "cmd": "python work/publish_v7.py",
+      "mutating": true,
+      "credentials": true
+    },
+    {
+      "id": "upload_thumb_v7",
+      "path": "work/upload_thumb_v7.py",
+      "category": "video",
+      "target": "thumbnail viral do episodio publicado",
+      "purpose": "Gera e envia thumbnail com o gancho do episodio para o video ja publicado, atualizando o recibo de publicacao.",
+      "cmd": "python work/upload_thumb_v7.py",
+      "mutating": true,
+      "credentials": true
     }
   ]
 }

@@ -93,3 +93,5 @@ python E:\videos\videomaker_v2\tests\test_pipeline_v2.py
 | `python -m unittest tests.test_pipeline_v2 -k image_assignment` | Teste anti-repetição/blacklist de imagens. |
 | `python -m unittest tests.test_pipeline_v2 -k slowmo` | Teste do slow-motion sem estrobo. |
 | `python -m unittest tests.test_pipeline_v2 -k narration` | Teste da narração dominante. |
+| `python work/publish_v7.py` | Publica no YouTube PT-BR só se a auditoria aprovou (todo público). |
+| `python work/upload_thumb_v7.py` | Envia a thumbnail viral do episódio já publicado. |
