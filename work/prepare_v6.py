@@ -140,6 +140,20 @@ def main() -> None:
             seen.add(sha(merged))
             by_scene.setdefault("sc_30", []).append(merged)
             print(f"[v6] Despedida composta ({len(available)} videos) -> sc_30", flush=True)
+            # Regra 25: o montador consome apenas os primeiros segundos do video da
+            # cena. Sem este recorte, o botao YouTube+SUBSCRIBE (no fim dos 22,8s)
+            # NUNCA aparece no MP4 final. Expomos o desfecho como 2o video da cena.
+            ending = merged.with_name("sc_30_v2.mp4")
+            subprocess.run(
+                [str(ROOT / "bin" / "ffmpeg.exe"), "-y", "-v", "error", "-sseof", "-5",
+                 "-i", str(merged), "-an", "-c:v", "libx264", "-preset", "fast",
+                 "-crf", "18", "-pix_fmt", "yuv420p", str(ending)],
+                check=True,
+            )
+            if ending.exists():
+                seen.add(sha(ending))
+                by_scene["sc_30"].append(ending)
+                print("[v6] Desfecho CTA -> sc_30_v2.mp4 (montador alcanca o SUBSCRIBE)", flush=True)
     elif available:
         by_scene.setdefault("sc_30", []).append(available[-1])
         print("[v6] Despedida unica -> sc_30", flush=True)

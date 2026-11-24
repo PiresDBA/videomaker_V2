@@ -916,13 +916,28 @@ def assemble_video(
                 )
         return seg_mp4
 
-    # Regra 26: se os clips ja estao renderizados e validos, reaproveita (evita re-renderizar 171 clips).
+    # Regra 26: reaproveita TODOS os clips ja renderizados e validos; so re-renderiza
+    # os que faltam/mudaram (ex.: cena 30 refeita para mostrar o CTA no fim).
     rendered_segments: list[Path] = []
     if reuse_clips:
         cached = [clips_dir / f"{c['clip_id']}.mp4" for c in visual_clips]
-        if all(p.exists() and p.stat().st_size > 2000 for p in cached):
+        validos = [p for p in cached if p.exists() and p.stat().st_size > 2000]
+        if len(validos) == len(cached):
             rendered_segments = cached
             print(f"[assemble] Reaproveitando {len(cached)} clips ja renderizados.", flush=True)
+        elif validos:
+            por_id = {c["clip_id"]: p for c, p in zip(visual_clips, cached)}
+
+            def _reaprov_or_render(clip: dict[str, Any]) -> Path:
+                p = por_id[clip["clip_id"]]
+                if p.exists() and p.stat().st_size > 2000:
+                    return p
+                return _render_subclip(clip)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as clip_ex:
+                rendered_segments = list(clip_ex.map(_reaprov_or_render, visual_clips))
+            print(f"[assemble] Reaproveitando {len(validos)} clips; "
+                  f"{len(cached) - len(validos)} re-renderizados.", flush=True)
     if not rendered_segments:
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as clip_ex:
             rendered_segments = list(clip_ex.map(_render_subclip, visual_clips))
