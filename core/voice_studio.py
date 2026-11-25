@@ -800,18 +800,29 @@ def synthesize_all_scenes(
                 converted = False
                 if prov == "voice_studio":
                     vs_raw = raw_dir / f"{sid}_vs.wav"
-                    try:
-                        used_voice, emo_mode = _synthesize_voice_studio(
-                            tts_text, speaker, vs_raw, emo_dir, attempt
-                        )
-                        dur = _to_wav_norm(vs_raw, wav_path, tail_s=0.45)
-                        converted = True
-                    except Exception as vs_exc:
-                        print(f"  [VOICE-STUDIO] {sid} fallback Chirp 3 HD: {str(vs_exc)[:120]}", flush=True)
-                        base_rate = float(CHIRP3_SPEAKING_RATE.get(speaker, 1.10))
-                        rate = min(1.12, base_rate + (0.02 if attempt >= 2 else 0.0))
-                        used_voice, emo_mode = _synthesize_chirp3_hd(
-                            tts_text, speaker, mp3_path, speaking_rate=rate
+                    # RETRY local: o CLI do Voice Studio falha por conflito de GPU
+                    # (outro processo segurando a placa). Tentamos de novo com
+                    # espera curta antes de desistir e cair no Chirp — assim a voz
+                    # local se mantem do inicio ao fim (Regra 21).
+                    vs_ok = False
+                    last_vs_exc: Exception | None = None
+                    for vs_try in range(3):
+                        try:
+                            used_voice, emo_mode = _synthesize_voice_studio(
+                                tts_text, speaker, vs_raw, emo_dir, attempt
+                            )
+                            dur = _to_wav_norm(vs_raw, wav_path, tail_s=0.45)
+                            converted = True
+                            vs_ok = True
+                            break
+                        except Exception as vs_exc:
+                            last_vs_exc = vs_exc
+                            if vs_try < 2:
+                                time.sleep(2.5)
+                    if not vs_ok:
+                        print(f"  [VOICE-STUDIO] {sid} fallback Gemini (emocao): {str(last_vs_exc)[:100]}", flush=True)
+                        used_voice, emo_mode = _synthesize_gemini_direct(
+                            tts_text, speaker, emo_dir, mp3_path
                         )
                 elif prov == "chirp3_hd":
                     base_rate = float(CHIRP3_SPEAKING_RATE.get(speaker, 1.10))
