@@ -19,6 +19,7 @@ from core.legacy_auditor import audit_image_with_vision
 from core.media_studio import detect_split_collage
 from core.scene_auditor import audit_voice_consistency
 from core.script_engine import count_total_words, validate_script_schema
+from core.sync_audit import audit_narration_sync
 
 
 def _probe_media(path: Path) -> dict[str, Any]:
@@ -92,6 +93,7 @@ def run_final_audit(
     thumbs_dir: Path,
     vision_check: bool = False,
     min_veo_videos: int = 0,
+    require_media_manifest: bool = False,
 ) -> dict[str, Any]:
     """Executa auditoria completa apos a montagem e salva final_audit_report.json."""
     issues: list[str] = []
@@ -154,6 +156,17 @@ def run_final_audit(
     #     "sem pe nem cabeca" (feedback direto do usuario em 2026-11-24).
     if in_projects and script_data.get("scenes"):
         issues.extend(narration_issues(script_data["scenes"]))
+
+    # 3d. SINCRONIA NARRACAO x VISUAL (midia reutilizada): o pipeline que gera do
+    #     zero ja tem o scene_auditor (Vision) para casar cena x imagem. Mas no
+    #     caminho de REUTILIZACAO essa checagem nao roda — e foi assim que saiu
+    #     narracao de gaivota em cima de video de cachorro. Este passo exige um
+    #     manifesto de midia (media_assignment.json) e audita cobertura de
+    #     personagem e alinhamento de ancora, sem depender de Vision.
+    if in_projects and script_data.get("scenes"):
+        manifest = proj_dir / "artifacts" / "media_assignment.json"
+        if require_media_manifest or manifest.exists():
+            issues.extend(f"sync: {e}" for e in audit_narration_sync(proj_dir, script_data))
 
     # 4. Video 16:9 e Short 9:16
     v16 = _probe_media(out_16_9)

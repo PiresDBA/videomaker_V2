@@ -585,6 +585,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
         thumbs_dir=thumbs_dir,
         vision_check=args.vision_audit,
         min_veo_videos=(target_veo if (not args.skip_images and not getattr(args, "skip_veo", False) and target_veo > 0 and args.stage not in ("shorts", "publish")) else 0),
+        require_media_manifest=bool(args.skip_images or getattr(args, "skip_veo", False)),
     )
     print(f"Auto-Auditoria Final: APPROVED={audit['approved']} | Issues={audit['issues_count']}", flush=True)
     if not audit["approved"]:

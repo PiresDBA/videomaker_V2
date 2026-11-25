@@ -766,9 +766,20 @@ def synthesize_all_scenes(
         if not force and voice_matches_lock and wav_path.exists() and wav_path.stat().st_size > 4000:
             dur = probe_duration(wav_path)
             if dur > 0.2:
+                # BUG CORRIGIDO: o cache gravava "locked:{gemini_voice}" (ex.: Puck)
+                # mesmo quando a voz real era do Voice Studio (ex.: Simone-feliz),
+                # o que disparava a auditoria de consistencia de voz por troca.
+                if prev_v:
+                    cached_voice = prev_v
+                elif prov == "voice_studio":
+                    cached_voice = f"voice_studio:{VOICE_STUDIO_VOICES.get(speaker, 'Simone-feliz')}"
+                elif prov == "chirp3_hd":
+                    cached_voice = f"chirp3_hd:{locked_voice}"
+                else:
+                    cached_voice = f"locked:{locked_voice}"
                 timings.append({
                     "scene_id": sid, "speaker": speaker,
-                    "voice": prev_v or f"locked:{locked_voice}",
+                    "voice": cached_voice,
                     "wav_path": str(wav_path),
                     "duration": dur, "emotion_mode": "cached", "qa": {"ok": True, "cached": True},
                 })

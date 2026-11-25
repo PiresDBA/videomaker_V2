@@ -177,6 +177,11 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
             "avatar_mode": avatar_mode,
             "avatar_pip": avatar_mode != "none",
             "characters": chars,
+            # Midia reutilizada: dica de qual video/imagem mostrar na cena.
+            # O assembler resolve por scene_id -> arquivo; estes campos sao a
+            # fonte oficial do media_assignment.json (auditoria de sincronia).
+            "video": " ".join(str(sc.get("video") or "").split()),
+            "image": " ".join(str(sc.get("image") or "").split()),
         })
 
     title = " ".join(str(data.get("title") or "Frida e Luna").split())

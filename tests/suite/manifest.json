@@ -759,6 +759,16 @@
       "cmd": "python work/reauditar_parte2.py",
       "mutating": true,
       "credentials": false
+    },
+    {
+      "id": "sync_audit",
+      "path": "core/sync_audit.py",
+      "category": "auditoria",
+      "target": "sincronia narracao x visual",
+      "purpose": "Audita (sem Vision) cobertura de personagem secundario e alinhamento de ancoras entre a narracao e a midia designada, exigindo media_assignment.json no caminho de reuso.",
+      "cmd": "python -c \"from core.sync_audit import audit_narration_sync\"",
+      "mutating": false,
+      "credentials": false
     }
   ]
 }
