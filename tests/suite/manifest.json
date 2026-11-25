@@ -789,6 +789,16 @@
       "cmd": "python work/montar_pool.py",
       "mutating": false,
       "credentials": false
+    },
+    {
+      "id": "publicar_parte2",
+      "path": "work/publicar_parte2.py",
+      "category": "publicacao",
+      "target": "publicacao YouTube PT da parte 2",
+      "purpose": "Publica o MP4 final da Parte 2 no YouTube PT-BR (publico, MadeForKids=False) com thumbnail e legenda, reusando os artifacts existentes.",
+      "cmd": "python work/publicar_parte2.py",
+      "mutating": true,
+      "credentials": true
     }
   ]
 }
