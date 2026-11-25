@@ -403,7 +403,7 @@
       "act": 2,
       "speaker": "luna",
       "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
-      "text": "Segura a gaivota, Frida! Ela é ladrã, mas é a nossa ladrã!",
+      "text": "Frida, pega a gaivota! Ela roubou o biscoito, mas é a nossa amiga!",
       "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
       "visual_action": "Frida segurando Guga com cuidado.",
       "sfx": "cartoon boing",
@@ -587,7 +587,7 @@
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
-      "text": "Se você gostou da Guga e da bagunça, se inscreve no canal e volta pra próxima praia com a gente!",
+      "text": "E assim terminou mais um dia de praia, com areia no focinho, confete no coração e uma gaivota chamada Guga.",
       "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
       "visual_action": "As três acenando na beira do mar com o sol baixando.",
       "sfx": "cartoon fanfare",
@@ -602,6 +602,27 @@
       "video": "acc_4_7a6465b6_vid_00_b5d828d595.mp4",
       "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_00_b5d828d595.mp4",
       "image": "acc_1_62cb2bc8_img_08_b8081091d7.jpg"
+    },
+    {
+      "scene_id": "sc_30",
+      "act": 3,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Se você curtiu a Guga e a bagunça, se inscreve no canal e vem com a gente na próxima praia!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Despedida com Frida, Luna e Guga, confete, YouTube e SUBSCRIBE.",
+      "sfx": "cartoon fanfare",
+      "comedy_beat": "Despedida com Frida, Luna e Guga, confete, YouTube e SUBSCRIBE.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_4_7a6465b6_vid_01_e091a542d1.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_01_e091a542d1.mp4",
+      "image": "acc_4_7a6465b6_img_03_9eca9cf105.jpg"
     }
   ]
 }

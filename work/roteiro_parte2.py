@@ -92,7 +92,7 @@ SCENES: list[tuple[str, str, str, str, list[str], str]] = [
      'cartoon splash', 'Uma ondinha envolvendo o castelo e a gaivota.',
      ['Guga'], 'agua'),
     ('luna',
-     'Segura a gaivota, Frida! Ela é ladrã, mas é a nossa ladrã!',
+     'Frida, pega a gaivota! Ela roubou o biscoito, mas é a nossa amiga!',
      'cartoon boing', 'Frida segurando Guga com cuidado.',
      ['Frida', 'Luna', 'Guga'], 'carinho'),
     ('narrador',
@@ -128,8 +128,12 @@ SCENES: list[tuple[str, str, str, str, list[str], str]] = [
      'cartoon fanfare', 'Frida acenando para a câmera com a Guga ao lado.',
      ['Frida', 'Guga'], 'geral'),
     ('narrador',
-     'Se você gostou da Guga e da bagunça, se inscreve no canal e volta pra próxima praia com a gente!',
+     'E assim terminou mais um dia de praia, com areia no focinho, confete no coração e uma gaivota chamada Guga.',
      'cartoon fanfare', 'As três acenando na beira do mar com o sol baixando.',
+     ['Frida', 'Luna', 'Guga'], 'geral'),
+    ('narrador',
+     'Se você curtiu a Guga e a bagunça, se inscreve no canal e vem com a gente na próxima praia!',
+     'cartoon fanfare', 'Despedida com Frida, Luna e Guga, confete, YouTube e SUBSCRIBE.',
      ['Frida', 'Luna', 'Guga'], 'geral'),
 ]
 

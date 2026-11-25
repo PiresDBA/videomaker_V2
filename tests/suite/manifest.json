@@ -729,6 +729,36 @@
       "cmd": "python work/roteiro_parte2.py",
       "mutating": false,
       "credentials": false
+    },
+    {
+      "id": "preparar_projeto_parte2",
+      "path": "work/preparar_projeto_parte2.py",
+      "category": "video",
+      "target": "projeto da parte 2 da praia",
+      "purpose": "Copia as imagens e videos validados da selecao para projects/primeiro-dia-de-praia-parte2, renomeando por cena e incluindo o retrato isolado da Guga.",
+      "cmd": "python work/preparar_projeto_parte2.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "finalizar_despedida_parte2",
+      "path": "work/finalizar_despedida_parte2.py",
+      "category": "video",
+      "target": "despedida canonica na parte 2",
+      "purpose": "Materializa a cena final sc_30 com a despedida canonica sem audio e sintetiza a fala de encerramento, adicionando ao script e aos timings do projeto.",
+      "cmd": "python work/finalizar_despedida_parte2.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "reauditar_parte2",
+      "path": "work/reauditar_parte2.py",
+      "category": "audio",
+      "target": "reauditoria da parte 2",
+      "purpose": "Corrige o metadata da voz da cena final e reexecuta a auditoria final sem remontar o video (evita re-render de 1h).",
+      "cmd": "python work/reauditar_parte2.py",
+      "mutating": true,
+      "credentials": false
     }
   ]
 }

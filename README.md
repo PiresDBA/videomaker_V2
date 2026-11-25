@@ -101,3 +101,6 @@ python E:\videos\videomaker_v2\tests\test_pipeline_v2.py
 | `work/abrir_carrossel.bat` | Abre o carrossel da seleção no navegador. |
 | `python work/verificar_videos.py` | Valida os vídeos com ffprobe e isola os corrompidos. |
 | `python work/roteiro_parte2.py` | Gera o roteiro da Parte 2 (Guga, narração, SFX cartoon). |
+| `python work/preparar_projeto_parte2.py` | Prepara o projeto da Parte 2 com o material selecionado. |
+| `python work/finalizar_despedida_parte2.py` | Anexa a despedida canônica e a fala final. |
+| `python work/reauditar_parte2.py` | Reaudita sem remontar o vídeo. |
