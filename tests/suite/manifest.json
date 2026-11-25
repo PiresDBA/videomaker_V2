@@ -679,6 +679,16 @@
       "cmd": "python work/relatorio_aproveitamento_v7.py",
       "mutating": false,
       "credentials": false
+    },
+    {
+      "id": "relatorio_continuacao_praia",
+      "path": "work/relatorio_continuacao_praia.py",
+      "category": "imagem",
+      "target": "continuacao praia: material gerado nao usado",
+      "purpose": "Lista TODAS as imagens e videos gerados com tema de praia que NAO entraram no ultimo video, com conta, arquivo, descricao e cena; separa o material de outro cenario numa secao a parte. Sem prioridade para imagens aprovadas.",
+      "cmd": "python work/relatorio_continuacao_praia.py",
+      "mutating": false,
+      "credentials": false
     }
   ]
 }
