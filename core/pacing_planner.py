@@ -53,6 +53,13 @@ def build_pacing_plan(
         # Regra 28: cada quadro do slow-motion precisa ficar >= 1,0s na tela.
         # Frases curtas (1 parte) sao melhores do que dois quadros de 0,5s.
         n_parts = max(1, min(n_parts, int(scene_dur / 1.0))) if scene_dur >= 1.0 else 1
+        # Sequencia de imagens (stop-motion): o roteiro traz N quadros progressivos
+        # (ex.: gaivota subindo -> descendo -> no biscoito). Forcamos n_parts = N e
+        # dissolve curto entre eles para simular movimento.
+        seq_imgs = sc.get("image_sequence") if isinstance(sc.get("image_sequence"), list) else []
+        is_sequence = len(seq_imgs) >= 2 and sid not in (video_scene_ids or set())
+        if is_sequence:
+            n_parts = len(seq_imgs)
         part_dur = round(scene_dur / n_parts, 3)
 
         speaker = str(sc.get("speaker") or "narrador").lower()
@@ -111,8 +118,10 @@ def build_pacing_plan(
                 "wav_path": t_info["wav_path"],
                 # Cena parada: dissolve LONGO entre as partes (mesma imagem base),
                 # lendo como camera lenta. Cena com video Veo mantem o corte curto.
+                # Sequencia de imagens: dissolve curto (stop-motion).
                 "xfade_duration": (0.0 if has_video_scene
-                                   else round(min(float(SLOWMO_XFADE_SECONDS), max(0.4, part_dur * 0.5)), 3)),
+                                   else (0.25 if is_sequence
+                                         else round(min(float(SLOWMO_XFADE_SECONDS), max(0.4, part_dur * 0.5)), 3))),
             })
             if scene_is_burst:
                 clip = visual_clips[-1]

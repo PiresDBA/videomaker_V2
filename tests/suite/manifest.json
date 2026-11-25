@@ -769,6 +769,26 @@
       "cmd": "python -c \"from core.sync_audit import audit_narration_sync\"",
       "mutating": false,
       "credentials": false
+    },
+    {
+      "id": "construir_parte2",
+      "path": "work/construir_parte2.py",
+      "category": "roteiro",
+      "target": "construcao semantica da parte 2",
+      "purpose": "Constroi o roteiro com atribuicao SEMANTICA de midia (cada fala -> video/imagem correta), intercala imagens e videos, monta sequencia stop-motion da gaivota, gera media_assignment.json e materializa a despedida canonica.",
+      "cmd": "python work/construir_parte2.py",
+      "mutating": true,
+      "credentials": false
+    },
+    {
+      "id": "montar_pool",
+      "path": "work/montar_pool.py",
+      "category": "imagem",
+      "target": "pool ampliado de imagens",
+      "purpose": "Junta as imagens do Flow com as do primeiro video (concha rosa, abraco, protetor, enterrada na areia) e a concha cantora do revisar, gerando pool_ampliado.json.",
+      "cmd": "python work/montar_pool.py",
+      "mutating": false,
+      "credentials": false
     }
   ]
 }

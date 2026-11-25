@@ -182,6 +182,9 @@ def normalize_script_records(data: dict[str, Any]) -> dict[str, Any]:
             # fonte oficial do media_assignment.json (auditoria de sincronia).
             "video": " ".join(str(sc.get("video") or "").split()),
             "image": " ".join(str(sc.get("image") or "").split()),
+            # Sequencia de imagens (stop-motion): N quadros progressivos
+            # colocados em ordem com dissolve curto, simulando movimento.
+            "image_sequence": list(sc.get("image_sequence") or []),
         })
 
     title = " ".join(str(data.get("title") or "Frida e Luna").split())

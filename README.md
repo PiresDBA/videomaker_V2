@@ -104,3 +104,5 @@ python E:\videos\videomaker_v2\tests\test_pipeline_v2.py
 | `python work/preparar_projeto_parte2.py` | Prepara o projeto da Parte 2 com o material selecionado. |
 | `python work/finalizar_despedida_parte2.py` | Anexa a despedida canônica e a fala final. |
 | `python work/reauditar_parte2.py` | Reaudita sem remontar o vídeo. |
+| `python work/montar_pool.py` | Pool ampliado de imagens (Flow + primeiro vídeo). |
+| `python work/construir_parte2.py` | Constrói a Parte 2 com atribuição semântica e stop-motion. |
