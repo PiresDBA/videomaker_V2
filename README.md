@@ -97,3 +97,5 @@ python E:\videos\videomaker_v2\tests\test_pipeline_v2.py
 | `python work/upload_thumb_v7.py` | Envia a thumbnail viral do episódio já publicado. |
 | `python work/relatorio_aproveitamento_v7.py` | Inventário: gerados × usados, com descrição dos descartados. |
 | `python work/relatorio_continuacao_praia.py` | Continuação: só material de praia NÃO usado, com descrição. |
+| `python work/preparar_selecao.py` | Separa praia / avatar / palito / outros, gera carrossel com filtros. |
+| `work/abrir_carrossel.bat` | Abre o carrossel da seleção no navegador. |

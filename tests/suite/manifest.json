@@ -689,6 +689,26 @@
       "cmd": "python work/relatorio_continuacao_praia.py",
       "mutating": false,
       "credentials": false
+    },
+    {
+      "id": "preparar_selecao",
+      "path": "work/preparar_selecao.py",
+      "category": "imagem",
+      "target": "separacao por categoria + carrossel",
+      "purpose": "Separa todo o material gerado em praia / humano_avatar / boneco_palito / outro_desenho / revisar, marca o que ja foi usado no v7 e gera um carrossel HTML auto-contido com filtros, busca e selecao para batimento.",
+      "cmd": "python work/preparar_selecao.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "gerar_listas_selecao",
+      "path": "work/gerar_listas.py",
+      "category": "imagem",
+      "target": "listas clicaveis da continuacao",
+      "purpose": "Gera listas markdown com hiperlinks file:// para todos os videos e fotos classificados como praia e reescreve o relatorio com as contagens reais.",
+      "cmd": "python work/gerar_listas.py",
+      "mutating": false,
+      "credentials": false
     }
   ]
 }
