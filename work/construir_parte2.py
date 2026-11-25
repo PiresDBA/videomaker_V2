@@ -53,12 +53,10 @@ STORY: list[tuple[str, str, str, str, str, str]] = [
      'cartoon fanfare', 'Um balde amarelo de plástico na areia.', 'image', 'bucket'),
     ('narrador', 'A Luna cavou tanto que desapareceu dentro do buraco, e só o rabinho ficou de fora, balançando para chamar a Frida.',
      'cartoon boing', 'Luna enterrada na areia até o pescoço.', 'image', 'luna_enterrada'),
-    ('narrador', 'De repente, uma sombra branca passou por cima delas e pousou bem na frente das duas.',
-     'cartoon bird whistle', 'Uma gaivota branca fofa pousando na areia.', 'image', 'guga_portrait'),
-    ('narrador', 'Era a Guga, uma gaivota branca e fofinha, com olho de quem já sabia onde estava a sacola de biscoito.',
-     'cartoon fanfare', 'A gaivota Guga de olho no biscoito.', 'image', 'guga_cookie'),
+    ('narrador', 'De repente, uma sombra branca passou por cima delas e pousou na frente das duas: era a Guga, uma gaivota branca e fofinha, de olho na sacola de biscoito.',
+     'cartoon bird whistle', 'Uma gaivota branca fofa pousando na areia.', 'image', 'guga_cookie'),
     ('luna', 'Oi, gaivota... esse lanchinho é meu, viu? Eu tô só... guardando ele com carinho!',
-     'cartoon giggle', 'Guga de olho no biscoito da Luna.', 'image', 'guga_cookie'),
+     'cartoon giggle', 'Guga de olho no biscoito da Luna.', 'image', 'guga_dive_2'),
     ('narrador', 'Guga deu um pulinho, subiu, desceu, desceu mais... e num piscar de olhos o biscoito já estava no bico dela.',
      'cartoon boing', 'A gaivota descendo em câmera lenta até o biscoito.', 'seq', 'guga_dive'),
     ('frida', 'Pega, Luna! Essa gaivota tem bico rápido e coração de doce!',
@@ -66,7 +64,7 @@ STORY: list[tuple[str, str, str, str, str, str]] = [
     ('narrador', 'As duas saíram correndo atrás da Guga, levantando uma poeirinha dourada de areia.',
      'cartoon run', 'Cachorrinhas correndo e pulando na praia ensolarada.', 'video', 'jump_sunny'),
     ('narrador', 'A Guga pousou na beira da água e ficou olhando as duas, como quem diz: me pega se conseguir!',
-     'cartoon bird whistle', 'Guga parada na beira da água.', 'image', 'guga'),
+     'cartoon bird whistle', 'Guga parada na beira da água.', 'image', 'guga_dive_2'),
     ('luna', 'Ei, gaivota! Metade do lanchinho é seu, prometo!',
      'cartoon giggle', 'Luna chamando a gaivota de volta.', 'image', 'guga_cookie'),
     ('narrador', 'A Frida apontou para o mar e teve uma ideia: usar a onda como armadilha.',
@@ -75,10 +73,8 @@ STORY: list[tuple[str, str, str, str, str, str]] = [
      'cartoon giggle', 'As duas olhando a onda se aproximando.', 'video', 'look_wave'),
     ('narrador', 'E não é que a onda veio mesmo, grandona e cheia de espuma, e quase pegou as duas de surpresa bem na beirinha.',
      'cartoon splash', 'Uma onda grande chegando perto das cachorrinhas.', 'video', 'react_wave'),
-    ('narrador', 'A Guga voou na hora... mas soltou o biscoito, que caiu na areia molhada.',
+    ('narrador', 'A Guga voou na hora... mas soltou o biscoito, que caiu na areia molhada, e a Luna achou na hora: estava molhado, mas era dela!',
      'cartoon bird whistle', 'A gaivota voando e soltando o biscoito.', 'image', 'guga_biscuit'),
-    ('luna', 'Achei o lanche! Está molhado, mas é meu!',
-     'cartoon giggle', 'Guga e o biscoito molhado na areia.', 'image', 'guga_biscuit'),
     ('narrador', 'E no meio da correria, a Luna viu uma concha rosa brilhando na areia, e ficou com os olhos acesos.',
      'cartoon fanfare', 'Frida e Luna com a concha rosa na areia.', 'image', 'concha_rosa'),
     ('luna', 'Olha que concha linda! Parece que ela guarda o mar lá dentro!',
@@ -93,12 +89,8 @@ STORY: list[tuple[str, str, str, str, str, str]] = [
      'cartoon fanfare', 'As duas se secando na toalha colorida.', 'image', 'towel_slide'),
     ('narrador', 'A Guga voltou, pousou devagar e deixou o biscoito molhado bem na frente da Luna.',
      'cartoon bird whistle', 'A gaivota devolvendo o biscoito.', 'image', 'guga_cookie'),
-    ('luna', 'Obrigada! Agora somos amigas!',
-     'cartoon giggle', 'Luna feliz com o biscoito de volta.', 'image', 'guga_cookie'),
-    ('narrador', 'No fim, as três sentaram juntinhas na areia: duas cachorrinhas e uma gaivota, dividindo o lanche.',
+    ('narrador', 'No fim, as três sentaram juntinhas na areia: duas cachorrinhas e uma gaivota, dividindo o lanche e virando amigas de verdade.',
      'cartoon fanfare', 'Duas cachorrinhas se abraçando na praia com a gaivota por perto.', 'image', 'hug'),
-    ('frida', 'Quem diria! Uma gaivota virou nossa amiga!',
-     'cartoon fanfare', 'Cachorrinhas se abraçando com carinho.', 'image', 'hug'),
     ('narrador', 'O sol foi descendo devagar, pintando o mar de dourado e laranja, e a praia ficou quietinha, só com o barulho das ondas.',
      'cartoon fanfare', 'Frida e Luna abraçadas na areia ao pôr do sol.', 'image', 'abraco_sunset'),
     ('narrador', 'E assim terminou mais um dia na praia: com areia no focinho, uma gaivota de amiga nova e o coração quentinho de alegria.',
@@ -119,9 +111,8 @@ MEDIA_KEYS = {
     'pose_wave': ('video', 'posing before ocean wave'),
     'shake_water': ('video', 'shaking water on friend'),
     'lick_sand': ('video', 'licks sand on beach'),
-    'guga_portrait': ('image', 'seagull portrait'),
-    'guga': ('image', 'Guga'),
     'guga_cookie': ('image', 'diving toward cookie'),
+    'guga_dive_2': ('image', 'mergulhando'),
     'guga_biscuit': ('image', 'diving toward biscuit'),
     'hug': ('image', 'hugging on beach'),
     'towel_slide': ('image', 'sliding on beach towel'),
@@ -140,7 +131,7 @@ MEDIA_KEYS = {
 # Sequencias de imagens para STOP-MOTION (quadros progressivos em ordem).
 # Regra nova: imagens sao gratis; colocar 2-3 sequencias por video economiza Veo.
 SEQUENCES: dict[str, list[str]] = {
-    'guga_dive': ['guga_portrait', 'guga', 'guga_cookie', 'guga_biscuit'],
+    'guga_dive': ['guga_cookie', 'guga_dive_2', 'guga_biscuit'],
 }
 
 EMOTION = {
@@ -316,9 +307,10 @@ def main() -> int:
                     if not dst.exists():
                         shutil.copy2(src, dst)
 
-    # retrato da Guga (personagem recorrente)
+    # retrato da Guga (personagem recorrente) — a gaivota BRANCA que voa (diving),
+    # NAO a gaivota gorda de oculos de sol (imagem "Guga"/"chubby" que e outra personagem).
     guga_src = ROOT / 'assets' / 'reference' / 'primeiro-dia-de-praia' / 'flow_all' / \
-        'acc_2' / 'images' / 'acc_2_1f7e3f9b_img_03_9b639bd663.jpg'
+        'acc_2' / 'images' / 'acc_2_d43a0933_img_04_800d311569.jpg'
     guga_dst = PROJ / 'assets' / 'characters' / 'guga_portrait.jpg'
     if guga_src.exists() and not guga_dst.exists():
         shutil.copy2(guga_src, guga_dst)

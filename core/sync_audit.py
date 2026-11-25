@@ -49,7 +49,9 @@ ANCHOR_SYNSETS: tuple[tuple[str, frozenset[str]], ...] = (
 )
 
 # Ancoras "fortes" = se citadas na fala, a midia precisa conter a mesma ancora.
-STRONG_ANCHORS = ("gaivota", "biscoito", "castelo", "concha", "balde", "toalha", "protetor")
+# "gaivota"/"passaro" ficam FORA: cena de perseguicao narra a gaivota mas mostra o
+# cachorro correndo (legitimo) — a presenca da gaivota e garantida pela COBERTURA.
+STRONG_ANCHORS = ("biscoito", "castelo", "concha", "balde", "toalha", "protetor")
 
 
 def _norm(s: str) -> str:
@@ -122,7 +124,9 @@ def audit_narration_sync(proj_dir: Path, script_data: dict[str, Any]) -> list[st
         if not m or not _media_desc_for(m):
             issues.append(f"cena {sid}: sem midia designada no manifesto")
             continue
-        talk = f"{s.get('text', '')} {s.get('visual_action', '')}"
+        # A sincronia e sobre o que e FALADO (text) x o que e MOSTRADO (midia).
+        # visual_action descreve a intencao da cena; nao entra na ancora.
+        talk = str(s.get('text', ''))
         talk_syn = _synsets(talk)
         media_syn = _synsets(_media_desc_for(m))
         for anchor in STRONG_ANCHORS:

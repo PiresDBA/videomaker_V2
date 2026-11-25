@@ -200,7 +200,7 @@
       "act": 2,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
-      "text": "A Luna cavou tanto que desapareceu dentro do buraco, e só o rabinho ficou de fora.",
+      "text": "A Luna cavou tanto que desapareceu dentro do buraco, e só o rabinho ficou de fora, balançando para chamar a Frida.",
       "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
       "visual_action": "Luna enterrada na areia até o pescoço.",
       "sfx": "cartoon boing",
@@ -217,51 +217,13 @@
     {
       "scene_id": "sc_11",
       "act": 2,
-      "speaker": "frida",
-      "emotion_direction": "animada, confiante e engracada, como uma buldogue crianca",
-      "text": "Luna, cadê você? Eu só tô vendo um rabinho balançando no meio da areia!",
-      "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
-      "visual_action": "Luna enterrada na areia, só a cabeça e o rabo aparecendo.",
-      "sfx": "cartoon giggle",
-      "comedy_beat": "Luna enterrada na areia, só a cabeça e o rabo aparecendo.",
-      "avatar_mode": "frida",
-      "avatar_pip": true,
-      "characters": [
-        "Frida",
-        "Luna"
-      ],
-      "video": "",
-      "image": "luna_enterrada"
-    },
-    {
-      "scene_id": "sc_12",
-      "act": 2,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
-      "text": "De repente, uma sombra branca passou por cima delas e pousou bem na frente das duas.",
+      "text": "De repente, uma sombra branca passou por cima delas e pousou na frente das duas: era a Guga, uma gaivota branca e fofinha, de olho na sacola de biscoito.",
       "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
       "visual_action": "Uma gaivota branca fofa pousando na areia.",
       "sfx": "cartoon bird whistle",
       "comedy_beat": "Uma gaivota branca fofa pousando na areia.",
-      "avatar_mode": "none",
-      "avatar_pip": false,
-      "characters": [
-        "Frida",
-        "Luna"
-      ],
-      "video": "",
-      "image": "acc_1_62cb2bc8_img_11_4f1fd60418.jpg"
-    },
-    {
-      "scene_id": "sc_13",
-      "act": 2,
-      "speaker": "narrador",
-      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
-      "text": "Era a Guga, uma gaivota branca e fofinha, com olho de quem já sabia onde estava a sacola de biscoito.",
-      "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
-      "visual_action": "A gaivota Guga de olho no biscoito.",
-      "sfx": "cartoon fanfare",
-      "comedy_beat": "A gaivota Guga de olho no biscoito.",
       "avatar_mode": "none",
       "avatar_pip": false,
       "characters": [
@@ -273,7 +235,7 @@
       "image": "acc_2_d43a0933_img_04_800d311569.jpg"
     },
     {
-      "scene_id": "sc_14",
+      "scene_id": "sc_12",
       "act": 2,
       "speaker": "luna",
       "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
@@ -290,10 +252,10 @@
         "Guga"
       ],
       "video": "",
-      "image": "acc_2_d43a0933_img_04_800d311569.jpg"
+      "image": "acc_2_d43a0933_img_05_3540cc6ece.jpg"
     },
     {
-      "scene_id": "sc_15",
+      "scene_id": "sc_13",
       "act": 2,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -310,16 +272,15 @@
         "Guga"
       ],
       "video": "",
-      "image": "acc_1_62cb2bc8_img_11_4f1fd60418.jpg",
+      "image": "acc_2_d43a0933_img_04_800d311569.jpg",
       "image_sequence": [
-        "acc_1_62cb2bc8_img_11_4f1fd60418.jpg",
-        "acc_2_1f7e3f9b_img_03_9b639bd663.jpg",
         "acc_2_d43a0933_img_04_800d311569.jpg",
+        "acc_2_d43a0933_img_05_3540cc6ece.jpg",
         "acc_2_d43a0933_img_06_4394238238.jpg"
       ]
     },
     {
-      "scene_id": "sc_16",
+      "scene_id": "sc_14",
       "act": 2,
       "speaker": "frida",
       "emotion_direction": "animada, confiante e engracada, como uma buldogue crianca",
@@ -339,7 +300,7 @@
       "image": ""
     },
     {
-      "scene_id": "sc_17",
+      "scene_id": "sc_15",
       "act": 2,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -359,7 +320,7 @@
       "image": ""
     },
     {
-      "scene_id": "sc_18",
+      "scene_id": "sc_16",
       "act": 2,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -376,11 +337,11 @@
         "Guga"
       ],
       "video": "",
-      "image": "acc_2_1f7e3f9b_img_03_9b639bd663.jpg"
+      "image": "acc_2_d43a0933_img_05_3540cc6ece.jpg"
     },
     {
-      "scene_id": "sc_19",
-      "act": 3,
+      "scene_id": "sc_17",
+      "act": 2,
       "speaker": "luna",
       "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
       "text": "Ei, gaivota! Metade do lanchinho é seu, prometo!",
@@ -399,8 +360,8 @@
       "image": "acc_2_d43a0933_img_04_800d311569.jpg"
     },
     {
-      "scene_id": "sc_20",
-      "act": 3,
+      "scene_id": "sc_18",
+      "act": 2,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
       "text": "A Frida apontou para o mar e teve uma ideia: usar a onda como armadilha.",
@@ -418,7 +379,7 @@
       "image": ""
     },
     {
-      "scene_id": "sc_21",
+      "scene_id": "sc_19",
       "act": 3,
       "speaker": "frida",
       "emotion_direction": "animada, confiante e engracada, como uma buldogue crianca",
@@ -438,7 +399,7 @@
       "image": ""
     },
     {
-      "scene_id": "sc_22",
+      "scene_id": "sc_20",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -457,11 +418,11 @@
       "image": ""
     },
     {
-      "scene_id": "sc_23",
+      "scene_id": "sc_21",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
-      "text": "A Guga voou na hora... mas soltou o biscoito, que caiu na areia molhada.",
+      "text": "A Guga voou na hora... mas soltou o biscoito, que caiu na areia molhada, e a Luna achou na hora: estava molhado, mas era dela!",
       "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
       "visual_action": "A gaivota voando e soltando o biscoito.",
       "sfx": "cartoon bird whistle",
@@ -477,26 +438,7 @@
       "image": "acc_2_d43a0933_img_06_4394238238.jpg"
     },
     {
-      "scene_id": "sc_24",
-      "act": 3,
-      "speaker": "luna",
-      "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
-      "text": "Achei o lanche! Está molhado, mas é meu!",
-      "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
-      "visual_action": "Guga e o biscoito molhado na areia.",
-      "sfx": "cartoon giggle",
-      "comedy_beat": "Guga e o biscoito molhado na areia.",
-      "avatar_mode": "luna",
-      "avatar_pip": true,
-      "characters": [
-        "Frida",
-        "Luna"
-      ],
-      "video": "",
-      "image": "acc_2_d43a0933_img_06_4394238238.jpg"
-    },
-    {
-      "scene_id": "sc_25",
+      "scene_id": "sc_22",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -515,7 +457,7 @@
       "image": "concha_rosa"
     },
     {
-      "scene_id": "sc_26",
+      "scene_id": "sc_23",
       "act": 3,
       "speaker": "luna",
       "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
@@ -534,7 +476,7 @@
       "image": "concha_lambida"
     },
     {
-      "scene_id": "sc_27",
+      "scene_id": "sc_24",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -553,7 +495,7 @@
       "image": "concha_portrait"
     },
     {
-      "scene_id": "sc_28",
+      "scene_id": "sc_25",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -572,7 +514,7 @@
       "image": ""
     },
     {
-      "scene_id": "sc_29",
+      "scene_id": "sc_26",
       "act": 3,
       "speaker": "frida",
       "emotion_direction": "animada, confiante e engracada, como uma buldogue crianca",
@@ -591,7 +533,7 @@
       "image": ""
     },
     {
-      "scene_id": "sc_30",
+      "scene_id": "sc_27",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -610,7 +552,7 @@
       "image": "acc_2_1f7e3f9b_img_00_7c33773c6c.jpg"
     },
     {
-      "scene_id": "sc_31",
+      "scene_id": "sc_28",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -630,30 +572,11 @@
       "image": "acc_2_d43a0933_img_04_800d311569.jpg"
     },
     {
-      "scene_id": "sc_32",
-      "act": 3,
-      "speaker": "luna",
-      "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
-      "text": "Obrigada! Agora somos amigas!",
-      "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
-      "visual_action": "Luna feliz com o biscoito de volta.",
-      "sfx": "cartoon giggle",
-      "comedy_beat": "Luna feliz com o biscoito de volta.",
-      "avatar_mode": "luna",
-      "avatar_pip": true,
-      "characters": [
-        "Frida",
-        "Luna"
-      ],
-      "video": "",
-      "image": "acc_2_d43a0933_img_04_800d311569.jpg"
-    },
-    {
-      "scene_id": "sc_33",
+      "scene_id": "sc_29",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
-      "text": "No fim, as três sentaram juntinhas na areia: duas cachorrinhas e uma gaivota, dividindo o lanche.",
+      "text": "No fim, as três sentaram juntinhas na areia: duas cachorrinhas e uma gaivota, dividindo o lanche e virando amigas de verdade.",
       "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
       "visual_action": "Duas cachorrinhas se abraçando na praia com a gaivota por perto.",
       "sfx": "cartoon fanfare",
@@ -669,27 +592,7 @@
       "image": "acc_3_225a8b1e_img_00_629e65ae31.jpg"
     },
     {
-      "scene_id": "sc_34",
-      "act": 3,
-      "speaker": "frida",
-      "emotion_direction": "animada, confiante e engracada, como uma buldogue crianca",
-      "text": "Quem diria! Uma gaivota virou nossa amiga!",
-      "location": "Praia ensolarada com areia, ondas, toalha e a gaivota Guga",
-      "visual_action": "Cachorrinhas se abraçando com carinho.",
-      "sfx": "cartoon fanfare",
-      "comedy_beat": "Cachorrinhas se abraçando com carinho.",
-      "avatar_mode": "frida",
-      "avatar_pip": true,
-      "characters": [
-        "Frida",
-        "Luna",
-        "Guga"
-      ],
-      "video": "",
-      "image": "acc_3_225a8b1e_img_00_629e65ae31.jpg"
-    },
-    {
-      "scene_id": "sc_35",
+      "scene_id": "sc_30",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -708,7 +611,7 @@
       "image": "abraco_por_do_sol"
     },
     {
-      "scene_id": "sc_36",
+      "scene_id": "sc_31",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -728,7 +631,7 @@
       "image": "acc_3_225a8b1e_img_10_28bfcca030.jpg"
     },
     {
-      "scene_id": "sc_37",
+      "scene_id": "sc_32",
       "act": 3,
       "speaker": "narrador",
       "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
@@ -744,7 +647,7 @@
         "Luna",
         "Guga"
       ],
-      "video": "sc_37.mp4",
+      "video": "sc_32.mp4",
       "image": ""
     }
   ]

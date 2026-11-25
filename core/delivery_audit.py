@@ -49,7 +49,10 @@ BURST_MIN_FRAME = 0.60    # slow-motion: cada quadro precisa durar >= 0,6s
 BURST_MIN_XFADE = 0.35    # dissolve minimo entre quadros do slow-motion
 BURST_MIN_BASE_SIM = 0.90 # variacoes precisam ser quase a mesma foto
 CTA_MIN_SIM = 0.62        # abaixo disso: despedida/CTA ausente
-MAX_SCENE_REUSE = 2       # mesma imagem em mais de 2 cenas = repeticao excessiva
+# Personagem recorrente (ex.: Guga, a gaivota) reaparece legitimamente em varias
+# cenas; imagem de fundo nao pode. Valor alto para nao bloquear continuidade de
+# personagem, mantendo o cheque de cenas vizinhas para pegar repeticao tosca.
+MAX_SCENE_REUSE = 6
 BLACKLIST_PATH = REF_DIR / "blacklist.json"
 
 _STOP = set("a as o os e em de da do das dos que com um uma para no na por se ao".split())
