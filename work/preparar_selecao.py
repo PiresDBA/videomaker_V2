@@ -37,7 +37,7 @@ META_PATH = REF / 'analise_v2_all.json'
 OUT = ROOT / 'work' / 'selecao_continuacao'
 THUMBS = OUT / 'thumbs'
 
-CATS = ('praia', 'humano_avatar', 'boneco_palito', 'outro_desenho', 'revisar')
+CATS = ('praia', 'humano_avatar', 'boneco_palito', 'outro_desenho', 'revisar', 'defeitos')
 
 # --- regras de categorizacao (ordem de prioridade) -------------------------
 HUMANO = re.compile(
@@ -86,8 +86,26 @@ SUBCATS: list[tuple[str, re.Pattern]] = [
 
 
 def meta_map() -> dict[str, dict[str, Any]]:
-    data = json.loads(META_PATH.read_text(encoding='utf-8'))
-    return {str(x.get('path', '')): x for x in data if isinstance(x, dict)}
+    """Junta analise_v2_all.json com o manifesto do harvest (tem aria dos tiles)."""
+    out: dict[str, dict[str, Any]] = {}
+    if META_PATH.exists():
+        for x in json.loads(META_PATH.read_text(encoding='utf-8')):
+            if isinstance(x, dict):
+                out[str(x.get('path', ''))] = x
+    manifest = FLOW / 'harvest_manifest.json'
+    if manifest.exists():
+        for x in json.loads(manifest.read_text(encoding='utf-8')).get('items', []):
+            key = str(x.get('path', ''))
+            if not key:
+                continue
+            cur = dict(out.get(key, {}))
+            for field in ('aria', 'scene', 'prompt', 'kind'):
+                if x.get(field) and not cur.get(field):
+                    cur[field] = x[field]
+            cur.setdefault('tile_idx', x.get('tile_idx'))
+            cur.setdefault('email', x.get('email'))
+            out[key] = cur
+    return out
 
 
 def text_of(m: dict[str, Any], p: Path, mm: dict[str, Any]) -> str:
@@ -132,6 +150,22 @@ def unique_files(pattern: str) -> list[Path]:
     return out
 
 
+def video_ok(video: Path) -> tuple[bool, float]:
+    """Valida com ffprobe: videos truncados do Flow têm duracao 0."""
+    ffprobe = str(Path(FFMPEG_EXE).with_name('ffprobe.exe'))
+    try:
+        r = subprocess.run(
+            [ffprobe, '-v', 'error', '-show_entries',
+             'format=duration:stream=codec_name', '-of', 'json', str(video)],
+            capture_output=True, text=True, timeout=20,
+        )
+        d = json.loads(r.stdout or '{}')
+        dur = float(d.get('format', {}).get('duration', 0) or 0)
+        return (bool(d.get('streams')) and dur > 1.0, dur)
+    except Exception:
+        return (False, 0.0)
+
+
 def video_frame(video: Path, dest: Path) -> bool:
     """Extrai um quadro com timeout (video corrompido nao pode travar o lote)."""
     if dest.exists() and dest.stat().st_size > 500:
@@ -174,11 +208,18 @@ def main() -> int:
         aria = str(m.get('aria') or '').strip()
         described = bool(aria) and not aria.lower().endswith(('.jpg', '.png', '.jpeg'))
         cat, sub = classify(m, p, m)
+        duration = 0.0
+        if kind == 'video':
+            ok, duration = video_ok(p)
+            # so a duracao zero prova corrompimento; stream pode vir vazio em ffprobe
+            if duration <= 1.0:
+                cat, sub = 'defeitos', ''
         item = {
             'kind': kind, 'name': p.name, 'path': str(p), 'account': p.parent.parent.name,
             'aria': aria, 'scene': str(m.get('scene') or ''), 'described': described,
             'category': cat, 'subcategory': sub, 'sha256': sha256(p),
             'size': p.stat().st_size, 'usado_v7': sha256(p) in used_sha,
+            'duration': round(duration, 2),
         }
         classified.append(item)
         return item
@@ -325,6 +366,7 @@ footer{padding:14px 22px;color:#8296ad;font-size:12px;border-top:1px solid #2630
 <button class="chip" data-cat="boneco_palito">🪆 Boneco de palito</button>
 <button class="chip" data-cat="outro_desenho">🎨 Outro desenho</button>
 <button class="chip" data-cat="revisar">❓ Revisar</button>
+<button class="chip" data-cat="defeitos">🚫 Corrompidos</button>
 <button class="chip" data-cat="novo">🆕 Só não usados no v7</button>
 <button class="chip" data-cat="usado">♻️ Já usados no v7</button>
 <span id="subs"></span>
@@ -359,7 +401,7 @@ function render(){
       '<div class="body"><div class="desc">'+(x.aria||x.name)+'</div>'+
       '<div class="meta"><span class="badge '+x.category+'">'+(x.subcategory||CATS[x.category]||x.category)+badge+'</span><span>'+x.account+'</span></div>'+
       '<div class="meta"><a href="'+x.relative+'" target="_blank">↗ abrir</a><span>'+
-      (x.usado_v7?'♻️ v7':'🆕 novo')+'</span></div>'+
+      (x.usado_v7?'♻️ v7':'🆕 novo')+(x.duration?' · '+x.duration+'s':'')+'</span></div>'+
       '<label><input type="checkbox" '+(selected.has(x.path)?'checked':'')+' data-path="'+x.path+'"> usar no vídeo</label></div>';
     c.onclick=e=>{if(e.target.tagName!=='INPUT'&&e.target.tagName!=='A')openModal(x)};
     g.appendChild(c);

@@ -99,3 +99,5 @@ python E:\videos\videomaker_v2\tests\test_pipeline_v2.py
 | `python work/relatorio_continuacao_praia.py` | Continuação: só material de praia NÃO usado, com descrição. |
 | `python work/preparar_selecao.py` | Separa praia / avatar / palito / outros, gera carrossel com filtros. |
 | `work/abrir_carrossel.bat` | Abre o carrossel da seleção no navegador. |
+| `python work/verificar_videos.py` | Valida os vídeos com ffprobe e isola os corrompidos. |
+| `python work/roteiro_parte2.py` | Gera o roteiro da Parte 2 (Guga, narração, SFX cartoon). |

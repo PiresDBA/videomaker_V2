@@ -1,0 +1,607 @@
+{
+  "title": "A PRAIA PARTE 2 — O BISCOITO ROUBADO DA GUGA",
+  "thumb_hook": "A GAIVOTA ROUBOU O BISCOITO!",
+  "description": "Frida e Luna voltam à praia e conhecem Guga, uma gaivota branca muito atrevida que rouba biscoito, esconde conchas e apronta com a maré!",
+  "tags": [
+    "frida e luna",
+    "gaivota guga",
+    "historia infantil",
+    "desenho animado",
+    "praia parte 2"
+  ],
+  "target_minutes": 4.0,
+  "catchphrase": "Ladrão que volta é amigo. Ladrão que some é só biscoito!",
+  "secondary_characters": [
+    {
+      "name": "Guga",
+      "species": "gaivota branca",
+      "description": "Gaivota branca fofinha e muito atrevida, mora na praia e adora biscoito."
+    }
+  ],
+  "story_props": [
+    {
+      "name": "Biscoitinho da Luna",
+      "description": "Sacolinha de biscoitos que a Guga rouba."
+    }
+  ],
+  "scenes": [
+    {
+      "scene_id": "sc_01",
+      "act": 1,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "No dia seguinte, Frida e Luna voltaram correndo pra praia. O plano era simples: relaxar, tomar sol e não molhar nem uma patinha.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Frida e Luna caminhando na areia com a toalha colorida.",
+      "sfx": "cartoon fanfare",
+      "comedy_beat": "Frida e Luna caminhando na areia com a toalha colorida.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna"
+      ],
+      "video": "acc_1_62cb2bc8_vid_03_191340a278.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_1_62cb2bc8_vid_03_191340a278.mp4",
+      "image": "acc_1_62cb2bc8_img_06_2766a1f99d.jpg"
+    },
+    {
+      "scene_id": "sc_02",
+      "act": 1,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "A Luna trazia uma sacolinha cheia de biscoitinhos. O problema é que biscoito na praia chama mais golpista que abeja chama mel.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Luna com a sacolinha de biscoitos perto da toalha.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "Luna com a sacolinha de biscoitos perto da toalha.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Luna"
+      ],
+      "video": "acc_2_d43a0933_vid_00_9117544390.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_2_d43a0933_vid_00_9117544390.mp4",
+      "image": "acc_1_62cb2bc8_img_04_ef15b9ce26.jpg"
+    },
+    {
+      "scene_id": "sc_03",
+      "act": 1,
+      "speaker": "frida",
+      "emotion_direction": "animada, confiante e muito engriffada, como uma buldogue crianca",
+      "text": "Luna, esconde esse biscoito! Aqui tem gaivota esperando a gente abrir a boca!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Frida olhando desconfiada para o céu.",
+      "sfx": "cartoon bird whistle",
+      "comedy_beat": "Frida olhando desconfiada para o céu.",
+      "avatar_mode": "frida",
+      "avatar_pip": true,
+      "characters": [
+        "Frida"
+      ],
+      "video": "acc_3_225a8b1e_vid_00_174e722830.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_3_225a8b1e_vid_00_174e722830.mp4",
+      "image": "acc_1_62cb2bc8_img_08_b8081091d7.jpg"
+    },
+    {
+      "scene_id": "sc_04",
+      "act": 1,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "E não é que apareceu uma gaivota branca, bem fofinha, com cara de quem nunca comeu um biscoito na vida?",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Guga, a gaivota branca, pousando na areia perto das duas.",
+      "sfx": "cartoon fanfare",
+      "comedy_beat": "Guga, a gaivota branca, pousando na areia perto das duas.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Guga"
+      ],
+      "video": "acc_3_225a8b1e_vid_04_c67789fc27.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_3_225a8b1e_vid_04_c67789fc27.mp4",
+      "image": "acc_1_62cb2bc8_img_10_e17e00030c.jpg"
+    },
+    {
+      "scene_id": "sc_05",
+      "act": 1,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Ela se chamava Guga. Chegou pomposa, deu uma volta no ar e pousou do ladinho da Luna, como quem não quer nada.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Guga planando sobre a toalha e pousando ao lado da Luna.",
+      "sfx": "cartoon spin",
+      "comedy_beat": "Guga planando sobre a toalha e pousando ao lado da Luna.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Guga",
+        "Luna"
+      ],
+      "video": "acc_4_7a6465b6_vid_02_e091a542d1.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_02_e091a542d1.mp4",
+      "image": "acc_1_62cb2bc8_img_11_4f1fd60418.jpg"
+    },
+    {
+      "scene_id": "sc_06",
+      "act": 1,
+      "speaker": "luna",
+      "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
+      "text": "Oi, Guga! Esse biscoito é meu... acho. Tô comendo, tá? Tô só guardando!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Luna protegendo a sacolinha com as patinhas.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "Luna protegendo a sacolinha com as patinhas.",
+      "avatar_mode": "luna",
+      "avatar_pip": true,
+      "characters": [
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_5_7b9ec48e_vid_03_b88e4ae3e4.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_5_7b9ec48e_vid_03_b88e4ae3e4.mp4",
+      "image": "acc_4_7a6465b6_img_04_28c2a8af4a.jpg"
+    },
+    {
+      "scene_id": "sc_07",
+      "act": 1,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Guga piscou, deu um pulinho e... SUMIU! O biscoito voou direto pro bico dela.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Guga saltando com o biscoito no bico.",
+      "sfx": "cartoon boing",
+      "comedy_beat": "Guga saltando com o biscoito no bico.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Guga"
+      ],
+      "video": "acc_1_62cb2bc8_vid_00_79381a30af.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_1_62cb2bc8_vid_00_79381a30af.mp4",
+      "image": "acc_2_1f7e3f9b_img_00_7c33773c6c.jpg"
+    },
+    {
+      "scene_id": "sc_08",
+      "act": 1,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "A Luna ficou com aquela cara: \"eu não vi nada, mas meu biscoito foi embora\".",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Luna com expressão de surpresa, olhando a sacolinha vazia.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "Luna com expressão de surpresa, olhando a sacolinha vazia.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Luna"
+      ],
+      "video": "acc_1_62cb2bc8_vid_01_9eca9cf105.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_1_62cb2bc8_vid_01_9eca9cf105.mp4",
+      "image": "acc_4_7a6465b6_img_03_9eca9cf105.jpg"
+    },
+    {
+      "scene_id": "sc_09",
+      "act": 1,
+      "speaker": "frida",
+      "emotion_direction": "animada, confiante e muito engriffada, como uma buldogue crianca",
+      "text": "Pega ladrão! É uma gaivota de bico doce e coração de biscoito!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Frida e Luna correndo atrás da gaivota.",
+      "sfx": "cartoon run",
+      "comedy_beat": "Frida e Luna correndo atrás da gaivota.",
+      "avatar_mode": "frida",
+      "avatar_pip": true,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_1_62cb2bc8_vid_04_464d73ce34.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_1_62cb2bc8_vid_04_464d73ce34.mp4",
+      "image": "acc_2_1f7e3f9b_img_03_9b639bd663.jpg"
+    },
+    {
+      "scene_id": "sc_10",
+      "act": 1,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Guga correu pela areia com o biscoito, e as duas saíram no encalço, levantando uma poeirinha dourada.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "As três correndo pela areia, poeira subindo.",
+      "sfx": "cartoon run",
+      "comedy_beat": "As três correndo pela areia, poeira subindo.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_3_225a8b1e_vid_02_c669ee0a98.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_3_225a8b1e_vid_02_c669ee0a98.mp4",
+      "image": "acc_2_d43a0933_img_01_686f39a0c9.jpg"
+    },
+    {
+      "scene_id": "sc_11",
+      "act": 2,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Corre que corre, a gaivota pousou em cima do castelo de areia que a Frida tinha feito na véspera, ou do que sobrou dele.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Guga pousando sobre as torres do castelo de areia.",
+      "sfx": "cartoon boing",
+      "comedy_beat": "Guga pousando sobre as torres do castelo de areia.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Guga"
+      ],
+      "video": "acc_3_225a8b1e_vid_03_1d6eeef45e.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_3_225a8b1e_vid_03_1d6eeef45e.mp4",
+      "image": "acc_4_7a6465b6_img_02_8620de26ca.jpg"
+    },
+    {
+      "scene_id": "sc_12",
+      "act": 2,
+      "speaker": "luna",
+      "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
+      "text": "Esse castelo tá com cara de biscoito gigante! Guga, volta aqui, eu divido!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Luna cavando perto do castelo e chamando a gaivota.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "Luna cavando perto do castelo e chamando a gaivota.",
+      "avatar_mode": "luna",
+      "avatar_pip": true,
+      "characters": [
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_4_7a6465b6_vid_00_b5d828d595.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_00_b5d828d595.mp4",
+      "image": "acc_4_7a6465b6_img_04_191340a278.jpg"
+    },
+    {
+      "scene_id": "sc_13",
+      "act": 2,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Guga não dividiu. Em vez disso, bicou uma concha brilhante e saiu voando com o tesouro.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Guga voando com uma concha brilhante no bico.",
+      "sfx": "cartoon bird whistle",
+      "comedy_beat": "Guga voando com uma concha brilhante no bico.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Guga"
+      ],
+      "video": "acc_4_7a6465b6_vid_01_e091a542d1.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_01_e091a542d1.mp4",
+      "image": "acc_1_62cb2bc8_img_11_4f1fd60418.jpg"
+    },
+    {
+      "scene_id": "sc_14",
+      "act": 2,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "A Frida então teve uma ideia genial: construir um castelo novo, mas com uma armadilha de conchas.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Frida com o focinho na areia, planejando o novo castelo.",
+      "sfx": "cartoon fanfare",
+      "comedy_beat": "Frida com o focinho na areia, planejando o novo castelo.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida"
+      ],
+      "video": "acc_4_7a6465b6_vid_03_2c733ac6df.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_03_2c733ac6df.mp4",
+      "image": "acc_5_7b9ec48e_img_02_79f18759ad.jpg"
+    },
+    {
+      "scene_id": "sc_15",
+      "act": 2,
+      "speaker": "frida",
+      "emotion_direction": "animada, confiante e muito engriffada, como uma buldogue crianca",
+      "text": "Luna, pega a pá! A gente vai fazer o castelo mais seguro da praia, com alarme de gaivota!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Frida e Luna empilhando areia para o novo castelo.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "Frida e Luna empilhando areia para o novo castelo.",
+      "avatar_mode": "frida",
+      "avatar_pip": true,
+      "characters": [
+        "Frida",
+        "Luna"
+      ],
+      "video": "acc_4_7a6465b6_vid_04_8620de26ca.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_04_8620de26ca.mp4",
+      "image": "acc_5_7b9ec48e_img_15_9cc1696704.jpg"
+    },
+    {
+      "scene_id": "sc_16",
+      "act": 2,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Elas cavaram, empilharam e decoraram, enquanto Guga observava de cima, com o biscoito ainda no bico.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "As duas construindo; Guga espiando de cima.",
+      "sfx": "cartoon crunch bite",
+      "comedy_beat": "As duas construindo; Guga espiando de cima.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_5_7b9ec48e_vid_00_6a9e6af36c.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_5_7b9ec48e_vid_00_6a9e6af36c.mp4",
+      "image": "acc_1_62cb2bc8_img_06_2766a1f99d.jpg"
+    },
+    {
+      "scene_id": "sc_17",
+      "act": 2,
+      "speaker": "luna",
+      "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
+      "text": "Olha, Frida! Fiz uma torre baixinha pra gaivota não derrubar. Tipo um praça de gaivota!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Luna exibindo uma torre baixinha do castelo.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "Luna exibindo uma torre baixinha do castelo.",
+      "avatar_mode": "luna",
+      "avatar_pip": true,
+      "characters": [
+        "Luna"
+      ],
+      "video": "acc_5_7b9ec48e_vid_02_b88e4ae3e4.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_5_7b9ec48e_vid_02_b88e4ae3e4.mp4",
+      "image": "acc_1_62cb2bc8_img_10_e17e00030c.jpg"
+    },
+    {
+      "scene_id": "sc_18",
+      "act": 2,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Foi quando a maré resolveu entrar na brincadeira e começou a lamber as torres de leve.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "A água chegando devagar nas torres de areia.",
+      "sfx": "cartoon splash",
+      "comedy_beat": "A água chegando devagar nas torres de areia.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna"
+      ],
+      "video": "acc_1_62cb2bc8_vid_03_191340a278.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_1_62cb2bc8_vid_03_191340a278.mp4",
+      "image": "acc_3_225a8b1e_img_02_44dc3107aa.jpg"
+    },
+    {
+      "scene_id": "sc_19",
+      "act": 2,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "A água chegou, levou a concha, levou o biscoito e quase levou a Guga junto.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Uma ondinha envolvendo o castelo e a gaivota.",
+      "sfx": "cartoon splash",
+      "comedy_beat": "Uma ondinha envolvendo o castelo e a gaivota.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Guga"
+      ],
+      "video": "acc_2_d43a0933_vid_00_9117544390.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_2_d43a0933_vid_00_9117544390.mp4",
+      "image": "acc_3_225a8b1e_img_03_cd58030a26.jpg"
+    },
+    {
+      "scene_id": "sc_20",
+      "act": 2,
+      "speaker": "luna",
+      "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
+      "text": "Segura a gaivota, Frida! Ela é ladrã, mas é a nossa ladrã!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Frida segurando Guga com cuidado.",
+      "sfx": "cartoon boing",
+      "comedy_beat": "Frida segurando Guga com cuidado.",
+      "avatar_mode": "luna",
+      "avatar_pip": true,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_3_225a8b1e_vid_00_174e722830.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_3_225a8b1e_vid_00_174e722830.mp4",
+      "image": "acc_3_225a8b1e_img_01_a8d3f007d5.jpg"
+    },
+    {
+      "scene_id": "sc_21",
+      "act": 3,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "A Frida segurou Guga pela asinha com todo o cuidado, e as três subiram para a areia seca.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "As três na areia seca, Guga sacudindo as penas.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "As três na areia seca, Guga sacudindo as penas.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_3_225a8b1e_vid_04_c67789fc27.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_3_225a8b1e_vid_04_c67789fc27.mp4",
+      "image": "acc_4_7a6465b6_img_04_28c2a8af4a.jpg"
+    },
+    {
+      "scene_id": "sc_22",
+      "act": 3,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Guga sacudiu as penas, soltou um \"guiiii\" de agradecimento e devolveu o biscoito meio molhado, mas devolveu.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Guga devolvendo o biscoito para a Luna.",
+      "sfx": "cartoon bird whistle",
+      "comedy_beat": "Guga devolvendo o biscoito para a Luna.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Guga",
+        "Luna"
+      ],
+      "video": "acc_4_7a6465b6_vid_02_e091a542d1.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_02_e091a542d1.mp4",
+      "image": "acc_3_225a8b1e_img_11_084081d880.jpg"
+    },
+    {
+      "scene_id": "sc_23",
+      "act": 3,
+      "speaker": "frida",
+      "emotion_direction": "animada, confiante e muito engriffada, como uma buldogue crianca",
+      "text": "Tá vendo? Ladrão que volta é amigo. Ladrão que some é só... biscoito.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Frida sorrindo com a Luna e a Guga.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "Frida sorrindo com a Luna e a Guga.",
+      "avatar_mode": "frida",
+      "avatar_pip": true,
+      "characters": [
+        "Frida"
+      ],
+      "video": "acc_5_7b9ec48e_vid_03_b88e4ae3e4.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_5_7b9ec48e_vid_03_b88e4ae3e4.mp4",
+      "image": "acc_3_225a8b1e_img_01_a8d3f007d5.jpg"
+    },
+    {
+      "scene_id": "sc_24",
+      "act": 3,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Elas sentaram juntinhas na toalha: duas cachorras e uma gaivota, dividindo o que sobrou do lanche.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "As três sentadas na toalha colorida dividindo o lanche.",
+      "sfx": "cartoon fanfare",
+      "comedy_beat": "As três sentadas na toalha colorida dividindo o lanche.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_1_62cb2bc8_vid_00_79381a30af.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_1_62cb2bc8_vid_00_79381a30af.mp4",
+      "image": "acc_2_1f7e3f9b_img_00_7c33773c6c.jpg"
+    },
+    {
+      "scene_id": "sc_25",
+      "act": 3,
+      "speaker": "luna",
+      "emotion_direction": "curiosa, assustada e engracada, como uma salsicha crianca",
+      "text": "Guga, pode ficar com a concha. Só não rouba meu biscoito de novo, tá? Eu aviso: eu mordo!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Luna entregando a concha para a Guga.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "Luna entregando a concha para a Guga.",
+      "avatar_mode": "luna",
+      "avatar_pip": true,
+      "characters": [
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_1_62cb2bc8_vid_01_9eca9cf105.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_1_62cb2bc8_vid_01_9eca9cf105.mp4",
+      "image": "acc_1_62cb2bc8_img_11_4f1fd60418.jpg"
+    },
+    {
+      "scene_id": "sc_26",
+      "act": 3,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "O sol começou a derreter no mar de novo, pintando as penas brancas da Guga de dourado.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Guga e as cachorras olhando o pôr do sol.",
+      "sfx": "cartoon fanfare",
+      "comedy_beat": "Guga e as cachorras olhando o pôr do sol.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Guga",
+        "Frida",
+        "Luna"
+      ],
+      "video": "acc_1_62cb2bc8_vid_04_464d73ce34.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_1_62cb2bc8_vid_04_464d73ce34.mp4",
+      "image": "acc_4_7a6465b6_img_01_163850ac35.jpg"
+    },
+    {
+      "scene_id": "sc_27",
+      "act": 3,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "E a praia, que parecia só areia e água, virou um lugar com três amigos e uma história pra contar.",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "As três juntinhas olhando o mar.",
+      "sfx": "cartoon giggle",
+      "comedy_beat": "As três juntinhas olhando o mar.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_3_225a8b1e_vid_02_c669ee0a98.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_3_225a8b1e_vid_02_c669ee0a98.mp4",
+      "image": "acc_1_62cb2bc8_img_08_b8081091d7.jpg"
+    },
+    {
+      "scene_id": "sc_28",
+      "act": 3,
+      "speaker": "frida",
+      "emotion_direction": "animada, confiante e muito engriffada, como uma buldogue crianca",
+      "text": "Vem com a gente na próxima aventura, Guga!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "Frida acenando para a câmera com a Guga ao lado.",
+      "sfx": "cartoon fanfare",
+      "comedy_beat": "Frida acenando para a câmera com a Guga ao lado.",
+      "avatar_mode": "frida",
+      "avatar_pip": true,
+      "characters": [
+        "Frida",
+        "Guga"
+      ],
+      "video": "acc_3_225a8b1e_vid_03_1d6eeef45e.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_3_225a8b1e_vid_03_1d6eeef45e.mp4",
+      "image": "acc_4_7a6465b6_img_03_9eca9cf105.jpg"
+    },
+    {
+      "scene_id": "sc_29",
+      "act": 3,
+      "speaker": "narrador",
+      "emotion_direction": "contando a historia como uma brincadeira, muito alegre, sorridente e saltitante",
+      "text": "Se você gostou da Guga e da bagunça, se inscreve no canal e volta pra próxima praia com a gente!",
+      "location": "Praia ensolarada com toalha colorida, areia, ondas e gaivota",
+      "visual_action": "As três acenando na beira do mar com o sol baixando.",
+      "sfx": "cartoon fanfare",
+      "comedy_beat": "As três acenando na beira do mar com o sol baixando.",
+      "avatar_mode": "none",
+      "avatar_pip": false,
+      "characters": [
+        "Frida",
+        "Luna",
+        "Guga"
+      ],
+      "video": "acc_4_7a6465b6_vid_00_b5d828d595.mp4",
+      "video_path": "E:\\videos\\videomaker_v2\\work\\selecao_continuacao\\praia\\videos\\acc_4_7a6465b6_vid_00_b5d828d595.mp4",
+      "image": "acc_1_62cb2bc8_img_08_b8081091d7.jpg"
+    }
+  ]
+}

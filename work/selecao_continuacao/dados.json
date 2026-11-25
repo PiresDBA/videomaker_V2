@@ -12,6 +12,7 @@
     "sha256": "51fa3272bf1107de4a3cd8e91386ce480f89340f503aa553165caa8418dabe92",
     "size": 429190,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "outro_desenho/imagens/acc_1_1cb0b08c_img_00_a8d3f007d5.jpg",
     "thumb": "thumbs/acc_1_1cb0b08c_img_00_a8d3f007d5.jpg"
@@ -29,6 +30,7 @@
     "sha256": "552b74737e0f1d633f3b4c1c3086f72c5e26a4ac3b698c5479f76d02d6062552",
     "size": 181234,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.61,
     "relative": "revisar/imagens/acc_1_228bf3e2_img_00_82124fc81a.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_00_82124fc81a.jpg"
@@ -46,6 +48,7 @@
     "sha256": "2f74a6e9e8f1a8da67f7b26d28813bab76a25f7ba5a5cfd0dab2e6b4926920d9",
     "size": 427217,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_02_024716a683.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_02_024716a683.jpg"
   },
@@ -62,6 +65,7 @@
     "sha256": "9d24e0c343c617b11af7ddcdc7b3bde3481d0d0b349a16bb8118cae13a0716c2",
     "size": 445409,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_03_163850ac35.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_03_163850ac35.jpg"
@@ -79,6 +83,7 @@
     "sha256": "4ec2e5e79ba4a1059b90ac50b4269a5a08c11d30e79e722b7a6119f257d0dcff",
     "size": 437328,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_1_228bf3e2_img_05_df1ab914a4.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_05_df1ab914a4.jpg"
   },
@@ -95,6 +100,7 @@
     "sha256": "920933b27ba32c738c5a8421a052345645556fce89bdcc2bfcc19aa1a629d707",
     "size": 442086,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_08_bf4ca7ca94.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_08_bf4ca7ca94.jpg"
   },
@@ -111,6 +117,7 @@
     "sha256": "8d82c52ff05647c21df5420a3e57078813cb04a0e81316be85cb94df92c8876d",
     "size": 448022,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_1_228bf3e2_img_09_735fe7fff9.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_09_735fe7fff9.jpg"
   },
@@ -127,6 +134,7 @@
     "sha256": "e7118f0566ae432134a13cdf73df4b42e61634e62a07c827e670a1337c034207",
     "size": 437661,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_10_a2ca8ceb5b.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_10_a2ca8ceb5b.jpg"
   },
@@ -143,6 +151,7 @@
     "sha256": "caca9c12538a12dd3a4022c99a99f5d3a914eb9525f4821e731c0cb901b22bc7",
     "size": 457094,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.65,
     "relative": "revisar/imagens/acc_1_228bf3e2_img_11_c2ca448d93.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_11_c2ca448d93.jpg"
@@ -160,6 +169,7 @@
     "sha256": "7e2ff42dc33767497b1f84fc309fa2eb31d362b0c217fc2366d457fb24fc5010",
     "size": 410194,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_15_eb5ea32418.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_15_eb5ea32418.jpg"
   },
@@ -176,6 +186,7 @@
     "sha256": "5cfcb65e92a8dfcd41d8ab14a3c37d35a831427e606ababfbd75aeb840b65cbd",
     "size": 402914,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_1_228bf3e2_img_18_4461dafd13.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_18_4461dafd13.jpg"
   },
@@ -192,6 +203,7 @@
     "sha256": "a52d22b1a8ea54f2747f648a4b8a7fd69d506a0cdd7b4c42a2c456bdf3dd912d",
     "size": 387042,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_19_3a052048f7.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_19_3a052048f7.jpg"
   },
@@ -208,6 +220,7 @@
     "sha256": "90181202646931ec418fa129407fa0f4a1d1aca0be4bbe8dd46aa4b19a4eb525",
     "size": 463377,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_20_c67d69e955.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_20_c67d69e955.jpg"
   },
@@ -224,6 +237,7 @@
     "sha256": "e809d182b79af01d21a60756c47ad7aadd55e2bac7b6a130f4445ad9a88b2d54",
     "size": 432174,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_1_228bf3e2_img_23_e72a039d75.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_23_e72a039d75.jpg"
   },
@@ -240,6 +254,7 @@
     "sha256": "af21a0fd48160683687ff658e16c565f060125ed1c762e3d781cf4a16574c806",
     "size": 368204,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_24_a25c2fb686.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_24_a25c2fb686.jpg"
   },
@@ -256,6 +271,7 @@
     "sha256": "6702f4bc13e00cce5ef8988236e9613cd0387816ba903b9657273e080784151a",
     "size": 457413,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.81,
     "relative": "revisar/imagens/acc_1_228bf3e2_img_25_c2ca448d93.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_25_c2ca448d93.jpg"
@@ -273,6 +289,7 @@
     "sha256": "afd528a9a03bea521bec3e259264c2a6e789a037e4461f42569cb31560417c9a",
     "size": 420990,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_228bf3e2_img_26_845c8cd67b.jpg",
     "thumb": "thumbs/acc_1_228bf3e2_img_26_845c8cd67b.jpg"
   },
@@ -289,6 +306,7 @@
     "sha256": "711d2e9d100429db46ad207f19d6e017204474f371ea33e0fdb98f5dc4f76f17",
     "size": 431110,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_00_a2ca8ceb5b.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_00_a2ca8ceb5b.jpg"
   },
@@ -305,6 +323,7 @@
     "sha256": "9668f506932267b58b55b3431113f0953ee684ded0f6d78c06cdcfe805b5c910",
     "size": 452978,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_01_b4b23884c8.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_01_b4b23884c8.jpg"
   },
@@ -321,6 +340,7 @@
     "sha256": "d2fbb90d32a47a6399ca172cf75b9e996224b47e493ee969b2b2c69a85012122",
     "size": 451056,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_1_2700c141_img_02_c428f17579.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_02_c428f17579.jpg"
   },
@@ -337,6 +357,7 @@
     "sha256": "fafd1bdcd13810f39d003ba186c77b47917a2b61daa55c9df7439d9d617121ff",
     "size": 445874,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_03_52baedc41d.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_03_52baedc41d.jpg"
   },
@@ -353,6 +374,7 @@
     "sha256": "8ec133431a00ae2b80bf085bdb89feb9047006aec80af4ac55c27df59326a7fc",
     "size": 444107,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_04_963df4b8f0.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_04_963df4b8f0.jpg"
   },
@@ -369,6 +391,7 @@
     "sha256": "95fde3e6f2856c95345ec96103b99c70647d4ec330e040771cbb95595873c234",
     "size": 453639,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_05_8a6d45334a.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_05_8a6d45334a.jpg"
   },
@@ -385,6 +408,7 @@
     "sha256": "a9f74eded6dfc089dd73d1a8edba6640017d010a5b4d46ba095ad9c84bb55644",
     "size": 482366,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_06_f1c848cf53.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_06_f1c848cf53.jpg"
   },
@@ -401,6 +425,7 @@
     "sha256": "2c4bd588f4e9093131207adab861130d2cef276b102c79a78481c0c09d62cd37",
     "size": 475249,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_07_99045a9776.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_07_99045a9776.jpg"
   },
@@ -417,6 +442,7 @@
     "sha256": "21adb882e749347ccb0d2c520c6cc0d30520c662dc91e84fffb41127e8252c12",
     "size": 461127,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_08_8d00a1dc79.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_08_8d00a1dc79.jpg"
   },
@@ -433,6 +459,7 @@
     "sha256": "a6a795732d22cc4ce2b7534663d09e8a6df0dcbb35dcc3af2bce13defb5f5244",
     "size": 452917,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_09_731201dab3.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_09_731201dab3.jpg"
   },
@@ -449,6 +476,7 @@
     "sha256": "b321b835a57278e27c772a7f48f3a57a5324e2046a58d128f51c370e2bf70406",
     "size": 454729,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_10_366f047dfc.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_10_366f047dfc.jpg"
   },
@@ -465,6 +493,7 @@
     "sha256": "9e41d228e23b6cf09ab2adbe3aa85c6ab0b7fcaa533f18f3c49936e2d05aae20",
     "size": 452481,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_11_be62c9d04f.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_11_be62c9d04f.jpg"
   },
@@ -481,6 +510,7 @@
     "sha256": "3421fd3832a7dc0e384c1e537f6a34759886ce28d42a949ab805e8928361cf53",
     "size": 500821,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_12_fc2b88e402.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_12_fc2b88e402.jpg"
   },
@@ -497,6 +527,7 @@
     "sha256": "80a23ab400c8e8759ae00d2b36649b85722d9cb67b6f2f02118eb49fdecca600",
     "size": 499845,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_13_422a76afaf.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_13_422a76afaf.jpg"
   },
@@ -513,6 +544,7 @@
     "sha256": "ae519e5cce76a352da81f5fba02472acf10e1dfeb8c783229b663e67756c65b6",
     "size": 497125,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_14_062ac3026b.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_14_062ac3026b.jpg"
   },
@@ -529,6 +561,7 @@
     "sha256": "798eb186faed84e9af97c654ca03d7574742013443fc0cecead995ee2b2086dd",
     "size": 467340,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_15_d6f9215284.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_15_d6f9215284.jpg"
   },
@@ -545,6 +578,7 @@
     "sha256": "79a099a8b6de4198abcebde4721d8b74278148337c78cb87ce4640d41bc37369",
     "size": 445114,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_16_03680ca1cf.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_16_03680ca1cf.jpg"
   },
@@ -561,6 +595,7 @@
     "sha256": "2c97acbc79ba2fd3fa7af36c787bd332179f0edb09108bbfd02f0f659652a712",
     "size": 494647,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_17_7596387b38.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_17_7596387b38.jpg"
   },
@@ -577,6 +612,7 @@
     "sha256": "5190bb8034079d6986ad9fa81188d8d9a494d0a3a2c498cc83c24364cbe7a419",
     "size": 487604,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_18_062ac3026b.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_18_062ac3026b.jpg"
   },
@@ -593,6 +629,7 @@
     "sha256": "8b6e78b52d8bbb92e686c03513ca9fa1c381bbd282d7110f1c89a03a81cbd100",
     "size": 436845,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_1_2700c141_img_19_6fdba0060b.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_19_6fdba0060b.jpg"
   },
@@ -609,6 +646,7 @@
     "sha256": "8175053c3dbeabbf5526314a2336007b6d8786aeee05344739d52f6cbd0a5f71",
     "size": 492558,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_20_43facfdc80.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_20_43facfdc80.jpg"
   },
@@ -625,6 +663,7 @@
     "sha256": "500e886758eb1fd2b122d37dee082ca7dfdc919a85f736bc43473a5f7df0a8be",
     "size": 475895,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_21_168fb147fb.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_21_168fb147fb.jpg"
   },
@@ -641,6 +680,7 @@
     "sha256": "627350ce23af6b5acf3386785303b686c4fe4b5ed969e5b077c33f89c8a0281b",
     "size": 472098,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_22_062ac3026b.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_22_062ac3026b.jpg"
   },
@@ -657,6 +697,7 @@
     "sha256": "d9b1cc5c486b030fd5f16143f21472ef29b565ee386fc35215194991f1d05051",
     "size": 504500,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_23_1ac018c298.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_23_1ac018c298.jpg"
   },
@@ -673,6 +714,7 @@
     "sha256": "38d4771650d9e65bd2dd8c140a468da205cc8c77949def428f5648dda3fbc903",
     "size": 473672,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_24_2a8535071e.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_24_2a8535071e.jpg"
   },
@@ -689,6 +731,7 @@
     "sha256": "3962f8268661d3e7556adbab2e3b8b92b6ca59db91a32c9572bc88b0fe7b87ee",
     "size": 550174,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_25_35b4761499.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_25_35b4761499.jpg"
   },
@@ -705,6 +748,7 @@
     "sha256": "2aea4e9eaebf842e828377038b79011bc8da97e4aaddca61867da91145c1e895",
     "size": 495555,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_2700c141_img_26_f0ef97f648.jpg",
     "thumb": "thumbs/acc_1_2700c141_img_26_f0ef97f648.jpg"
   },
@@ -721,6 +765,7 @@
     "sha256": "8a0ba1da12002a4504c7a038f12c035e48072aee18d6c1bf4056929661f1f47c",
     "size": 425370,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.72,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_00_02cc149f8e.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_00_02cc149f8e.jpg"
@@ -738,6 +783,7 @@
     "sha256": "a9aebc4df4ea8b533a1d2a5732758cb6f133909921615cea900ba3f8e5f3fe4f",
     "size": 194201,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.69,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_01_77af74fc72.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_01_77af74fc72.jpg"
@@ -755,6 +801,7 @@
     "sha256": "55989c83b76feda6b84bccebd4e2096ddaf20a917569d993a05763c4c127b877",
     "size": 375095,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_1_62cb2bc8_img_02_c68b157e89.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_02_c68b157e89.jpg"
   },
@@ -771,6 +818,7 @@
     "sha256": "9a6deeea986d3bfe2ddfbf0b28f5bdc579f2042a984b7dcb107755e7b2438163",
     "size": 352629,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.52,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_03_8c55de232f.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_03_8c55de232f.jpg"
@@ -788,6 +836,7 @@
     "sha256": "0833a160018aa3127633cf027c6609f8248993586a450f3456a3c5aee7d373dd",
     "size": 396009,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.63,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_03_b0724a2fa4.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_03_b0724a2fa4.jpg"
@@ -805,6 +854,7 @@
     "sha256": "e7f5c4228011b559ac99a9e2b2169a542e85155e1d172cbd2f800b9c18fe0255",
     "size": 445279,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.83,
     "relative": "outro_desenho/imagens/acc_1_62cb2bc8_img_04_46eb6a7a30.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_04_46eb6a7a30.jpg"
@@ -822,6 +872,7 @@
     "sha256": "df7bb48ea2be879c25b1b500c202708c6b60c879620ada27e46e563cbde11fc4",
     "size": 363703,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "praia/imagens/acc_1_62cb2bc8_img_04_ef15b9ce26.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_04_ef15b9ce26.jpg"
@@ -839,6 +890,7 @@
     "sha256": "034a505a16c2e495b16110cfadc8e3c41ae81b60390633659263864360954599",
     "size": 508004,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.74,
     "relative": "outro_desenho/imagens/acc_1_62cb2bc8_img_05_0788f61b7e.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_05_0788f61b7e.jpg"
@@ -856,6 +908,7 @@
     "sha256": "9ab52791771c94a9f149c08b2e066a43e57820bc11c54ef8af49019d0ae397f2",
     "size": 369620,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "praia/imagens/acc_1_62cb2bc8_img_06_2766a1f99d.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_06_2766a1f99d.jpg"
@@ -873,6 +926,7 @@
     "sha256": "dc482d8b0691c1f7c86ce5dab1cc8327c0546a9c2a038280ae6665d1aaee8ae1",
     "size": 446269,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.74,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_07_476fb1e34e.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_07_476fb1e34e.jpg"
@@ -890,6 +944,7 @@
     "sha256": "be43f4662afcd68f7c6a5f74d35fd8f38406501cf03682e566af7090063406af",
     "size": 421580,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.77,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_08_712c6a6ba8.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_08_712c6a6ba8.jpg"
@@ -907,6 +962,7 @@
     "sha256": "e39312c6d6483ee26f05e201287246b179a451f973ead2e84133258bdcb88714",
     "size": 376663,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "praia/imagens/acc_1_62cb2bc8_img_08_b8081091d7.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_08_b8081091d7.jpg"
@@ -924,6 +980,7 @@
     "sha256": "f75a002207a924219fe8beb775272b82c931e36496444fcb1c01890a2217162c",
     "size": 396270,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "praia/imagens/acc_1_62cb2bc8_img_10_e17e00030c.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_10_e17e00030c.jpg"
@@ -941,6 +998,7 @@
     "sha256": "940cf8799e98bd0c4b5236d433390f7fe30d4a5de59a38090ac896176b9c8051",
     "size": 213528,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_1_62cb2bc8_img_11_4f1fd60418.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_11_4f1fd60418.jpg"
   },
@@ -957,6 +1015,7 @@
     "sha256": "deceb968c4bcad73a58094095c8e888e942ddee66085410e985cb661bb03b6d9",
     "size": 434575,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.74,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_11_712c6a6ba8.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_11_712c6a6ba8.jpg"
@@ -974,6 +1033,7 @@
     "sha256": "7759faaf4ec80af4af2c5492a15cd37a9c59ec091d7c309ee0e7af0b9548f5d9",
     "size": 338796,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "humano_avatar/imagens/acc_1_62cb2bc8_img_15_4c3a11c3ba.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_15_4c3a11c3ba.jpg"
@@ -991,6 +1051,7 @@
     "sha256": "2249364168dc973dd0e2f5b7583b0e73005fe17a4814d1e3c578137eff8ab87f",
     "size": 479473,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.8,
     "relative": "outro_desenho/imagens/acc_1_62cb2bc8_img_16_193200ae6e.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_16_193200ae6e.jpg"
@@ -1008,6 +1069,7 @@
     "sha256": "0de6cf852e6abb9f9f55468fbee38302b0e240c42193fccc4cfbd9c59b521e49",
     "size": 447054,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.85,
     "relative": "outro_desenho/imagens/acc_1_62cb2bc8_img_17_2582d3bb69.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_17_2582d3bb69.jpg"
@@ -1025,6 +1087,7 @@
     "sha256": "a3548145d422b30840fe87e6a54d02b4603400c529dadda799c989600d40d5ee",
     "size": 489728,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.85,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_19_80150439b1.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_19_80150439b1.jpg"
@@ -1042,6 +1105,7 @@
     "sha256": "ba72b56c475e54df85fc2779176beed41d3e155abb6d2a6404f23db391fc3d65",
     "size": 494781,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.77,
     "relative": "outro_desenho/imagens/acc_1_62cb2bc8_img_20_af191a5a56.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_20_af191a5a56.jpg"
@@ -1059,6 +1123,7 @@
     "sha256": "6b7321d216613f558c8d0244e3f65d29954f48c95e75eb9e40edecb14aa1e3f7",
     "size": 417461,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.7,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_22_7496e7b4f3.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_22_7496e7b4f3.jpg"
@@ -1076,6 +1141,7 @@
     "sha256": "0c9f12f91a617a4ebe435e88846f07f244e4615bd56928efdeb1a3d2073e2d33",
     "size": 438502,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.69,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_23_44dc3107aa.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_23_44dc3107aa.jpg"
@@ -1093,6 +1159,7 @@
     "sha256": "046cbfbf9a927f1fc3c92ec9e737c881aa897004684af0ff5c50ec5ac83fdfa5",
     "size": 436235,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.7,
     "relative": "revisar/imagens/acc_1_62cb2bc8_img_24_4c3faf21e9.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_24_4c3faf21e9.jpg"
@@ -1110,6 +1177,7 @@
     "sha256": "ac8596206095059bdc1a9f5ada992145998638898f739e7587694443d9affa67",
     "size": 466761,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.73,
     "relative": "outro_desenho/imagens/acc_1_62cb2bc8_img_25_45079b1b22.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_25_45079b1b22.jpg"
@@ -1127,6 +1195,7 @@
     "sha256": "311a7c87aab09bfb523619a4de4e008c780b54b95fb279b304332be2975333a0",
     "size": 494754,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.77,
     "relative": "outro_desenho/imagens/acc_1_62cb2bc8_img_26_af191a5a56.jpg",
     "thumb": "thumbs/acc_1_62cb2bc8_img_26_af191a5a56.jpg"
@@ -1144,6 +1213,7 @@
     "sha256": "2119e6b022f90caa3d0a80583da3d1fd799ab632d7f5691c0ba295c1b6919088",
     "size": 369241,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_7a531b88_img_00_f41c3d4352.jpg",
     "thumb": "thumbs/acc_1_7a531b88_img_00_f41c3d4352.jpg"
   },
@@ -1160,6 +1230,7 @@
     "sha256": "06e05e81e80db95ef810c309d97d1de8d6d5ce5ad295ed923abbb69e6e357858",
     "size": 370661,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "revisar/imagens/acc_1_7a531b88_img_03_df8230c15a.jpg",
     "thumb": "thumbs/acc_1_7a531b88_img_03_df8230c15a.jpg"
@@ -1177,6 +1248,7 @@
     "sha256": "d6f58c3bbbe71313b4e36fa694ac83bad595421aceda0b778084c8548c47a1af",
     "size": 377204,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_7a531b88_img_04_f970168a68.jpg",
     "thumb": "thumbs/acc_1_7a531b88_img_04_f970168a68.jpg"
   },
@@ -1193,6 +1265,7 @@
     "sha256": "75d51b05ead0ac41bc09e884dec05f53f56aa1c90bebdd5786f4cd50358950d9",
     "size": 354998,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_7a531b88_img_08_f41c3d4352.jpg",
     "thumb": "thumbs/acc_1_7a531b88_img_08_f41c3d4352.jpg"
   },
@@ -1209,6 +1282,7 @@
     "sha256": "7ce4bc97ad490d7261e7a0b6406787981ee12da16162d4b48e707043b1c6dd9a",
     "size": 379355,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_1_7a531b88_img_11_035595ad6d.jpg",
     "thumb": "thumbs/acc_1_7a531b88_img_11_035595ad6d.jpg"
   },
@@ -1225,6 +1299,7 @@
     "sha256": "ceecab00ed4f330756a5053db3699a6b3fac788dc703cd87505a70fe93db8c62",
     "size": 431342,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_7a531b88_img_13_f41c3d4352.jpg",
     "thumb": "thumbs/acc_1_7a531b88_img_13_f41c3d4352.jpg"
   },
@@ -1241,6 +1316,7 @@
     "sha256": "5872f4e0afe951672cd7d6ace199e488db55dd663f8543f5f7ec188ac3f5d541",
     "size": 435294,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_7a531b88_img_14_41e0efeb83.jpg",
     "thumb": "thumbs/acc_1_7a531b88_img_14_41e0efeb83.jpg"
   },
@@ -1257,6 +1333,7 @@
     "sha256": "aa2f3d1d20669fc5b6eb07ebdce0d7181c5d3d96211ebea1aff5e69904feebd5",
     "size": 438463,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_1_7a531b88_img_15_41e0efeb83.jpg",
     "thumb": "thumbs/acc_1_7a531b88_img_15_41e0efeb83.jpg"
   },
@@ -1273,6 +1350,7 @@
     "sha256": "3ed4d2eb1a9360877c7440369ded762a45397a2af0edbaa5555595974622023b",
     "size": 165679,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_2_121c931c_img_00_44661c5ded.jpg",
     "thumb": "thumbs/acc_2_121c931c_img_00_44661c5ded.jpg"
   },
@@ -1289,6 +1367,7 @@
     "sha256": "6e559b4a17f106422a8bc5b2649a305adec03657e907c932903623416ce27369",
     "size": 329862,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.42,
     "relative": "revisar/imagens/acc_2_121c931c_img_01_a7f32de508.jpg",
     "thumb": "thumbs/acc_2_121c931c_img_01_a7f32de508.jpg"
@@ -1306,6 +1385,7 @@
     "sha256": "f4e3370643a70988d22aca19ea569b145448432568f0b7f1bcf6bf58584ffe24",
     "size": 236343,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_2_121c931c_img_02_6a844d5661.jpg",
     "thumb": "thumbs/acc_2_121c931c_img_02_6a844d5661.jpg"
   },
@@ -1322,6 +1402,7 @@
     "sha256": "98849f9b7c6995851bba6f0251de1dc7c8fbd126246c50067c0cb63982646934",
     "size": 252513,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_2_121c931c_img_03_80b2789d05.jpg",
     "thumb": "thumbs/acc_2_121c931c_img_03_80b2789d05.jpg"
   },
@@ -1338,6 +1419,7 @@
     "sha256": "aff4d66e8db13236f4679adbb411a18842d0b942a2f5bd2615c1b69557210e12",
     "size": 271933,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_2_121c931c_img_04_44661c5ded.jpg",
     "thumb": "thumbs/acc_2_121c931c_img_04_44661c5ded.jpg"
   },
@@ -1354,6 +1436,7 @@
     "sha256": "d2485f69389383a918d005b02b7ee06ec201feb0264f1c3e57c2b7c7d359b54c",
     "size": 447607,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_2_1f7e3f9b_img_00_7c33773c6c.jpg",
     "thumb": "thumbs/acc_2_1f7e3f9b_img_00_7c33773c6c.jpg"
   },
@@ -1370,6 +1453,7 @@
     "sha256": "7d3ee97106f27cada2985b6b7ab77bc48e88f335d4aba4a961f58f3fc199c702",
     "size": 127180,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_2_1f7e3f9b_img_01_8b447dc9cc.jpg",
     "thumb": "thumbs/acc_2_1f7e3f9b_img_01_8b447dc9cc.jpg"
   },
@@ -1386,6 +1470,7 @@
     "sha256": "9ce5b9a3401e056f941555a1e10b415d7003caa7ca6eb3ebe351e35ecec7c09d",
     "size": 215957,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_1f7e3f9b_img_02_4bf83fedf6.jpg",
     "thumb": "thumbs/acc_2_1f7e3f9b_img_02_4bf83fedf6.jpg"
   },
@@ -1402,6 +1487,7 @@
     "sha256": "8508d767bfdc3d6e3257b430558c795e12157b954b9f1ba5d65ab525208e06fc",
     "size": 210856,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_2_1f7e3f9b_img_03_9b639bd663.jpg",
     "thumb": "thumbs/acc_2_1f7e3f9b_img_03_9b639bd663.jpg"
   },
@@ -1418,6 +1504,7 @@
     "sha256": "979f56b982833224b96ac38be4308990d5a9bc4071c4f213b087424883c92652",
     "size": 474296,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_1f7e3f9b_img_04_baaf10f1b4.jpg",
     "thumb": "thumbs/acc_2_1f7e3f9b_img_04_baaf10f1b4.jpg"
   },
@@ -1434,6 +1521,7 @@
     "sha256": "f05e0767142217dbfbe860ffbd2117c900728e0c26540e07bc9aadf686024804",
     "size": 465487,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_1f7e3f9b_img_05_f91bdf5ab6.jpg",
     "thumb": "thumbs/acc_2_1f7e3f9b_img_05_f91bdf5ab6.jpg"
   },
@@ -1450,6 +1538,7 @@
     "sha256": "df1e8baed2816101da83eafaa3c13886c87c2ed1e49e46a56caf1be36860e8fd",
     "size": 534834,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_00_214ce7c40a.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_00_214ce7c40a.jpg"
   },
@@ -1466,6 +1555,7 @@
     "sha256": "64e8f49b6f1fb59656c091ae684f5b7e39cc7a69d8bdfbe90ad6d620b8fcb5f5",
     "size": 151434,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_01_21cf974094.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_01_21cf974094.jpg"
   },
@@ -1482,6 +1572,7 @@
     "sha256": "6020a6798f2bc6932f5f8b7d944cf5dce43e1486cb854374b250b285f5b8b522",
     "size": 513473,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_02_a12fd0318a.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_02_a12fd0318a.jpg"
   },
@@ -1498,6 +1589,7 @@
     "sha256": "175d83c6f7aca518efb90129f92ffd0bd35de41b2090a49f65a25c9330c39513",
     "size": 172740,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_03_5d5c43dd0a.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_03_5d5c43dd0a.jpg"
   },
@@ -1514,6 +1606,7 @@
     "sha256": "9f8e06515af57bf8979756d3cd0dcf52987266edf4f67fe26f100ef353d542db",
     "size": 463317,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_04_f3210330f2.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_04_f3210330f2.jpg"
   },
@@ -1530,6 +1623,7 @@
     "sha256": "1d97aef7187840eb110bb2a8eb92efae4c2cfba7fc87f0339b39b69ce5466bb7",
     "size": 581595,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_05_f3210330f2.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_05_f3210330f2.jpg"
   },
@@ -1546,6 +1640,7 @@
     "sha256": "5c563ecb50ed73e39843b9fb440f342095d7954837f27009c6f0c475f0537234",
     "size": 486481,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_07_5febe56657.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_07_5febe56657.jpg"
   },
@@ -1562,6 +1657,7 @@
     "sha256": "c091ed14562a7243f9c42ecd2bb6f2bca76c4e4c43bcbc307ecbe04dd92a6830",
     "size": 538748,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_08_f612e8c046.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_08_f612e8c046.jpg"
   },
@@ -1578,6 +1674,7 @@
     "sha256": "3a73a42d72ae068269f5aac0b3b05b7dea7613036450ac63ba9ac5668667e7e5",
     "size": 479249,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_09_a4b361d482.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_09_a4b361d482.jpg"
   },
@@ -1594,6 +1691,7 @@
     "sha256": "b9eb409f6e5febfaae8587925e879b0364821237abfe0d41d2eba99a08845137",
     "size": 486199,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_10_b18427ffcb.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_10_b18427ffcb.jpg"
   },
@@ -1610,6 +1708,7 @@
     "sha256": "32dba1c8b970082225def83b475c5bb3e8cbb55dc80186f6d493d93c51a02196",
     "size": 489821,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_11_888df74683.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_11_888df74683.jpg"
   },
@@ -1626,6 +1725,7 @@
     "sha256": "e966d49de82045186b6dc6ec5bb6eaa67493d29b3498418d1ace7829a76fbad5",
     "size": 553378,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_a3ea587a_img_12_813c8f5e86.jpg",
     "thumb": "thumbs/acc_2_a3ea587a_img_12_813c8f5e86.jpg"
   },
@@ -1642,6 +1742,7 @@
     "sha256": "2600877039b5e6ebee81de135fcffa29c9cd352ee0ed52a90d449d78a448c38d",
     "size": 244713,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_2_b7b2fb94_img_00_9fb63f4988.jpg",
     "thumb": "thumbs/acc_2_b7b2fb94_img_00_9fb63f4988.jpg"
   },
@@ -1658,6 +1759,7 @@
     "sha256": "5b8c24e29d57ab8bb3eaf1260e61ccc60c37e932c95351a3ee6cae5e66b12d33",
     "size": 478870,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_2_b7b2fb94_img_01_310e37e873.jpg",
     "thumb": "thumbs/acc_2_b7b2fb94_img_01_310e37e873.jpg"
   },
@@ -1674,6 +1776,7 @@
     "sha256": "3368af1cb4962d8822bcfe27ecb500a043414e1bde3dff72dc5bb4ffc47b80f7",
     "size": 239973,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_2_b7b2fb94_img_02_8b752a2483.jpg",
     "thumb": "thumbs/acc_2_b7b2fb94_img_02_8b752a2483.jpg"
   },
@@ -1690,6 +1793,7 @@
     "sha256": "5d4f4633913df89753e160f040fd0f85e910f6737fb09488b4731a29e2e494ec",
     "size": 331682,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_2_b7b2fb94_img_03_310e37e873.jpg",
     "thumb": "thumbs/acc_2_b7b2fb94_img_03_310e37e873.jpg"
   },
@@ -1706,6 +1810,7 @@
     "sha256": "adfe3b67bd6301a4c1a0c2b3a8d0781a262c7739a2d9e84f99bed02bc482fad7",
     "size": 376941,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_2_b7b2fb94_img_04_c9add38d6b.jpg",
     "thumb": "thumbs/acc_2_b7b2fb94_img_04_c9add38d6b.jpg"
   },
@@ -1722,6 +1827,7 @@
     "sha256": "33370bffa76ac6ab31b8f0bff684e3532a7e2dc94747a0427d810a31f098fad5",
     "size": 346291,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_b7b2fb94_img_05_abe9260ecb.jpg",
     "thumb": "thumbs/acc_2_b7b2fb94_img_05_abe9260ecb.jpg"
   },
@@ -1738,6 +1844,7 @@
     "sha256": "1fc299ebe76ae47508bf2723ecda2e9a8f6e1f55eea09ad70650f6107e5457a2",
     "size": 388255,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_b7b2fb94_img_06_11835a8f15.jpg",
     "thumb": "thumbs/acc_2_b7b2fb94_img_06_11835a8f15.jpg"
   },
@@ -1754,6 +1861,7 @@
     "sha256": "e6765a39ed67298ebcacb4ac2234b11133d51a637192e85f5710d22359312748",
     "size": 336743,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_2_b7b2fb94_img_07_8826d6ce31.jpg",
     "thumb": "thumbs/acc_2_b7b2fb94_img_07_8826d6ce31.jpg"
   },
@@ -1770,6 +1878,7 @@
     "sha256": "67ef2f5e5646d9129ad86f7026041a51c714f11a1a523bb476c25f1b91886f97",
     "size": 458370,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_2_d43a0933_img_00_486fba652a.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_00_486fba652a.jpg"
   },
@@ -1786,6 +1895,7 @@
     "sha256": "1ab0e34d507f91392d31c57e69f3ac4530368bd1e4d1c8efcbfc0ea384789d77",
     "size": 393679,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.63,
     "relative": "revisar/imagens/acc_2_d43a0933_img_00_4f40ea16de.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_00_4f40ea16de.jpg"
@@ -1803,6 +1913,7 @@
     "sha256": "bfc19d2c505ea8a0415ac54d240219fb24f652061db95915b2191dcfcf47c2fa",
     "size": 403383,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.63,
     "relative": "revisar/imagens/acc_2_d43a0933_img_01_1d6eeef45e.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_01_1d6eeef45e.jpg"
@@ -1820,6 +1931,7 @@
     "sha256": "2a8fc31023fe54bfcdf054120ade062e7f2ec780bd44078e2531a9db0407add9",
     "size": 376903,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_2_d43a0933_img_01_686f39a0c9.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_01_686f39a0c9.jpg"
   },
@@ -1836,6 +1948,7 @@
     "sha256": "474f4d09515ff3327661a3c3a097503285264fb9b7091fd616f8d89e2da06683",
     "size": 331270,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_2_d43a0933_img_02_3fd2cd0855.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_02_3fd2cd0855.jpg"
   },
@@ -1852,6 +1965,7 @@
     "sha256": "82dbe9b3400983cdccb7b54481ce16771fe29b7af82342c035fa47c9342b072d",
     "size": 176209,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.66,
     "relative": "revisar/imagens/acc_2_d43a0933_img_02_7a7567a672.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_02_7a7567a672.jpg"
@@ -1869,6 +1983,7 @@
     "sha256": "162c8d58f6ec2c38b7a88a1385cc15cb32f82a8a36274ad225a9110c68f87def",
     "size": 165691,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.78,
     "relative": "outro_desenho/imagens/acc_2_d43a0933_img_03_528813c820.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_03_528813c820.jpg"
@@ -1886,6 +2001,7 @@
     "sha256": "bc0c1dde38284ea64e59e4f6b809dcb8dac1410164ab80a19cfbe54f28b08650",
     "size": 423009,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_2_d43a0933_img_03_726a23656d.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_03_726a23656d.jpg"
   },
@@ -1902,6 +2018,7 @@
     "sha256": "cc04d9fa9784be5e5699c483abac7cb4dac9183861669b58c1137829eb48400e",
     "size": 405051,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_2_d43a0933_img_04_800d311569.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_04_800d311569.jpg"
   },
@@ -1918,6 +2035,7 @@
     "sha256": "630a211e9710dd539594ebc9e8a5ad09a923fe649202d54c630d203aa247331c",
     "size": 135087,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.82,
     "relative": "praia/imagens/acc_2_d43a0933_img_04_c52223ccaf.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_04_c52223ccaf.jpg"
@@ -1935,6 +2053,7 @@
     "sha256": "5d852a3bde9ba80c29a8459e35bbf18fd06ae512c9aff8cf6226d8390f42d340",
     "size": 389970,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_2_d43a0933_img_05_3540cc6ece.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_05_3540cc6ece.jpg"
   },
@@ -1951,6 +2070,7 @@
     "sha256": "b06ef5889a003cf3c7ac3c16b8fc62eb43b3cd9ab9680eb71e5c0f39c0d3ea33",
     "size": 164511,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.48,
     "relative": "revisar/imagens/acc_2_d43a0933_img_05_dd6c3a30ef.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_05_dd6c3a30ef.jpg"
@@ -1968,6 +2088,7 @@
     "sha256": "72c4cfe65b394f694b287ffeabc95ab2fea1f3c0cb059837e126beab5a021a51",
     "size": 414519,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_2_d43a0933_img_06_4394238238.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_06_4394238238.jpg"
   },
@@ -1984,6 +2105,7 @@
     "sha256": "07c7d976c67c456ab2d2d269d55062a4919ba979fe09923ba9d4418c00d8d8d2",
     "size": 396491,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_2_d43a0933_img_07_4394238238.jpg",
     "thumb": "thumbs/acc_2_d43a0933_img_07_4394238238.jpg"
   },
@@ -2000,6 +2122,7 @@
     "sha256": "b7ee07be847b30cfb99ec0e6251b87482dadf7d1565cd1f0ab776bfb3ad45927",
     "size": 327350,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_3_225a8b1e_img_00_629e65ae31.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_00_629e65ae31.jpg"
   },
@@ -2016,6 +2139,7 @@
     "sha256": "01fbac41098165412e058cfaafdd964053fe419579b2717e8f6ad1fcaa24aeac",
     "size": 344046,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.92,
     "relative": "praia/imagens/acc_3_225a8b1e_img_01_a8d3f007d5.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_01_a8d3f007d5.jpg"
@@ -2033,6 +2157,7 @@
     "sha256": "aa82fc6b0ac382111708e6c41d564072836f8bd6dd088bcb5524d2ed05c59838",
     "size": 411709,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.75,
     "relative": "praia/imagens/acc_3_225a8b1e_img_02_44dc3107aa.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_02_44dc3107aa.jpg"
@@ -2050,6 +2175,7 @@
     "sha256": "f5389c08f1cf9fcfa5ac1236d65a9ae14650a1d88e467ae5e280502adf57299d",
     "size": 397256,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.78,
     "relative": "praia/imagens/acc_3_225a8b1e_img_03_cd58030a26.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_03_cd58030a26.jpg"
@@ -2067,6 +2193,7 @@
     "sha256": "af6987b9d2677bc566c15ac77aa8ce60194101c792eeaaca3b071dd906e3eb81",
     "size": 157913,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.71,
     "relative": "outro_desenho/imagens/acc_3_225a8b1e_img_04_4d7b0efbe6.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_04_4d7b0efbe6.jpg"
@@ -2084,6 +2211,7 @@
     "sha256": "db0fdc91fa33fb86fc1a99dab61b97fb02f3d7acaf0b08e5f0ac7480aeee1f53",
     "size": 376035,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.73,
     "relative": "revisar/imagens/acc_3_225a8b1e_img_05_02867452bc.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_05_02867452bc.jpg"
@@ -2101,6 +2229,7 @@
     "sha256": "b53ac1e0c6d02c08def08e22850672d8f6d5c1865868b054bdb357dd684e73da",
     "size": 333868,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.61,
     "relative": "revisar/imagens/acc_3_225a8b1e_img_07_2554a95ffc.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_07_2554a95ffc.jpg"
@@ -2118,6 +2247,7 @@
     "sha256": "0d09a925c474b2fcb3f879a58178188d6fd966857a851a7ab600ff46f3f25236",
     "size": 342143,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.8,
     "relative": "praia/imagens/acc_3_225a8b1e_img_08_2282197753.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_08_2282197753.jpg"
@@ -2135,6 +2265,7 @@
     "sha256": "6404125f0427e70b48dbca1911ecd27c83a3038aeb8cf1717588edc166b5b97e",
     "size": 144139,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.63,
     "relative": "revisar/imagens/acc_3_225a8b1e_img_09_e07f473af9.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_09_e07f473af9.jpg"
@@ -2152,6 +2283,7 @@
     "sha256": "e2d35b872c96ceedb6dd47058fde69b564b341b5d24ae73a300db15649ac1dc5",
     "size": 356366,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_3_225a8b1e_img_10_28bfcca030.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_10_28bfcca030.jpg"
   },
@@ -2168,6 +2300,7 @@
     "sha256": "aa25f203331b65c5058b45b1e434bb189c4e9bb005a451b1bbdc02b27a635b33",
     "size": 377001,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "praia/imagens/acc_3_225a8b1e_img_11_084081d880.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_11_084081d880.jpg"
@@ -2185,6 +2318,7 @@
     "sha256": "547cc4cbc47304315e7610cd4c026ede8eedb46aeae34fd35046fcf047b01b45",
     "size": 371207,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_3_225a8b1e_img_12_8a09c5812b.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_12_8a09c5812b.jpg"
   },
@@ -2201,6 +2335,7 @@
     "sha256": "b8b8b3503269b7f502ab12c5e98614257c2e4d62e7b9aed9da6314f9fe2cbd3d",
     "size": 426407,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.71,
     "relative": "outro_desenho/imagens/acc_3_225a8b1e_img_14_d821edb45d.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_14_d821edb45d.jpg"
@@ -2218,6 +2353,7 @@
     "sha256": "62f0b9d42e0b51687a22f935304e5ccf0805643ad98ed6c4598d68e5809f7d4f",
     "size": 436623,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_3_225a8b1e_img_15_508c90aa93.jpg",
     "thumb": "thumbs/acc_3_225a8b1e_img_15_508c90aa93.jpg"
   },
@@ -2234,6 +2370,7 @@
     "sha256": "4999864dbe3f5f0e9c3ffcd98540c1a56f09264dffa58d3e6e923c9e8935a23a",
     "size": 441874,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.74,
     "relative": "outro_desenho/imagens/acc_3_6555fb07_img_00_4cc8193d53.jpg",
     "thumb": "thumbs/acc_3_6555fb07_img_00_4cc8193d53.jpg"
@@ -2251,6 +2388,7 @@
     "sha256": "4533203cf5472cdc4bd444123bc30577281b740767de6f3fe4093ff4f076379d",
     "size": 277509,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.67,
     "relative": "revisar/imagens/acc_4_7a6465b6_img_00_565de4909e.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_00_565de4909e.jpg"
@@ -2268,6 +2406,7 @@
     "sha256": "c10aaa7f506fc620a4d7f59c9a36a352d908dd19add90ad5b5df9898633aced8",
     "size": 455954,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "revisar/imagens/acc_4_7a6465b6_img_00_af191a5a56.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_00_af191a5a56.jpg"
@@ -2285,6 +2424,7 @@
     "sha256": "577c556647c9d689f9867e8f3b1ae92555c859e6f7532dc2fc5065aa9850c43b",
     "size": 376820,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_4_7a6465b6_img_01_1142ab6e92.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_01_1142ab6e92.jpg"
   },
@@ -2301,6 +2441,7 @@
     "sha256": "0edebccd90b08c9bc6ed896109d4a5ba645ed63a72082fb811535360c0bda8d4",
     "size": 311373,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.75,
     "relative": "praia/imagens/acc_4_7a6465b6_img_01_163850ac35.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_01_163850ac35.jpg"
@@ -2318,6 +2459,7 @@
     "sha256": "8b062a7d40b4de23fb90ce863366bdd7e83fc7fa98bcd71516bb938fbf6a6b29",
     "size": 354886,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.75,
     "relative": "praia/imagens/acc_4_7a6465b6_img_02_565de4909e.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_02_565de4909e.jpg"
@@ -2335,6 +2477,7 @@
     "sha256": "b78d2d72afad2077da858af8406cf47ec5eb5a016031cfb40949d073381665f2",
     "size": 376055,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_4_7a6465b6_img_02_8620de26ca.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_02_8620de26ca.jpg"
   },
@@ -2351,6 +2494,7 @@
     "sha256": "fa87312adecf118d4b07249fcd37197e1b41882acdad72755e7f9f4efa40f1e2",
     "size": 368095,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_4_7a6465b6_img_03_9eca9cf105.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_03_9eca9cf105.jpg"
   },
@@ -2367,6 +2511,7 @@
     "sha256": "5da3b445c52dcd619de577df1894e0ba2a57e33ac976a94da4a5c8763a53ed6f",
     "size": 406487,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_4_7a6465b6_img_04_191340a278.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_04_191340a278.jpg"
   },
@@ -2383,6 +2528,7 @@
     "sha256": "695f745491bbd349cf17d13911a06573a7d40c3938e2b3cf6317a53137e065c1",
     "size": 353671,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.92,
     "relative": "praia/imagens/acc_4_7a6465b6_img_04_28c2a8af4a.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_04_28c2a8af4a.jpg"
@@ -2400,6 +2546,7 @@
     "sha256": "53e6cc292006a929c423bc3933e6c9a81b1a3a6ee465f0d4aedec440c7928781",
     "size": 398881,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.77,
     "relative": "revisar/imagens/acc_4_7a6465b6_img_05_16ba461d82.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_05_16ba461d82.jpg"
@@ -2417,6 +2564,7 @@
     "sha256": "8c5c8ddbb731b1f81dc6c4a87aa5d1b72d843c97386ef070952603a79d90c5dd",
     "size": 354918,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_4_7a6465b6_img_05_8f687ad947.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_05_8f687ad947.jpg"
   },
@@ -2433,6 +2581,7 @@
     "sha256": "0561b22d62b012b532d014a19b09cae4de2e4ead3e92b76db5c1ff7a1eec6a4e",
     "size": 397621,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.77,
     "relative": "revisar/imagens/acc_4_7a6465b6_img_06_476fb1e34e.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_06_476fb1e34e.jpg"
@@ -2450,6 +2599,7 @@
     "sha256": "3ce56cc0d356650e09a192ae80e8992862375e08633f4fa10cead8622737ef87",
     "size": 131028,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "praia/imagens/acc_4_7a6465b6_img_06_640b00b8ae.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_06_640b00b8ae.jpg"
   },
@@ -2466,6 +2616,7 @@
     "sha256": "2af8845711fabad58038c02e557d891d4753abc89c759164ad01ef32e0fb1247",
     "size": 225588,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_4_7a6465b6_img_07_72f0b2a89f.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_07_72f0b2a89f.jpg"
   },
@@ -2482,6 +2633,7 @@
     "sha256": "9350ac310341fd4fc251f3ea68dd4780a99388b1319c4b43f4eacf6733509ed3",
     "size": 408636,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.76,
     "relative": "revisar/imagens/acc_4_7a6465b6_img_07_cd91ded889.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_07_cd91ded889.jpg"
@@ -2499,6 +2651,7 @@
     "sha256": "c36cb1004bc7a2c00e71c3cf53b82dad465706a7557fe636688415218c8e92c0",
     "size": 335498,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.73,
     "relative": "revisar/imagens/acc_4_7a6465b6_img_08_8a39ac1ce0.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_08_8a39ac1ce0.jpg"
@@ -2516,6 +2669,7 @@
     "sha256": "de2fffb321034ef3807470a738d06597ef8b0fb646e3a9fc8243b5bcbf69ff63",
     "size": 365086,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.73,
     "relative": "revisar/imagens/acc_4_7a6465b6_img_10_80150439b1.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_10_80150439b1.jpg"
@@ -2533,6 +2687,7 @@
     "sha256": "50252aa92721984d0907d4a2047d84b06c1e863defaa1d208d4b8363f88d4121",
     "size": 374094,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.73,
     "relative": "revisar/imagens/acc_4_7a6465b6_img_11_f9571edecf.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_11_f9571edecf.jpg"
@@ -2550,6 +2705,7 @@
     "sha256": "fb6f3df4df9816a2a407c9828ac55f8e51a9b93deca0981691495a49066938d3",
     "size": 412900,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.74,
     "relative": "praia/imagens/acc_4_7a6465b6_img_14_c5859a0710.jpg",
     "thumb": "thumbs/acc_4_7a6465b6_img_14_c5859a0710.jpg"
@@ -2567,6 +2723,7 @@
     "sha256": "9bcd4f6bace50bef741a39deaa041fc0bb72a64339f28d02ad6f948f52786ad6",
     "size": 519063,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "outro_desenho/imagens/acc_5_0a1ee729_img_02_cc5cd107b0.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_02_cc5cd107b0.jpg"
@@ -2584,6 +2741,7 @@
     "sha256": "61eead53801779fce77cebd0cf8fc037dbdfd052423c296d46a0e1492206dc12",
     "size": 524695,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_5_0a1ee729_img_03_7ee9418b72.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_03_7ee9418b72.jpg"
   },
@@ -2600,6 +2758,7 @@
     "sha256": "432a7822371fb4a3f626aec5d2189f070b42870c65cdc1936dd026583ad9aab9",
     "size": 498167,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_5_0a1ee729_img_04_4a66c0c044.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_04_4a66c0c044.jpg"
   },
@@ -2616,6 +2775,7 @@
     "sha256": "2e2ae720c2c7cd0c694896eca3b6e9061e3bc15637941a592a696cb940b95b33",
     "size": 239599,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_0a1ee729_img_05_852fa60302.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_05_852fa60302.jpg"
   },
@@ -2632,6 +2792,7 @@
     "sha256": "854b864f1170e65ca5b2879755b92dc93bc04edcf9173c929f6b9da3ede0b675",
     "size": 217677,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.67,
     "relative": "revisar/imagens/acc_5_0a1ee729_img_06_44ba4b03bb.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_06_44ba4b03bb.jpg"
@@ -2649,6 +2810,7 @@
     "sha256": "785b1a08f15f280e3f74a2497d3e25684352541c3254cf3f570cbb0be7177eb3",
     "size": 353308,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_5_0a1ee729_img_07_ed198ddcc8.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_07_ed198ddcc8.jpg"
   },
@@ -2665,6 +2827,7 @@
     "sha256": "fec3b4a910a851dd215dedcfba5e379b3d7a71a4a750097398b7d34e04f55dce",
     "size": 353910,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 1.0,
     "relative": "outro_desenho/imagens/acc_5_0a1ee729_img_09_2554a95ffc.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_09_2554a95ffc.jpg"
@@ -2682,6 +2845,7 @@
     "sha256": "49fd91a5ccd3277d2cc78caa0ad13780af6e5f76f7670698232e30ff7368a8a1",
     "size": 355342,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_5_0a1ee729_img_10_cc33675d91.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_10_cc33675d91.jpg"
   },
@@ -2698,6 +2862,7 @@
     "sha256": "c280de80e9e41bcfcc7c0154f90c4daccef1722bf0eb3fc3859167ac0cc9a6ce",
     "size": 359930,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_5_0a1ee729_img_13_08c07e8072.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_13_08c07e8072.jpg"
   },
@@ -2714,6 +2879,7 @@
     "sha256": "69b1431adebfa3eac48bb458cb23cf2f4b977cb20c90ffb04c6a2c9e4e2fe499",
     "size": 477549,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.75,
     "relative": "outro_desenho/imagens/acc_5_0a1ee729_img_15_c011bcf9fa.jpg",
     "thumb": "thumbs/acc_5_0a1ee729_img_15_c011bcf9fa.jpg"
@@ -2731,6 +2897,7 @@
     "sha256": "3eb449b3872b62013d5ea1cffbbb90bcad4beb1bd20eaa420983600406092ad3",
     "size": 240289,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_00_0f1d074095.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_00_0f1d074095.jpg"
   },
@@ -2747,6 +2914,7 @@
     "sha256": "c0ecfbbac546bf1cf7535730ea6bcd09cd7ba52ebd89e88b383c49b5515c2f1f",
     "size": 364733,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_02_6655ab80d2.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_02_6655ab80d2.jpg"
   },
@@ -2763,6 +2931,7 @@
     "sha256": "a0af14aa363c8d22ae542b988227c638b03f89a6e6fd58a89940475cdaad1fd2",
     "size": 317899,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_03_7650f4ca29.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_03_7650f4ca29.jpg"
   },
@@ -2779,6 +2948,7 @@
     "sha256": "f5b1cfa964c30572293a6ccbb67f0a9053b3944f2519448deae5b58ffc5f1b7c",
     "size": 392044,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_04_983682cd68.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_04_983682cd68.jpg"
   },
@@ -2795,6 +2965,7 @@
     "sha256": "0c870ecb22de2759b727486b06130de6617aa43975e29e7966177deb2a7addb0",
     "size": 407885,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_05_4f2691aa9c.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_05_4f2691aa9c.jpg"
   },
@@ -2811,6 +2982,7 @@
     "sha256": "2d9594ba234620dc87b0c5f2ffb5d7a9d9ef108ca6c4540e014ae1e86ba0a80b",
     "size": 244623,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.73,
     "relative": "revisar/imagens/acc_5_251aff5a_img_06_c2ca448d93.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_06_c2ca448d93.jpg"
@@ -2828,6 +3000,7 @@
     "sha256": "3a4352b0235a4e422b367d2a944713f8e7d9b1e1a270b83f66f0a2029ff06801",
     "size": 300748,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_08_6741949d68.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_08_6741949d68.jpg"
   },
@@ -2844,6 +3017,7 @@
     "sha256": "3ec7d8fcc0b450593e45b11d244e20ce05df88c43abff4f10166032e5866a8a6",
     "size": 279452,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_09_9cd51d65ef.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_09_9cd51d65ef.jpg"
   },
@@ -2860,6 +3034,7 @@
     "sha256": "e702132df3f122911174da6fc3d9b01794e8de8523eaea78f657d21ab7640a5e",
     "size": 214531,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.74,
     "relative": "revisar/imagens/acc_5_251aff5a_img_10_c2ca448d93.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_10_c2ca448d93.jpg"
@@ -2877,6 +3052,7 @@
     "sha256": "9296b325d0c77c596feae08fe878096faaa53f3c9fa4c1c1c0d7a2e40d693722",
     "size": 273409,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_11_6741949d68.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_11_6741949d68.jpg"
   },
@@ -2893,6 +3069,7 @@
     "sha256": "da7bee0ec24375dc4f92f8e6c17e7868221b61f2824c484a4cf4cbfe30a8fb5e",
     "size": 271277,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_251aff5a_img_12_6741949d68.jpg",
     "thumb": "thumbs/acc_5_251aff5a_img_12_6741949d68.jpg"
   },
@@ -2909,6 +3086,7 @@
     "sha256": "1fdbea358eacecd0c5e38ed9f082d565e7d1e9cfad0d74f6c44f31b779dc2e7d",
     "size": 666530,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.6,
     "relative": "revisar/imagens/acc_5_366d0e83_img_00_1a69935ef6.jpg",
     "thumb": "thumbs/acc_5_366d0e83_img_00_1a69935ef6.jpg"
@@ -2926,6 +3104,7 @@
     "sha256": "f14323041c318533d6816f9c0ea0dac22f335ad41627e69ddccedf5f1c793a75",
     "size": 460263,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.56,
     "relative": "revisar/imagens/acc_5_366d0e83_img_01_b642f452fb.jpg",
     "thumb": "thumbs/acc_5_366d0e83_img_01_b642f452fb.jpg"
@@ -2943,6 +3122,7 @@
     "sha256": "cb128295743c861dbebe415287fbdfc629e81dd66a929611384eec2aa467f504",
     "size": 383304,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.75,
     "relative": "praia/imagens/acc_5_7b9ec48e_img_00_a5967f45c5.jpg",
     "thumb": "thumbs/acc_5_7b9ec48e_img_00_a5967f45c5.jpg"
@@ -2960,6 +3140,7 @@
     "sha256": "a76f59705a22d99ef900a5bd308554f8be47cb7672ac410213202b2672152681",
     "size": 391281,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.77,
     "relative": "praia/imagens/acc_5_7b9ec48e_img_02_79f18759ad.jpg",
     "thumb": "thumbs/acc_5_7b9ec48e_img_02_79f18759ad.jpg"
@@ -2977,6 +3158,7 @@
     "sha256": "907be1a7c111a6a513899190d14a060ce0f875756bda73146a30f7218e649f9d",
     "size": 367937,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.71,
     "relative": "revisar/imagens/acc_5_7b9ec48e_img_04_2f0cf769ed.jpg",
     "thumb": "thumbs/acc_5_7b9ec48e_img_04_2f0cf769ed.jpg"
@@ -2994,6 +3176,7 @@
     "sha256": "acf2b3f2f1e8780e1c7fdc70d79a54eff9f985edf3b3b5a355c7abb9578e8b3b",
     "size": 379309,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.73,
     "relative": "revisar/imagens/acc_5_7b9ec48e_img_07_2f0cf769ed.jpg",
     "thumb": "thumbs/acc_5_7b9ec48e_img_07_2f0cf769ed.jpg"
@@ -3011,6 +3194,7 @@
     "sha256": "e9c0a0e7b7ab63bd613a8baa3e025c5bf07833acfe525cd0ad3964328c9c551b",
     "size": 311761,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.6,
     "relative": "revisar/imagens/acc_5_7b9ec48e_img_09_63a15eb02a.jpg",
     "thumb": "thumbs/acc_5_7b9ec48e_img_09_63a15eb02a.jpg"
@@ -3028,6 +3212,7 @@
     "sha256": "2dc66b7c5cf0656a36c8c0be1d399f2324a7c0bf8503d8035b203a6b50566a88",
     "size": 388642,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.76,
     "relative": "praia/imagens/acc_5_7b9ec48e_img_15_9cc1696704.jpg",
     "thumb": "thumbs/acc_5_7b9ec48e_img_15_9cc1696704.jpg"
@@ -3045,6 +3230,7 @@
     "sha256": "28af0577827e83acbdfdf98d134d5ac63f641f61b4a7460e3d5ceb68fef90f47",
     "size": 589777,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_5_8a5c107a_img_00_4903f878bb.jpg",
     "thumb": "thumbs/acc_5_8a5c107a_img_00_4903f878bb.jpg"
   },
@@ -3061,6 +3247,7 @@
     "sha256": "175ec3f85e9d5b0957c12216cb712e8b5e4928e71c5d85a61c883a02ac8d87e4",
     "size": 629902,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.57,
     "relative": "revisar/imagens/acc_5_b50ec955_img_00_32d3348b27.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_00_32d3348b27.jpg"
@@ -3078,6 +3265,7 @@
     "sha256": "e4f4ea55eea30742d1142163fa83d9acd4a56dc554f79b0239c091c7a1e3d252",
     "size": 653399,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_01_c37bd3c730.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_01_c37bd3c730.jpg"
   },
@@ -3094,6 +3282,7 @@
     "sha256": "19af2a8a471770504c6310de131b2ff080e61f47c4d022d8dd1fd0f1ae7d9084",
     "size": 536579,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_02_ef2961e66d.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_02_ef2961e66d.jpg"
   },
@@ -3110,6 +3299,7 @@
     "sha256": "ef7528de1dbd20a39f0e7f034cc184b5e581c9cdc41ce062f3943fbddba3051f",
     "size": 369752,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_03_aa1d54c15a.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_03_aa1d54c15a.jpg"
   },
@@ -3126,6 +3316,7 @@
     "sha256": "8ecb3b1aaed50f2b10b44aa8f51ad48002dd100b590a46908b22bc4c887657b7",
     "size": 699679,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_04_be4d314d46.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_04_be4d314d46.jpg"
   },
@@ -3142,6 +3333,7 @@
     "sha256": "88cb8303a4f2ddf055c0c6423178c48706f40ff8e68a79fda94c03c2c5399936",
     "size": 315196,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_b50ec955_img_05_6e67f1ff34.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_05_6e67f1ff34.jpg"
   },
@@ -3158,6 +3350,7 @@
     "sha256": "07deb5448f462d8d47a3ce0f15fb4c49dce9722f1f5faed2716baab597189244",
     "size": 485194,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_06_e29bf9e834.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_06_e29bf9e834.jpg"
   },
@@ -3174,6 +3367,7 @@
     "sha256": "7d57094e00a48b83a23d3b51a155234574d598b5c30aa5491b2363735f2ed866",
     "size": 631417,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_07_ea87cea707.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_07_ea87cea707.jpg"
   },
@@ -3190,6 +3384,7 @@
     "sha256": "d9d62e0a3eed5d62706d001578ab6347afbb34398d1dcc51e148e7edaa9de6a3",
     "size": 674156,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_b50ec955_img_08_4bb483075a.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_08_4bb483075a.jpg"
   },
@@ -3206,6 +3401,7 @@
     "sha256": "013e342182b3572e1192626ed02b97affea0ceb2b19fb2758895eeeb9687a8f0",
     "size": 401451,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_b50ec955_img_09_d317163281.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_09_d317163281.jpg"
   },
@@ -3222,6 +3418,7 @@
     "sha256": "1635b16d646b7b5ae82132312c8656cb8353dcdfe9f9b5e301cc5133b8873204",
     "size": 484812,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_10_4e750abf1a.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_10_4e750abf1a.jpg"
   },
@@ -3238,6 +3435,7 @@
     "sha256": "e94674398a048210ee12c6d091d78844abd24f355486643bf7544c54a90daf1e",
     "size": 269191,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_b50ec955_img_11_ab4c7f4420.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_11_ab4c7f4420.jpg"
   },
@@ -3254,6 +3452,7 @@
     "sha256": "e1dc285f1f8061190a408d11be566bd0a40716bdbec4732a4172ee05fb72f00f",
     "size": 729368,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_b50ec955_img_12_ff95598070.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_12_ff95598070.jpg"
   },
@@ -3270,6 +3469,7 @@
     "sha256": "31724af2136774dabb113a4a32250dd5caae11544d84b9f726e73c25a8d79b5f",
     "size": 238331,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_13_1ade41ecd2.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_13_1ade41ecd2.jpg"
   },
@@ -3286,6 +3486,7 @@
     "sha256": "79d9c28a573a5ecc9632a1f1ce518f24e008898d7099ea2d64f5c59925583ceb",
     "size": 423654,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_b50ec955_img_14_cd3394e3e1.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_14_cd3394e3e1.jpg"
   },
@@ -3302,6 +3503,7 @@
     "sha256": "c125ad61ac573a8c74e7e774ace7a99560d0dd9c2de381f8020672887d829167",
     "size": 752325,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_b50ec955_img_15_fcf0466fbd.jpg",
     "thumb": "thumbs/acc_5_b50ec955_img_15_fcf0466fbd.jpg"
   },
@@ -3318,6 +3520,7 @@
     "sha256": "7df80810cd01479ed609f3ebb342b73d5ea6d75aef4bf141a10090f7dcb12b2e",
     "size": 265562,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_c8ec1267_img_00_854fc6f64e.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_00_854fc6f64e.jpg"
   },
@@ -3334,6 +3537,7 @@
     "sha256": "f844f47f9190bbf6368bd33533667169db43da9d54edbc227d4876b86712b3e2",
     "size": 253937,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_c8ec1267_img_01_854fc6f64e.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_01_854fc6f64e.jpg"
   },
@@ -3350,6 +3554,7 @@
     "sha256": "561d52a54a4f874cd7936ad2e5adda9cadeb4939a3d2e599f62e8c48e1fd2da8",
     "size": 260902,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_02_db12de0bbd.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_02_db12de0bbd.jpg"
   },
@@ -3366,6 +3571,7 @@
     "sha256": "2243c44fb66b955b40604bb4f80f975ed47aad705ccc68bae9b9770a2b573a71",
     "size": 242759,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_03_6f76640e05.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_03_6f76640e05.jpg"
   },
@@ -3382,6 +3588,7 @@
     "sha256": "b3556dbbdaf24b3ba4b24be4fc4c8cc5e26f1cfabaa1e599ccc3dbbf0a95d8b7",
     "size": 249279,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_04_aeea7ec0e8.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_04_aeea7ec0e8.jpg"
   },
@@ -3398,6 +3605,7 @@
     "sha256": "03078be9f01d674f9b0296506f6c852a4cc57b553bed3af56aff943b9fef84aa",
     "size": 243082,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_05_b0c693ddc3.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_05_b0c693ddc3.jpg"
   },
@@ -3414,6 +3622,7 @@
     "sha256": "96b033b8a2cca4cb5958492c02510d6a98152eee5bb9d5407d9d3977ea7d8d25",
     "size": 248710,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_06_d61be7986c.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_06_d61be7986c.jpg"
   },
@@ -3430,6 +3639,7 @@
     "sha256": "cd0b27f147022c4d9d966ad083df3f01e57334c3eccfc715ff8d30b1d53c4a22",
     "size": 230155,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_07_3293ed01f6.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_07_3293ed01f6.jpg"
   },
@@ -3446,6 +3656,7 @@
     "sha256": "da434a7dd445e02cbb965134477492864957adaa06fa14041086d631886cc590",
     "size": 230764,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_08_59cdb30684.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_08_59cdb30684.jpg"
   },
@@ -3462,6 +3673,7 @@
     "sha256": "8b9faf4c31bbb522090ec365cfff58b70d475e55ae51d16706f6d37cb5ad4f64",
     "size": 240724,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_09_1edb810020.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_09_1edb810020.jpg"
   },
@@ -3478,6 +3690,7 @@
     "sha256": "070456383dc535eb0dde65541abf30c61c35c4e2a3bcbd209ca68cb2cf0329c7",
     "size": 232756,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_10_e4afc6c158.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_10_e4afc6c158.jpg"
   },
@@ -3494,6 +3707,7 @@
     "sha256": "47c81cd13928ffe3c058b6578be067d77a5014cc1a0d59c4561e20d01b959654",
     "size": 242122,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_11_1edb810020.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_11_1edb810020.jpg"
   },
@@ -3510,6 +3724,7 @@
     "sha256": "b529f88516ff21f11c7a27dbf472f3f5fc12646ef7812c32876eb40158941fc3",
     "size": 257762,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_12_e4afc6c158.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_12_e4afc6c158.jpg"
   },
@@ -3526,6 +3741,7 @@
     "sha256": "823c0e661cad263afff1499303d038302e40fe1138f2ee60757932f8162e9fd9",
     "size": 238613,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_13_aeea7ec0e8.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_13_aeea7ec0e8.jpg"
   },
@@ -3542,6 +3758,7 @@
     "sha256": "5ac727394e3af095da6e74a6f1e742850cede5e71a3ac864c26cae75626eaf61",
     "size": 258461,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_14_da553e2b57.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_14_da553e2b57.jpg"
   },
@@ -3558,6 +3775,7 @@
     "sha256": "4164997bcd71e00d7a01146c9b87b00dcd1712c72f84a08a0d10f8688ba707e4",
     "size": 253551,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "humano_avatar/imagens/acc_5_c8ec1267_img_15_da553e2b57.jpg",
     "thumb": "thumbs/acc_5_c8ec1267_img_15_da553e2b57.jpg"
   },
@@ -3574,6 +3792,7 @@
     "sha256": "5871a01bcc14c03c37050d3e427f40ae19c73457c6ae148457acc082515125d5",
     "size": 348668,
     "usado_v7": false,
+    "duration": 0.0,
     "inherited": 0.52,
     "relative": "revisar/imagens/acc_5_cdf40b7d_img_00_c2ca448d93.jpg",
     "thumb": "thumbs/acc_5_cdf40b7d_img_00_c2ca448d93.jpg"
@@ -3591,6 +3810,7 @@
     "sha256": "b52116bd40609a949d3a1f2997408dc596f1462e83efbb1fb85b8cd8bc2133bf",
     "size": 114029,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_00_089994f230.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_00_089994f230.jpg"
   },
@@ -3607,6 +3827,7 @@
     "sha256": "aac949c4306cbe140fc7455db500dfc0e2d733ccc2b7bd4dfc5749f4a91eb626",
     "size": 241183,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_01_82ceda45ac.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_01_82ceda45ac.jpg"
   },
@@ -3623,6 +3844,7 @@
     "sha256": "5370592b11da3bedf1fbb7451437e3396781d4b80cf8d3c1c8817dcf5f1bcc47",
     "size": 115636,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_02_44661c5ded.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_02_44661c5ded.jpg"
   },
@@ -3639,6 +3861,7 @@
     "sha256": "9951c0346358d3c586125f2715f572de7f52b4436944179502b1e092803d7555",
     "size": 190392,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_03_0e2a59ae2b.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_03_0e2a59ae2b.jpg"
   },
@@ -3655,6 +3878,7 @@
     "sha256": "c33e0d7178923619f6345d2990ae8ae59b8d6310f612c383fa1cd47d3c56ebc0",
     "size": 199881,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_04_8dbba887ab.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_04_8dbba887ab.jpg"
   },
@@ -3671,6 +3895,7 @@
     "sha256": "7e4e05f1f82c776f6c507879e3060db826c876b960bd37e25625a42ec41c17fc",
     "size": 141512,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_05_a02c608dd8.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_05_a02c608dd8.jpg"
   },
@@ -3687,6 +3912,7 @@
     "sha256": "68d49a78e228e98f27eb303ae588f4d6d600c02ad93e80ea2fb770736558057b",
     "size": 116952,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_06_1c4fd34100.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_06_1c4fd34100.jpg"
   },
@@ -3703,6 +3929,7 @@
     "sha256": "dc4e69ce1415d3c799d17ef8108a339b51411357a45e856fe124e5cad309d26a",
     "size": 173191,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_07_2a06959d02.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_07_2a06959d02.jpg"
   },
@@ -3719,6 +3946,7 @@
     "sha256": "6e0b4048d99549935fcb288b6041f27b9ce16fae9b89f92c5780c86b97cc2c16",
     "size": 181920,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_08_239c10c603.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_08_239c10c603.jpg"
   },
@@ -3735,6 +3963,7 @@
     "sha256": "bdd2b2e912f0ac34a2053dac7a06b6933a54f02916b3c3d21cd2d425ca0b5047",
     "size": 167343,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_09_3a2bf16202.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_09_3a2bf16202.jpg"
   },
@@ -3751,6 +3980,7 @@
     "sha256": "34448972a85193d2913e4eed6ede4b869c0ceedb568cd51c544f336fb8cce226",
     "size": 267984,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_10_e42846dcf6.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_10_e42846dcf6.jpg"
   },
@@ -3767,6 +3997,7 @@
     "sha256": "8afc936dd3860f5ad89adecb2f3631d968506c36e419499e97f2dfe1ee984d64",
     "size": 86192,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_d04ebff9_img_11_281032761f.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_11_281032761f.jpg"
   },
@@ -3783,6 +4014,7 @@
     "sha256": "e1e3eba5b381a4f5de7a34ed89d746f90a634330f43713d47b44f611a07adfa8",
     "size": 190128,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_d04ebff9_img_12_155af508fa.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_12_155af508fa.jpg"
   },
@@ -3799,6 +4031,7 @@
     "sha256": "9a7d3c9eeb772b362b72a402837f1677a6a4c8255f959d28c4a54557481a25ef",
     "size": 143674,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_13_8afe9fc944.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_13_8afe9fc944.jpg"
   },
@@ -3815,6 +4048,7 @@
     "sha256": "07ab187fb8d33bb1668f4421e161971fc2316752ff7d45d103ed8948494e8c04",
     "size": 149651,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_14_0e74206152.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_14_0e74206152.jpg"
   },
@@ -3831,6 +4065,7 @@
     "sha256": "297895d8fdda14753799fcff64ff47d12fd29b820bb0179cda442dea8335b4c0",
     "size": 149434,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "boneco_palito/imagens/acc_5_d04ebff9_img_15_d783250c37.jpg",
     "thumb": "thumbs/acc_5_d04ebff9_img_15_d783250c37.jpg"
   },
@@ -3847,6 +4082,7 @@
     "sha256": "a29f81edd02abb05a350c2f9a7b3ac54a2e20bb7491635911bd4673dc7b91526",
     "size": 778907,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_00_fc8abb9cd5.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_00_fc8abb9cd5.jpg"
   },
@@ -3863,6 +4099,7 @@
     "sha256": "79fe7aa7bd5568b9868112af04af3f49005178c5061320bcb6293d557827bcfe",
     "size": 992980,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_01_e354dd80e4.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_01_e354dd80e4.jpg"
   },
@@ -3879,6 +4116,7 @@
     "sha256": "0b1badddd92314a4b39ffa0b11bb12a2e08b58c1752697a3efd93a3f258c572c",
     "size": 680012,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_02_2f7d4dc4db.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_02_2f7d4dc4db.jpg"
   },
@@ -3895,6 +4133,7 @@
     "sha256": "615c1da01fb4424d73166ecfb060340bcd1fcccd701a1035ef21e9254c7fef50",
     "size": 720907,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_03_65453d3520.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_03_65453d3520.jpg"
   },
@@ -3911,6 +4150,7 @@
     "sha256": "32a8853a6d9769a3414a3a336a920abd716ab90ede418fffa462ab6f8be9f277",
     "size": 616620,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_04_04844a37a3.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_04_04844a37a3.jpg"
   },
@@ -3927,6 +4167,7 @@
     "sha256": "cc9e431a199be4e3cb85a76b3cba46f84a12ca5e28cd325634f2c4dc6e593174",
     "size": 1027843,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_05_c0dd9e0e94.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_05_c0dd9e0e94.jpg"
   },
@@ -3943,6 +4184,7 @@
     "sha256": "ceaf3fd6932fc9b1685f833ec160937b1fb3553d509825f2c091e2f81e0f7c83",
     "size": 767160,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_06_9d4f1b16e8.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_06_9d4f1b16e8.jpg"
   },
@@ -3959,6 +4201,7 @@
     "sha256": "ae0f92c9a32dce1c9a9eaebd436fabb0c88ff5c27c79f3865e178d34e8d1a897",
     "size": 698652,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_07_f22f3bb49b.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_07_f22f3bb49b.jpg"
   },
@@ -3975,6 +4218,7 @@
     "sha256": "e689a89bd121fdb9ae1d5f25d4219507780d8a205304b0f271581f2dabdaa86c",
     "size": 699765,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_5_de63a236_img_08_5e201e00a8.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_08_5e201e00a8.jpg"
   },
@@ -3991,6 +4235,7 @@
     "sha256": "825b5891c53712f9cb121fb0062cc0a7c9385cacdc1d7f5db06c397c1c472c16",
     "size": 708756,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_09_3df2bab042.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_09_3df2bab042.jpg"
   },
@@ -4007,6 +4252,7 @@
     "sha256": "e6e7dc6f48426908fbb3f3eb13e806247ec3ffdb9f38390eb7fbffe14a92ce0f",
     "size": 724375,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_10_cf98bd7790.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_10_cf98bd7790.jpg"
   },
@@ -4023,6 +4269,7 @@
     "sha256": "534431a80aeb413ab229aaaff809d3ee5db68a12dcf78d1aa8c143274084917f",
     "size": 732101,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "outro_desenho/imagens/acc_5_de63a236_img_11_cf0d44141e.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_11_cf0d44141e.jpg"
   },
@@ -4039,6 +4286,7 @@
     "sha256": "8f06f75c4832d19774fae5a1d7d3c61250b0aed7f876ed76836b797d9b972a51",
     "size": 1065002,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_12_bfb3b52722.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_12_bfb3b52722.jpg"
   },
@@ -4055,6 +4303,7 @@
     "sha256": "d23f4fa14953525ad1c55a512ffc8afec2db53f726d2c51dd53ab85d6423589d",
     "size": 715400,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_13_f5706b862d.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_13_f5706b862d.jpg"
   },
@@ -4071,6 +4320,7 @@
     "sha256": "8b69db3c51244daee439ec97d2cc2f61286b71d34a93a287edc0f8fa71b7beed",
     "size": 1127317,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_14_f0019419c0.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_14_f0019419c0.jpg"
   },
@@ -4087,6 +4337,7 @@
     "sha256": "b026a34bf251b5c8db093e052b4beeca1f23af2fddc15d5987bb1eeec2e20a71",
     "size": 786097,
     "usado_v7": false,
+    "duration": 0.0,
     "relative": "revisar/imagens/acc_5_de63a236_img_15_7a9484fe59.jpg",
     "thumb": "thumbs/acc_5_de63a236_img_15_7a9484fe59.jpg"
   },
@@ -4103,6 +4354,7 @@
     "sha256": "7fecf1a4c8f05b47477572b52781e5142d07f72f4e7469c8978512522b8d9b67",
     "size": 491523,
     "usado_v7": false,
+    "duration": 7.96,
     "relative": "outro_desenho/videos/acc_1_228bf3e2_vid_00_41e0efeb83.mp4",
     "thumb": "thumbs/acc_1_228bf3e2_vid_00_41e0efeb83.jpg"
   },
@@ -4119,6 +4371,7 @@
     "sha256": "ef7fb707e9feb70d20c1a24812d81b0a4ecdbb5dd3487270790ad0b50ff9ebbc",
     "size": 535321,
     "usado_v7": false,
+    "duration": 7.96,
     "relative": "outro_desenho/videos/acc_1_228bf3e2_vid_01_41e0efeb83.mp4",
     "thumb": "thumbs/acc_1_228bf3e2_vid_01_41e0efeb83.jpg"
   },
@@ -4135,6 +4388,7 @@
     "sha256": "c969476fad40318019c8aebe83f89acddf5a1c40a8b68535550973d3eb7bb5a7",
     "size": 477498,
     "usado_v7": false,
+    "duration": 8.01,
     "relative": "outro_desenho/videos/acc_1_228bf3e2_vid_02_41e0efeb83.mp4",
     "thumb": "thumbs/acc_1_228bf3e2_vid_02_41e0efeb83.jpg"
   },
@@ -4151,6 +4405,7 @@
     "sha256": "3528b24e53b73ecfd502a819e6111cdf77d25459ca7341dfd3d75bdb85ad4645",
     "size": 490197,
     "usado_v7": false,
+    "duration": 7.96,
     "relative": "outro_desenho/videos/acc_1_228bf3e2_vid_03_41e0efeb83.mp4",
     "thumb": "thumbs/acc_1_228bf3e2_vid_03_41e0efeb83.jpg"
   },
@@ -4167,6 +4422,7 @@
     "sha256": "f6a9dd42666b2a51973c7133fa3293f4958c40f20a67e11dab51e5149311fbe5",
     "size": 3935337,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_00_00bd4994b6.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_00_00bd4994b6.jpg"
   },
@@ -4183,6 +4439,7 @@
     "sha256": "e29c050204d18855410e338db631cf7a32ede84be9f9dbd1fd3abdbea6a43aa9",
     "size": 2417048,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_1_2700c141_vid_01_a8c26d2582.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_01_a8c26d2582.jpg"
   },
@@ -4199,6 +4456,7 @@
     "sha256": "171da498020fed22b3ebf840b4367995aef807b97e198b9203d3cf680442fc55",
     "size": 2911512,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_02_7663516cd7.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_02_7663516cd7.jpg"
   },
@@ -4215,6 +4473,7 @@
     "sha256": "32df9f65f91e6af5eb75a30bd4cda520853911698425e458758fbca921dd0f6e",
     "size": 3265806,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_03_bb57cb26a7.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_03_bb57cb26a7.jpg"
   },
@@ -4231,6 +4490,7 @@
     "sha256": "b954915143475a64aac674589414181d83ec174469a090c6b044c3bb58429354",
     "size": 2298212,
     "usado_v7": false,
+    "duration": 7.92,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_04_f11c19bad7.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_04_f11c19bad7.jpg"
   },
@@ -4247,6 +4507,7 @@
     "sha256": "99e19a5e63de66f3d4530114970f9bc9036b4f333b3b431052ceee599df10382",
     "size": 2939009,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_05_6f5d3dd7fe.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_05_6f5d3dd7fe.jpg"
   },
@@ -4263,6 +4524,7 @@
     "sha256": "35f11a9aa19e4dc88b1207f3e7da1813cc9e6d353ec3c0207e8e095e71f0d8b7",
     "size": 3865132,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_06_e2a2fd4297.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_06_e2a2fd4297.jpg"
   },
@@ -4279,6 +4541,7 @@
     "sha256": "a05e3d01ba2d724c3434ee8ca624cf9ba8ead2ba674775080c79f775986b9313",
     "size": 2985799,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_07_508ac1ccc9.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_07_508ac1ccc9.jpg"
   },
@@ -4295,6 +4558,7 @@
     "sha256": "76cd17cd747b80f07105779f5a720207a443d11ce9edd2115267458c97830630",
     "size": 5358136,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_08_f901f98df7.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_08_f901f98df7.jpg"
   },
@@ -4311,6 +4575,7 @@
     "sha256": "f066343fdd43aa68ace11132869a9a196600ea8aac0a8c8fe0b23876518e7217",
     "size": 4300433,
     "usado_v7": false,
+    "duration": 4.04,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_09_439b946dc2.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_09_439b946dc2.jpg"
   },
@@ -4327,6 +4592,7 @@
     "sha256": "619b6533244822fcd204be8173d5af799a24f26f22f13666f4eb20ee457773d9",
     "size": 4610395,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_10_241b9549fe.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_10_241b9549fe.jpg"
   },
@@ -4343,6 +4609,7 @@
     "sha256": "b55ee0c7f7e14b837754a1efb71816b8d22f91af18f6b058a834d822412ae0e1",
     "size": 4113474,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_1_2700c141_vid_11_5b24226360.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_11_5b24226360.jpg"
   },
@@ -4359,6 +4626,7 @@
     "sha256": "379879353f9f352d8795be76e370557eebe575792cb753141e0d83e9b0fbfbf9",
     "size": 1757639,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "revisar/videos/acc_1_2700c141_vid_12_8ca3990bd0.mp4",
     "thumb": "thumbs/acc_1_2700c141_vid_12_8ca3990bd0.jpg"
   },
@@ -4375,6 +4643,7 @@
     "sha256": "f5a1be6b6df0b25f53f6f9b6036d0abd36b447c5f5cad84f1a8f48db206e566c",
     "size": 2037146,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_1_62cb2bc8_vid_00_79381a30af.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_00_79381a30af.jpg"
   },
@@ -4391,6 +4660,7 @@
     "sha256": "f28193b2602e0b283f2d27706beb5416dcc7a1349e6d5367a4a4789a3ed1de29",
     "size": 3448291,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.65,
     "relative": "outro_desenho/videos/acc_1_62cb2bc8_vid_00_9b4ad1c061.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_00_9b4ad1c061.jpg"
@@ -4408,6 +4678,7 @@
     "sha256": "425185e97637b602515ee1b3676b6a60c1b4309eb75af59419282128597578af",
     "size": 4136667,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_1_62cb2bc8_vid_01_9eca9cf105.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_01_9eca9cf105.jpg"
   },
@@ -4424,6 +4695,7 @@
     "sha256": "28b56204068acf532dd0938436d8277c54722f64ff2db903090d4278a4f8be09",
     "size": 2663409,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 1.0,
     "relative": "revisar/videos/acc_1_62cb2bc8_vid_01_d576fc1377.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_01_d576fc1377.jpg"
@@ -4441,6 +4713,7 @@
     "sha256": "89fb1ffba298efc7a245737f4e4e41e951f26da8ac5441fa354096514e8035fd",
     "size": 2665486,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.77,
     "relative": "outro_desenho/videos/acc_1_62cb2bc8_vid_02_9714f34186.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_02_9714f34186.jpg"
@@ -4458,6 +4731,7 @@
     "sha256": "f20efef08c0d62d2637cc2395bf0c3f962484be2cdf157919fd17d46b72ae3f1",
     "size": 3172475,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "praia/videos/acc_1_62cb2bc8_vid_03_191340a278.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_03_191340a278.jpg"
   },
@@ -4474,6 +4748,7 @@
     "sha256": "9a96e26886048afec4279c7de18090bd9e6ea4b3820561319e229256f8848938",
     "size": 3025178,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.71,
     "relative": "outro_desenho/videos/acc_1_62cb2bc8_vid_03_429038d6f7.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_03_429038d6f7.jpg"
@@ -4491,6 +4766,7 @@
     "sha256": "583184fb8d120e4397ce2ce5e586aee824cf8b864d04d69143f44fd7afc96367",
     "size": 2351356,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.67,
     "relative": "outro_desenho/videos/acc_1_62cb2bc8_vid_04_3c7949305d.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_04_3c7949305d.jpg"
@@ -4508,6 +4784,7 @@
     "sha256": "319b73002dd092732f5ca65ddd95ae310914084f9a17e05c264eccba49609ef1",
     "size": 2834976,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_1_62cb2bc8_vid_04_464d73ce34.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_04_464d73ce34.jpg"
   },
@@ -4524,6 +4801,7 @@
     "sha256": "eee3c7c95626e4d4efa2396b281cfc48958d8200131610a2702b7a7bbc014491",
     "size": 1966842,
     "usado_v7": false,
+    "duration": 7.92,
     "relative": "revisar/videos/acc_1_62cb2bc8_vid_06_d576fc1377.mp4",
     "thumb": "thumbs/acc_1_62cb2bc8_vid_06_d576fc1377.jpg"
   },
@@ -4540,6 +4818,7 @@
     "sha256": "88e3397220623b866ef9c65d5112cc997d694d0255b7daef1093de934e84c6ac",
     "size": 453308,
     "usado_v7": false,
+    "duration": 7.96,
     "relative": "outro_desenho/videos/acc_1_7a531b88_vid_00_41e0efeb83.mp4",
     "thumb": "thumbs/acc_1_7a531b88_vid_00_41e0efeb83.jpg"
   },
@@ -4556,6 +4835,7 @@
     "sha256": "4d2b57b68a7c484e5f90333fc0f76d1471c88d71ebe1f3beaa7c0faf165775c7",
     "size": 597965,
     "usado_v7": false,
+    "duration": 7.96,
     "relative": "outro_desenho/videos/acc_1_7a531b88_vid_01_41e0efeb83.mp4",
     "thumb": "thumbs/acc_1_7a531b88_vid_01_41e0efeb83.jpg"
   },
@@ -4572,6 +4852,7 @@
     "sha256": "a442f98eb11bb76a78ef374aadebaef9536bc13dab23f61f4b314b0f6a67432e",
     "size": 3268287,
     "usado_v7": false,
+    "duration": 10.03,
     "relative": "boneco_palito/videos/acc_2_b7b2fb94_vid_00_d65fd111a5.mp4",
     "thumb": "thumbs/acc_2_b7b2fb94_vid_00_d65fd111a5.jpg"
   },
@@ -4588,6 +4869,7 @@
     "sha256": "bba5b93a22f8bc46240451060de1aff40804ec2b92ca1ecdb85387e417e85735",
     "size": 3030489,
     "usado_v7": false,
+    "duration": 10.03,
     "relative": "boneco_palito/videos/acc_2_b7b2fb94_vid_01_373fffa6f1.mp4",
     "thumb": "thumbs/acc_2_b7b2fb94_vid_01_373fffa6f1.jpg"
   },
@@ -4604,6 +4886,7 @@
     "sha256": "812e2cba4662561a7c7a380713206a1fde96f4eae5640a93f6fa4164b5582099",
     "size": 2992870,
     "usado_v7": false,
+    "duration": 10.03,
     "relative": "boneco_palito/videos/acc_2_b7b2fb94_vid_02_f3a8cd056f.mp4",
     "thumb": "thumbs/acc_2_b7b2fb94_vid_02_f3a8cd056f.jpg"
   },
@@ -4620,6 +4903,7 @@
     "sha256": "86292dc2e27e4bf748af6ef451566770a5b13ac9136afb3cddeb3b7e6f8b604f",
     "size": 3451876,
     "usado_v7": false,
+    "duration": 10.03,
     "relative": "boneco_palito/videos/acc_2_b7b2fb94_vid_03_aaaaed74bd.mp4",
     "thumb": "thumbs/acc_2_b7b2fb94_vid_03_aaaaed74bd.jpg"
   },
@@ -4636,6 +4920,7 @@
     "sha256": "c12f29b7b33370f523f4e9b692e9459b1b58a68f4a4649ec01d5697befb0f223",
     "size": 3011180,
     "usado_v7": false,
+    "duration": 10.03,
     "relative": "boneco_palito/videos/acc_2_b7b2fb94_vid_04_8ce4eea83a.mp4",
     "thumb": "thumbs/acc_2_b7b2fb94_vid_04_8ce4eea83a.jpg"
   },
@@ -4652,6 +4937,7 @@
     "sha256": "bb24161417825d0dcc8830a529b5a050c1d3b327fa1b2d8705de8e889591537d",
     "size": 2796923,
     "usado_v7": false,
+    "duration": 10.03,
     "relative": "boneco_palito/videos/acc_2_b7b2fb94_vid_05_03526e41d3.mp4",
     "thumb": "thumbs/acc_2_b7b2fb94_vid_05_03526e41d3.jpg"
   },
@@ -4668,6 +4954,7 @@
     "sha256": "49377cceefe6d0db412e66999d49abff7cbb02dfa17a12353cd4e99c91e76ed3",
     "size": 2761740,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "boneco_palito/videos/acc_2_b7b2fb94_vid_06_50ef0db967.mp4",
     "thumb": "thumbs/acc_2_b7b2fb94_vid_06_50ef0db967.jpg"
   },
@@ -4684,6 +4971,7 @@
     "sha256": "6bb71769c65ba0a4f30afe488602110a6801a5d024f2a254fc92ffa3fe9f308b",
     "size": 3271682,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_2_b7b2fb94_vid_07_44aa64bc90.mp4",
     "thumb": "thumbs/acc_2_b7b2fb94_vid_07_44aa64bc90.jpg"
   },
@@ -4700,6 +4988,7 @@
     "sha256": "d669f3083ec3dd329f8ea336d9729c086dbc65f393bba4bffbba94d597b50be6",
     "size": 2967569,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "praia/videos/acc_2_d43a0933_vid_00_9117544390.mp4",
     "thumb": "thumbs/acc_2_d43a0933_vid_00_9117544390.jpg"
   },
@@ -4716,6 +5005,7 @@
     "sha256": "e1047165c85b66093a893e0b5a280f592deb578cc3adb31cb749e7619be26821",
     "size": 4596700,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_2_d43a0933_vid_01_1bfc4e93df.mp4",
     "thumb": "thumbs/acc_2_d43a0933_vid_01_1bfc4e93df.jpg"
   },
@@ -4732,6 +5022,7 @@
     "sha256": "13d4b0f62b7ca5679bb4d121ded432d0d7508449062026005e4144f6bc01e56e",
     "size": 2234134,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "revisar/videos/acc_2_d43a0933_vid_02_903463aadf.mp4",
     "thumb": "thumbs/acc_2_d43a0933_vid_02_903463aadf.jpg"
   },
@@ -4748,6 +5039,7 @@
     "sha256": "eb020150ff556c009aa6fd43262fd10afed2b765133e5c437553501e4a1de6d1",
     "size": 2588155,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_2_d43a0933_vid_03_53b0da4fac.mp4",
     "thumb": "thumbs/acc_2_d43a0933_vid_03_53b0da4fac.jpg"
   },
@@ -4764,6 +5056,7 @@
     "sha256": "e0618119100f9d417a6baef681d8d7140fbe513f9b958807f4ecfb6bb51e0f32",
     "size": 2463860,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "revisar/videos/acc_2_d43a0933_vid_04_75759291c3.mp4",
     "thumb": "thumbs/acc_2_d43a0933_vid_04_75759291c3.jpg"
   },
@@ -4780,6 +5073,7 @@
     "sha256": "8512d1c91b4826edee0737a3fa2a55f28972f2ba93206068d18ce3f7705b8c97",
     "size": 2693493,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_2_d43a0933_vid_05_d6b80101e5.mp4",
     "thumb": "thumbs/acc_2_d43a0933_vid_05_d6b80101e5.jpg"
   },
@@ -4796,6 +5090,7 @@
     "sha256": "75af775eb4881c9e7e21c6eb747453a79ff09305a8315bae2d26749cb49f9137",
     "size": 5259964,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_2_d43a0933_vid_06_1bc1e2a641.mp4",
     "thumb": "thumbs/acc_2_d43a0933_vid_06_1bc1e2a641.jpg"
   },
@@ -4812,6 +5107,7 @@
     "sha256": "f1a9558ab18f4da7e0ea9ec2eff4a59dcab9e650d6b849be31503d46e505f60a",
     "size": 1493560,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "revisar/videos/acc_2_d43a0933_vid_07_809ee3c86b.mp4",
     "thumb": "thumbs/acc_2_d43a0933_vid_07_809ee3c86b.jpg"
   },
@@ -4828,6 +5124,7 @@
     "sha256": "3f41e396565c0087312fc549a92a49c1bf0ad5491eaaa147a3a3471f136cdcff",
     "size": 2532884,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "praia/videos/acc_3_225a8b1e_vid_00_174e722830.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_00_174e722830.jpg"
   },
@@ -4844,6 +5141,7 @@
     "sha256": "9dc5f3ba21d8070d539f5c84a731d85993b69636aa1dc93e31d32dc6761f712c",
     "size": 2206927,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "revisar/videos/acc_3_225a8b1e_vid_01_1a71b52017.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_01_1a71b52017.jpg"
   },
@@ -4860,6 +5158,7 @@
     "sha256": "11047e53c085e81429c83fd2352fcb19cfaa13b89507034ce2da3a4e6d48fe6b",
     "size": 2011495,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_3_225a8b1e_vid_02_c669ee0a98.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_02_c669ee0a98.jpg"
   },
@@ -4876,6 +5175,7 @@
     "sha256": "4e348991b5de4195fe5c80853a17c739dd335e2c992b36a5c6691f6471825c96",
     "size": 2616080,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_3_225a8b1e_vid_03_1d6eeef45e.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_03_1d6eeef45e.jpg"
   },
@@ -4892,6 +5192,7 @@
     "sha256": "bea7c90f7dac8ad0230b06d71827790ab69a2d7c252d6f02db4425eaa680eae0",
     "size": 2678609,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "praia/videos/acc_3_225a8b1e_vid_04_c67789fc27.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_04_c67789fc27.jpg"
   },
@@ -4908,6 +5209,7 @@
     "sha256": "d0e950657fb50ecdc28aa8f68be346452cef813bac333e5076ae423d92aea651",
     "size": 2851732,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_3_225a8b1e_vid_05_a774046c97.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_05_a774046c97.jpg"
   },
@@ -4924,6 +5226,7 @@
     "sha256": "e21f51d8979aaedb7a24e40630d1d68e2deb6686d9e5c872c9c2e99de6340285",
     "size": 2967196,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_3_225a8b1e_vid_06_8a9ba8ed49.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_06_8a9ba8ed49.jpg"
   },
@@ -4940,6 +5243,7 @@
     "sha256": "26abb47b212027c11f64a90bbc89ece840fe72e0851e32683c0efe14215ac42a",
     "size": 1582519,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_3_225a8b1e_vid_07_7d37786706.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_07_7d37786706.jpg"
   },
@@ -4956,6 +5260,7 @@
     "sha256": "dc9be22f4ccc753f8896f4aa6f9a36784428b2266bba6a39346121b251f08f23",
     "size": 1605948,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_3_225a8b1e_vid_08_7d37786706.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_08_7d37786706.jpg"
   },
@@ -4972,6 +5277,7 @@
     "sha256": "05386c3d01b5b73b74ee4d353b204cfa96582e5bcaef9a424936507a6ba6439d",
     "size": 2729770,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_3_225a8b1e_vid_09_d6b80101e5.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_09_d6b80101e5.jpg"
   },
@@ -4988,6 +5294,7 @@
     "sha256": "e2fe16aa231e8cb35831f0ece9b995f5df69c982937d08bf1a65055f32129f1f",
     "size": 1649040,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "revisar/videos/acc_3_225a8b1e_vid_10_f3c7928cd5.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_10_f3c7928cd5.jpg"
   },
@@ -5004,6 +5311,7 @@
     "sha256": "fcce21ec55cf28448f4013792c6cf9e116026f4d3f4d19c09e6c0e5ab1118e39",
     "size": 5267525,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_3_225a8b1e_vid_11_ae84f4b6a0.mp4",
     "thumb": "thumbs/acc_3_225a8b1e_vid_11_ae84f4b6a0.jpg"
   },
@@ -5020,6 +5328,7 @@
     "sha256": "b3d4f3136c3bc9d2ac194c6263c124030594e15bd45ee565b049a592028c2a59",
     "size": 4878529,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_4_7a6465b6_vid_00_b5d828d595.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_00_b5d828d595.jpg"
   },
@@ -5036,6 +5345,7 @@
     "sha256": "c46ebdfae3fd676fa5afa21c35c3338543d4ad3a74ddc81812d791507fdf10dc",
     "size": 3533424,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_4_7a6465b6_vid_01_e091a542d1.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_01_e091a542d1.jpg"
   },
@@ -5052,6 +5362,7 @@
     "sha256": "4f552b1757f7685de23573efcbe89c8b451e00c539609adb5551244152f64e43",
     "size": 3577952,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "praia/videos/acc_4_7a6465b6_vid_02_e091a542d1.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_02_e091a542d1.jpg"
   },
@@ -5068,6 +5379,7 @@
     "sha256": "fed098940278cfb031df5880a4c742f505b5e6940d482d2da0423a6791213889",
     "size": 3738050,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_4_7a6465b6_vid_03_2c733ac6df.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_03_2c733ac6df.jpg"
   },
@@ -5084,6 +5396,7 @@
     "sha256": "9aa8aaac60e961f295e7c8eeea2b21e446040f53ac887929357a089428cc1204",
     "size": 2895862,
     "usado_v7": true,
+    "duration": 7.93,
     "relative": "praia/videos/acc_4_7a6465b6_vid_04_8620de26ca.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_04_8620de26ca.jpg"
   },
@@ -5100,6 +5413,7 @@
     "sha256": "aeb82cd94b891cf167daa44ab34106fef26eda0e83a747439adc8c14cb06706e",
     "size": 1637739,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_4_7a6465b6_vid_05_86a84b3de1.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_05_86a84b3de1.jpg"
   },
@@ -5116,6 +5430,7 @@
     "sha256": "c5f457e984fad1a6d30b1efce7527516dc295ac28168ba0320b4e4c13e76e78f",
     "size": 1303227,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_4_7a6465b6_vid_06_4379449443.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_06_4379449443.jpg"
   },
@@ -5132,6 +5447,7 @@
     "sha256": "aa791f746b7c864c8f75d565bce2ae4703721e308628b48d0849afac550de8b2",
     "size": 1448138,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_4_7a6465b6_vid_07_4379449443.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_07_4379449443.jpg"
   },
@@ -5148,6 +5464,7 @@
     "sha256": "8ed074f7e55e1799702be9ba4078206e7dee773ded5eb34ba95b1ee595b18273",
     "size": 2373478,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_4_7a6465b6_vid_08_7b714daac2.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_08_7b714daac2.jpg"
   },
@@ -5164,6 +5481,7 @@
     "sha256": "89fe3ede1950a7e8bd840d3095bec44590a2aeffc309359908b1e66dadd1926a",
     "size": 2318896,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_4_7a6465b6_vid_09_73db4389d1.mp4",
     "thumb": "thumbs/acc_4_7a6465b6_vid_09_73db4389d1.jpg"
   },
@@ -5180,6 +5498,7 @@
     "sha256": "06eed9312f2bfb67131aae73d50e4a31704e421777f35dbfde534f5736be3a6f",
     "size": 4482751,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_00_ec770112ba.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_00_ec770112ba.jpg"
   },
@@ -5196,6 +5515,7 @@
     "sha256": "a5a2432d1fcb1b4ce596ffcc92365306441e48a68d44210a0327f82dcf15cc87",
     "size": 6248718,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_01_47dffd31fb.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_01_47dffd31fb.jpg"
   },
@@ -5212,6 +5532,7 @@
     "sha256": "d427a2fea14bf9d25e096affc4ca1639585a212c6a12123e29d7d23caf30659f",
     "size": 7015270,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_02_c28d88ee55.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_02_c28d88ee55.jpg"
   },
@@ -5228,6 +5549,7 @@
     "sha256": "a6eba86319488e66a48fc205a3f30fe131f058b80478e5ad6e4823d9ce6abe5e",
     "size": 5590491,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_03_6e900fe669.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_03_6e900fe669.jpg"
   },
@@ -5244,6 +5566,7 @@
     "sha256": "bcc67452403692372e0821fa632e6a27e91012683b954b8897a02e62a1cbb26e",
     "size": 7708999,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_04_6e900fe669.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_04_6e900fe669.jpg"
   },
@@ -5260,6 +5583,7 @@
     "sha256": "4b5991a40bac81b045e9edcb6b5b70db50abec7e20606a86cced722b8b74b0ed",
     "size": 5961634,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_05_e58e1ba897.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_05_e58e1ba897.jpg"
   },
@@ -5276,6 +5600,7 @@
     "sha256": "cfdec37ecc8954ad622ad81df42a78718871bff851fc14395a412886d4d3da30",
     "size": 2204327,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_06_d0d819fa5c.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_06_d0d819fa5c.jpg"
   },
@@ -5292,6 +5617,7 @@
     "sha256": "0327d2ad2ee7b22fb9e65601ca01821a8092d3f9a6055a33ecb3611d8e5aff67",
     "size": 1286380,
     "usado_v7": false,
+    "duration": 7.92,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_07_118810cec6.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_07_118810cec6.jpg"
   },
@@ -5308,6 +5634,7 @@
     "sha256": "00fe19a5a2a2a817da16694b678da60196f8a1651d8ecf82ba9154bc1e111190",
     "size": 1782369,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_08_ca201b4413.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_08_ca201b4413.jpg"
   },
@@ -5324,6 +5651,7 @@
     "sha256": "cf0583396b6c913547abcae7dbee9bdb8c335a4459e96617645f01a49daf7992",
     "size": 2510328,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_09_8fb79ab234.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_09_8fb79ab234.jpg"
   },
@@ -5340,6 +5668,7 @@
     "sha256": "ccae965f3d34dad026245281b622ecaf821bf815a1372e0b33cf42a177c5bc25",
     "size": 1699249,
     "usado_v7": false,
+    "duration": 7.92,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_10_61491a90fc.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_10_61491a90fc.jpg"
   },
@@ -5356,6 +5685,7 @@
     "sha256": "2507c1f1987d1ebc842f3eba930a080c65dc1eba91d1591d240e768f3b2a89e2",
     "size": 2335158,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_11_3e6f014638.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_11_3e6f014638.jpg"
   },
@@ -5372,6 +5702,7 @@
     "sha256": "b510e0b9ca54262aed36023770c68f301738d69e92e3dec0f68bcf5f2c85c63e",
     "size": 3297868,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_12_c7d53a881c.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_12_c7d53a881c.jpg"
   },
@@ -5388,6 +5719,7 @@
     "sha256": "adeafd258e799dcd55a6b1aec00a60dcc8e8d01f38e9796f4a1936e9b75fafb9",
     "size": 2459785,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_13_8950109eb3.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_13_8950109eb3.jpg"
   },
@@ -5404,6 +5736,7 @@
     "sha256": "f6c4bae94f60f4a35e41616bf23e7615e667c3d38a479570d34da9dad4b01cd5",
     "size": 1936428,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_14_22426ba339.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_14_22426ba339.jpg"
   },
@@ -5420,6 +5753,7 @@
     "sha256": "5b9e15f61a0b0e42307f2f119d4a17fad3b2017fbba54e17f7a4a7bb129bbfb5",
     "size": 2481341,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "outro_desenho/videos/acc_5_0a1ee729_vid_15_7ba53cb0ae.mp4",
     "thumb": "thumbs/acc_5_0a1ee729_vid_15_7ba53cb0ae.jpg"
   },
@@ -5431,13 +5765,14 @@
     "aria": "",
     "scene": "",
     "described": false,
-    "category": "revisar",
-    "subcategory": "",
+    "category": "praia",
+    "subcategory": "Água e ondas",
     "sha256": "8784dd57264a1b7f3222fd4a1b987fdcc0efcc32e14a22a9785b873d0986cc32",
     "size": 2091855,
     "usado_v7": true,
+    "duration": 7.93,
     "inherited": 0.74,
-    "relative": "revisar/videos/acc_5_7b9ec48e_vid_00_6a9e6af36c.mp4",
+    "relative": "praia/videos/acc_5_7b9ec48e_vid_00_6a9e6af36c.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_00_6a9e6af36c.jpg"
   },
   {
@@ -5445,16 +5780,16 @@
     "name": "acc_5_7b9ec48e_vid_01_6a9e6af36c.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_01_6a9e6af36c.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Puppy watching sunscreen tube vi…",
     "scene": "",
-    "described": false,
-    "category": "praia",
-    "subcategory": "Areia",
+    "described": true,
+    "category": "defeitos",
+    "subcategory": "",
     "sha256": "4020a2c6569af182326401777424a39de5faef03f413cd5de348aa93fb66d2f7",
     "size": 474171,
     "usado_v7": false,
-    "inherited": 0.69,
-    "relative": "praia/videos/acc_5_7b9ec48e_vid_01_6a9e6af36c.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_01_6a9e6af36c.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_01_6a9e6af36c.jpg"
   },
   {
@@ -5470,6 +5805,7 @@
     "sha256": "589db04ea9b1e2a49d881d67c8edbb6598efbddba551b19cd0bb52fca07407d2",
     "size": 1490039,
     "usado_v7": true,
+    "duration": 7.93,
     "inherited": 0.63,
     "relative": "revisar/videos/acc_5_7b9ec48e_vid_01_c166a7019f.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_01_c166a7019f.jpg"
@@ -5487,7 +5823,8 @@
     "sha256": "0ca73d092956de33f8e4fc60db8d9cbe4ba75d5f505da0241689526eb8d2b810",
     "size": 5932085,
     "usado_v7": true,
-    "inherited": 0.78,
+    "duration": 7.93,
+    "inherited": 0.8,
     "relative": "praia/videos/acc_5_7b9ec48e_vid_02_b88e4ae3e4.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_02_b88e4ae3e4.jpg"
   },
@@ -5504,6 +5841,7 @@
     "sha256": "d9a50c21c4c1eda5795bee5b4ab437d103ccdafec65bf96d08d548390a50b7fd",
     "size": 3183878,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "praia/videos/acc_5_7b9ec48e_vid_03_b88e4ae3e4.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_03_b88e4ae3e4.jpg"
   },
@@ -5520,6 +5858,7 @@
     "sha256": "19e9ddc6995dfea9cac178c471265e3073e1839c0fe74e2d0434fa65c7512256",
     "size": 3553092,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.61,
     "relative": "revisar/videos/acc_5_7b9ec48e_vid_04_9b243b8e9b.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_04_9b243b8e9b.jpg"
@@ -5529,16 +5868,16 @@
     "name": "acc_5_7b9ec48e_vid_04_b88e4ae3e4.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_04_b88e4ae3e4.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Puppy shaking water on friend",
     "scene": "",
-    "described": false,
-    "category": "praia",
-    "subcategory": "Água e ondas",
+    "described": true,
+    "category": "defeitos",
+    "subcategory": "",
     "sha256": "b05c86bb6e6244245eeac40a913f7f3fcbb05e26516482634e12bd8acf7b647b",
     "size": 401991,
     "usado_v7": false,
-    "inherited": 0.74,
-    "relative": "praia/videos/acc_5_7b9ec48e_vid_04_b88e4ae3e4.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_04_b88e4ae3e4.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_04_b88e4ae3e4.jpg"
   },
   {
@@ -5554,6 +5893,7 @@
     "sha256": "035dd07efdec556aa9f6b25a7fc3c226dc93f47e4b3a6b74e96593424714a737",
     "size": 2076786,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.72,
     "relative": "outro_desenho/videos/acc_5_7b9ec48e_vid_05_3d7ce354f9.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_05_3d7ce354f9.jpg"
@@ -5571,6 +5911,7 @@
     "sha256": "cbf4f8cd10a5cd42587d762e64f1e913fe199fe5d9e30724dba1a90f5bb07da3",
     "size": 3400323,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.69,
     "relative": "revisar/videos/acc_5_7b9ec48e_vid_06_4a66c0c044.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_06_4a66c0c044.jpg"
@@ -5588,6 +5929,7 @@
     "sha256": "2782e6e87f7597a4f8b3d2a23b2a9a7441c77a2c4c5ca43ecf3a3f31fb56f5d6",
     "size": 2279032,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.81,
     "relative": "outro_desenho/videos/acc_5_7b9ec48e_vid_07_91352b8259.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_07_91352b8259.jpg"
@@ -5597,16 +5939,16 @@
     "name": "acc_5_7b9ec48e_vid_08_91352b8259.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_08_91352b8259.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Puppy standing in park",
     "scene": "",
-    "described": false,
-    "category": "outro_desenho",
+    "described": true,
+    "category": "defeitos",
     "subcategory": "",
     "sha256": "8e95b9ef65e60503491bef743d37b9f92adb1541da1b2b311276f154cecdf02a",
     "size": 438544,
     "usado_v7": false,
-    "inherited": 0.7,
-    "relative": "outro_desenho/videos/acc_5_7b9ec48e_vid_08_91352b8259.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_08_91352b8259.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_08_91352b8259.jpg"
   },
   {
@@ -5622,6 +5964,7 @@
     "sha256": "93b401ccbfdfa0249756c699a49ae2d65c27a0314d6adb0f65edcb14b2abc9ae",
     "size": 2572397,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.71,
     "relative": "outro_desenho/videos/acc_5_7b9ec48e_vid_08_dfbf643e8e.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_08_dfbf643e8e.jpg"
@@ -5639,6 +5982,7 @@
     "sha256": "7cd4714dcbe4e93cfba049a3bfa4a8bb503ef46398626ee11130f5aa136b42a7",
     "size": 2215360,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.71,
     "relative": "outro_desenho/videos/acc_5_7b9ec48e_vid_09_b0356f7f66.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_09_b0356f7f66.jpg"
@@ -5648,16 +5992,16 @@
     "name": "acc_5_7b9ec48e_vid_09_dfbf643e8e.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_09_dfbf643e8e.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Puppies gesturing in sunny park",
     "scene": "",
-    "described": false,
-    "category": "praia",
-    "subcategory": "Água e ondas",
+    "described": true,
+    "category": "defeitos",
+    "subcategory": "",
     "sha256": "fc545d4b7bf07e8ac1826bdb922c4ce95540a38c7c10679ae969d426201bc052",
     "size": 666672,
     "usado_v7": false,
-    "inherited": 0.73,
-    "relative": "praia/videos/acc_5_7b9ec48e_vid_09_dfbf643e8e.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_09_dfbf643e8e.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_09_dfbf643e8e.jpg"
   },
   {
@@ -5665,16 +6009,16 @@
     "name": "acc_5_7b9ec48e_vid_10_b0356f7f66.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_10_b0356f7f66.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Puppy emerging from pink pillow",
     "scene": "",
-    "described": false,
-    "category": "praia",
-    "subcategory": "Água e ondas",
+    "described": true,
+    "category": "defeitos",
+    "subcategory": "",
     "sha256": "fab190f948e166e2f638c39d3672f55f2088b217ec7e0ce24a52ebc0b3a927cc",
     "size": 419247,
     "usado_v7": false,
-    "inherited": 0.74,
-    "relative": "praia/videos/acc_5_7b9ec48e_vid_10_b0356f7f66.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_10_b0356f7f66.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_10_b0356f7f66.jpg"
   },
   {
@@ -5690,6 +6034,7 @@
     "sha256": "1e893a8fab456dc54cddc3fa1c3901dcf640ed3d39392efdbfaac7c845ef5ef0",
     "size": 1904067,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.68,
     "relative": "outro_desenho/videos/acc_5_7b9ec48e_vid_10_cc1083706c.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_10_cc1083706c.jpg"
@@ -5707,6 +6052,7 @@
     "sha256": "6dd5d8c757fbd265d29289a621cd4eb159c57881d68d6384263cef90f2bed347",
     "size": 2295409,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.61,
     "relative": "revisar/videos/acc_5_7b9ec48e_vid_11_49f5cf3448.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_11_49f5cf3448.jpg"
@@ -5716,16 +6062,16 @@
     "name": "acc_5_7b9ec48e_vid_11_cc1083706c.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_11_cc1083706c.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Puppy approaches and pokes dog",
     "scene": "",
-    "described": false,
-    "category": "revisar",
+    "described": true,
+    "category": "defeitos",
     "subcategory": "",
     "sha256": "8f48777b767b43411e51303a3b7fb007bcf5ccd8dfa4de22e437c4096751ab88",
     "size": 643470,
     "usado_v7": false,
-    "inherited": 0.65,
-    "relative": "revisar/videos/acc_5_7b9ec48e_vid_11_cc1083706c.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_11_cc1083706c.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_11_cc1083706c.jpg"
   },
   {
@@ -5741,6 +6087,7 @@
     "sha256": "e6e568d55d71e64dc8d3aca5e2609eef6a2c0a4e5ff2248c9a60a4ac851d0c5a",
     "size": 2409455,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.72,
     "relative": "outro_desenho/videos/acc_5_7b9ec48e_vid_12_25a17d41a6.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_12_25a17d41a6.jpg"
@@ -5750,16 +6097,16 @@
     "name": "acc_5_7b9ec48e_vid_12_49f5cf3448.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_12_49f5cf3448.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Puppy diving in pink pillow",
     "scene": "",
-    "described": false,
-    "category": "revisar",
+    "described": true,
+    "category": "defeitos",
     "subcategory": "",
     "sha256": "7f66c79b254521f4137ad4243e94e45490286b48a48e0ea7c7591a8f90e270b0",
     "size": 185995,
     "usado_v7": false,
-    "inherited": 0.6,
-    "relative": "revisar/videos/acc_5_7b9ec48e_vid_12_49f5cf3448.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_12_49f5cf3448.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_12_49f5cf3448.jpg"
   },
   {
@@ -5775,6 +6122,7 @@
     "sha256": "face972ec0abddeb09f85eea0834c0281a0b9774176412ed796068ae37866b45",
     "size": 3510211,
     "usado_v7": false,
+    "duration": 7.93,
     "inherited": 0.68,
     "relative": "outro_desenho/videos/acc_5_7b9ec48e_vid_13_1ab0d26708.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_13_1ab0d26708.jpg"
@@ -5784,16 +6132,16 @@
     "name": "acc_5_7b9ec48e_vid_13_25a17d41a6.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_13_25a17d41a6.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Puppy jumping toward pink pillow",
     "scene": "",
-    "described": false,
-    "category": "praia",
-    "subcategory": "Água e ondas",
+    "described": true,
+    "category": "defeitos",
+    "subcategory": "",
     "sha256": "d06e62fcf08942499416a20a589a68d928bfdbc14042c098b11f47f9abe95f70",
     "size": 403480,
     "usado_v7": false,
-    "inherited": 0.67,
-    "relative": "praia/videos/acc_5_7b9ec48e_vid_13_25a17d41a6.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_13_25a17d41a6.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_13_25a17d41a6.jpg"
   },
   {
@@ -5801,16 +6149,16 @@
     "name": "acc_5_7b9ec48e_vid_14_1ab0d26708.mp4",
     "path": "E:\\videos\\videomaker_v2\\assets\\reference\\primeiro-dia-de-praia\\flow_all\\acc_5\\videos\\acc_5_7b9ec48e_vid_14_1ab0d26708.mp4",
     "account": "acc_5",
-    "aria": "",
+    "aria": "Dog walking and smiling",
     "scene": "",
-    "described": false,
-    "category": "praia",
-    "subcategory": "Água e ondas",
+    "described": true,
+    "category": "defeitos",
+    "subcategory": "",
     "sha256": "7d9415946767beb8a79ce71e4939d08cdd6ebba2e0f99cfcaf5cfe039ecca119",
     "size": 667688,
     "usado_v7": false,
-    "inherited": 0.67,
-    "relative": "praia/videos/acc_5_7b9ec48e_vid_14_1ab0d26708.mp4",
+    "duration": 0.0,
+    "relative": "defeitos/videos/acc_5_7b9ec48e_vid_14_1ab0d26708.mp4",
     "thumb": "thumbs/acc_5_7b9ec48e_vid_14_1ab0d26708.jpg"
   },
   {
@@ -5826,6 +6174,7 @@
     "sha256": "f3884945008c7239d4d87b430a6c2a1426349dd455ade78a89b6f76c0cd23840",
     "size": 4065972,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "boneco_palito/videos/acc_5_8a5c107a_vid_00_e32504318e.mp4",
     "thumb": "thumbs/acc_5_8a5c107a_vid_00_e32504318e.jpg"
   },
@@ -5842,6 +6191,7 @@
     "sha256": "ccc40648b21c895677fc0db1634332d10bb5324b9babef37939b4d08943e25ce",
     "size": 2823033,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "boneco_palito/videos/acc_5_8a5c107a_vid_01_22740ea43f.mp4",
     "thumb": "thumbs/acc_5_8a5c107a_vid_01_22740ea43f.jpg"
   },
@@ -5858,6 +6208,7 @@
     "sha256": "0e3737320fa14a5b0bf2cb9d55642ba3a191a014c04e4616b0a9ac7002845d2f",
     "size": 2574090,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "boneco_palito/videos/acc_5_8a5c107a_vid_02_89bdbbfbad.mp4",
     "thumb": "thumbs/acc_5_8a5c107a_vid_02_89bdbbfbad.jpg"
   },
@@ -5874,6 +6225,7 @@
     "sha256": "b884b261dbd8a27bcd7322227314229ef8e4e8c4979b1e8d9ccc9fc343ec12b1",
     "size": 1787821,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_00_1cd75544d2.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_00_1cd75544d2.jpg"
   },
@@ -5890,6 +6242,7 @@
     "sha256": "19f4e8b2fa9ba72fab5e99635fd7691faceb12f399017eea010e9fd42a039d31",
     "size": 1549919,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_01_1cd75544d2.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_01_1cd75544d2.jpg"
   },
@@ -5906,6 +6259,7 @@
     "sha256": "29b1c4403002b14045dcebb40784943d6abfd56550d3edb6330d7f454975865b",
     "size": 1098385,
     "usado_v7": false,
+    "duration": 8.0,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_02_e4afc6c158.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_02_e4afc6c158.jpg"
   },
@@ -5922,6 +6276,7 @@
     "sha256": "f4e880573b378d3f8446c772fde93dd40ffdf4aeacada38faef47dbbbefb7b6c",
     "size": 1072649,
     "usado_v7": false,
+    "duration": 8.0,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_03_e4afc6c158.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_03_e4afc6c158.jpg"
   },
@@ -5938,6 +6293,7 @@
     "sha256": "fc3edc2974306725242c64192bf9951d1cafce167dd32dc48597f0adc52026c2",
     "size": 1696089,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_04_1cd75544d2.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_04_1cd75544d2.jpg"
   },
@@ -5954,6 +6310,7 @@
     "sha256": "1e46766fc4ba5991f10abd56e86e09eed4dc57191999546aec1960df8641ce62",
     "size": 1598859,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_05_428a30231c.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_05_428a30231c.jpg"
   },
@@ -5970,6 +6327,7 @@
     "sha256": "d5e2818ba9a99937b6f07db9f01fa0cd41c04a6e851ec49cd20ed52a34a3d2e9",
     "size": 1169106,
     "usado_v7": false,
+    "duration": 8.0,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_06_e4afc6c158.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_06_e4afc6c158.jpg"
   },
@@ -5986,6 +6344,7 @@
     "sha256": "4a95cefb010b63694bf12743e5c1af7ced5382585a721ce0b4ec3036d2e21f6c",
     "size": 2542233,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_07_ee1c258886.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_07_ee1c258886.jpg"
   },
@@ -6002,6 +6361,7 @@
     "sha256": "9be9da8f1a1f9c112392cc200b07f8f9b8b68c0e913b414a309a33505c93f5d3",
     "size": 1606210,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_08_0ce43d17dd.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_08_0ce43d17dd.jpg"
   },
@@ -6018,6 +6378,7 @@
     "sha256": "75f4bcd3c72849e1fe302285c7135e2a2c9f539799d087726d8d6ce19f86d8b9",
     "size": 2020106,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_09_fb0aff0382.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_09_fb0aff0382.jpg"
   },
@@ -6034,6 +6395,7 @@
     "sha256": "63f5e210775b305037aec0d99eb87b41919591da934f2903b893e203b326bf53",
     "size": 1553515,
     "usado_v7": false,
+    "duration": 7.93,
     "relative": "humano_avatar/videos/acc_5_c8ec1267_vid_10_1cd75544d2.mp4",
     "thumb": "thumbs/acc_5_c8ec1267_vid_10_1cd75544d2.jpg"
   }

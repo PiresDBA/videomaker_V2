@@ -6,26 +6,27 @@ O inventário anterior (57 "vídeos de praia") estava **errado**: arquivos sem d
 
 | Categoria | Imagens | Vídeos | Total |
 | --- | ---: | ---: | ---: |
-| praia | 36 | 22 | 58 |
+| praia | 36 | 17 | 53 |
 | humano_avatar | 19 | 12 | 31 |
 | boneco_palito | 26 | 10 | 36 |
-| outro_desenho | 67 | 61 | 128 |
-| revisar | 103 | 15 | 118 |
+| outro_desenho | 67 | 60 | 127 |
+| revisar | 103 | 12 | 115 |
+| defeitos | 0 | 9 | 9 |
 
-**Praia utilizável: 36 fotos e 22 vídeos** (inclui a gaivota branca Guga roubando o biscoito da Luna).
+**Praia utilizável: 36 fotos e 17 vídeos** (inclui a gaivota branca Guga roubando o biscoito da Luna).
 
 ## Praia por subcategoria (filtros do carrossel)
 
 | Subcategoria | Itens |
 | --- | ---: |
-| Areia | 21 |
+| Areia | 20 |
 | Balde e brinquedos | 3 |
 | Carinho | 3 |
 | Conchas e gaivota | 6 |
 | Correndo e brincando | 2 |
 | Geral | 3 |
 | Toalha e guarda-sol | 7 |
-| Água e ondas | 13 |
+| Água e ondas | 9 |
 
 ## Arquivos
 

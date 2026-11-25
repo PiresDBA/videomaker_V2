@@ -709,6 +709,26 @@
       "cmd": "python work/gerar_listas.py",
       "mutating": false,
       "credentials": false
+    },
+    {
+      "id": "verificar_videos",
+      "path": "work/verificar_videos.py",
+      "category": "video",
+      "target": "validacao ffprobe dos videos",
+      "purpose": "Roda ffprobe em todos os videos de praia e separa os corrompidos (duracao 0) para a pasta defeitos, evitando clipes que nao abrem.",
+      "cmd": "python work/verificar_videos.py",
+      "mutating": false,
+      "credentials": false
+    },
+    {
+      "id": "roteiro_parte2",
+      "path": "work/roteiro_parte2.py",
+      "category": "roteiro",
+      "target": "roteiro da parte 2 da praia",
+      "purpose": "Gera o roteiro de 29 cenas da Parte 2 com narracao dominante, Guga (a gaivota), piadas da Frida e da Luna, SFX cartoon e encaixe de todos os videos validados.",
+      "cmd": "python work/roteiro_parte2.py",
+      "mutating": false,
+      "credentials": false
     }
   ]
 }

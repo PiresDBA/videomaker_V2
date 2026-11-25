@@ -45,7 +45,7 @@ rep.write_text('\n'.join([
     '| --- | ---: | ---: | ---: |',
     *[f"| {c} | {sum(1 for x in items if x['category']==c and x['kind']=='imagem')} "
       f"| {sum(1 for x in items if x['category']==c and x['kind']=='video')} "
-      f"| {cats[c]} |" for c in ('praia', 'humano_avatar', 'boneco_palito', 'outro_desenho', 'revisar')],
+      f"| {cats[c]} |" for c in ('praia', 'humano_avatar', 'boneco_palito', 'outro_desenho', 'revisar', 'defeitos')],
     '',
     f'**Praia utilizável: {len(imgs)} fotos e {len(vids)} vídeos** '
     f'(inclui a gaivota branca Guga roubando o biscoito da Luna).', '',

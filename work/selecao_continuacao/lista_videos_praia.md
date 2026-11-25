@@ -1,6 +1,6 @@
 # Vídeos de praia — clicáveis
 
-Total: **22** itens de praia para a continuação.
+Total: **17** itens de praia para a continuação.
 
 | # | Descrição | Categoria | Arquivo (clique para abrir) |
 | ---: | --- | --- | --- |
@@ -18,11 +18,6 @@ Total: **22** itens de praia para a continuação.
 | 12 | Puppy posing before ocean wave | Água e ondas | [▶ acc_4_7a6465b6_vid_02_e091a542d1.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_4_7a6465b6_vid_02_e091a542d1.mp4) |
 | 13 | Puppies reacting to ocean wave | Água e ondas | [▶ acc_4_7a6465b6_vid_03_2c733ac6df.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_4_7a6465b6_vid_03_2c733ac6df.mp4) |
 | 14 | Puppy licking sand on beach | Areia | [▶ acc_4_7a6465b6_vid_04_8620de26ca.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_4_7a6465b6_vid_04_8620de26ca.mp4) |
-| 15 | acc_5_7b9ec48e_vid_01_6a9e6af36c.mp4 | Areia | [▶ acc_5_7b9ec48e_vid_01_6a9e6af36c.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_01_6a9e6af36c.mp4) |
+| 15 | acc_5_7b9ec48e_vid_00_6a9e6af36c.mp4 | Água e ondas | [▶ acc_5_7b9ec48e_vid_00_6a9e6af36c.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_00_6a9e6af36c.mp4) |
 | 16 | acc_5_7b9ec48e_vid_02_b88e4ae3e4.mp4 | Água e ondas | [▶ acc_5_7b9ec48e_vid_02_b88e4ae3e4.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_02_b88e4ae3e4.mp4) |
 | 17 | Puppy shaking water on friend | Água e ondas | [▶ acc_5_7b9ec48e_vid_03_b88e4ae3e4.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_03_b88e4ae3e4.mp4) |
-| 18 | acc_5_7b9ec48e_vid_04_b88e4ae3e4.mp4 | Água e ondas | [▶ acc_5_7b9ec48e_vid_04_b88e4ae3e4.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_04_b88e4ae3e4.mp4) |
-| 19 | acc_5_7b9ec48e_vid_09_dfbf643e8e.mp4 | Água e ondas | [▶ acc_5_7b9ec48e_vid_09_dfbf643e8e.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_09_dfbf643e8e.mp4) |
-| 20 | acc_5_7b9ec48e_vid_10_b0356f7f66.mp4 | Água e ondas | [▶ acc_5_7b9ec48e_vid_10_b0356f7f66.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_10_b0356f7f66.mp4) |
-| 21 | acc_5_7b9ec48e_vid_13_25a17d41a6.mp4 | Água e ondas | [▶ acc_5_7b9ec48e_vid_13_25a17d41a6.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_13_25a17d41a6.mp4) |
-| 22 | acc_5_7b9ec48e_vid_14_1ab0d26708.mp4 | Água e ondas | [▶ acc_5_7b9ec48e_vid_14_1ab0d26708.mp4](file:///E:/videos/videomaker_v2/work/selecao_continuacao/praia/videos/acc_5_7b9ec48e_vid_14_1ab0d26708.mp4) |
