@@ -36,6 +36,15 @@ EARSHOT_DEFAULTS = {
     "shutter": ("ui_pop/soft", None),
 }
 
+# Termos "cartoon *" que nao casam 1:1 com o Freesound — apontamos para a
+# gravação real correta (ja cacheadas em assets/sfx_cache).
+FREESOUND_ALIASES: dict[str, str] = {
+    "cartoon fanfare": "tada fanfare",
+    "cartoon giggle": "cartoon giggle",
+    "cartoon laugh track": "cartoon laugh track",
+    "xylophone cartoon": "xylophone cartoon",
+}
+
 # Regra 16: ate 3 foleys cartoon por cena, colados no instante da piada.
 MAX_COMEDY_FOLEYS = 3
 
@@ -158,7 +167,8 @@ def resolve_sfx_file(sfx_hint: str | None) -> tuple[Path | None, str]:
             return obter_efeito_sonoro(eid, origem="earshot"), "earshot"
 
     try:
-        return obter_efeito_sonoro(hint, origem="freesound", max_duracao=3.5), "freesound"
+        query = FREESOUND_ALIASES.get(low, hint)
+        return obter_efeito_sonoro(query, origem="freesound", max_duracao=3.5), "freesound"
     except Exception:
         return obter_efeito_sonoro("ui_pop/soft", origem="earshot"), "earshot_fallback"
 
