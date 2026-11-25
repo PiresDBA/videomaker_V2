@@ -95,3 +95,4 @@ python E:\videos\videomaker_v2\tests\test_pipeline_v2.py
 | `python -m unittest tests.test_pipeline_v2 -k narration` | Teste da narração dominante. |
 | `python work/publish_v7.py` | Publica no YouTube PT-BR só se a auditoria aprovou (todo público). |
 | `python work/upload_thumb_v7.py` | Envia a thumbnail viral do episódio já publicado. |
+| `python work/relatorio_aproveitamento_v7.py` | Inventário: gerados × usados, com descrição dos descartados. |
