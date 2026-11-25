@@ -113,6 +113,8 @@ def build_pacing_plan(
                 "end": round(sub_start + dur_this, 3),
                 "ken_burns": kb_preset,
                 "variant": variant,
+                # Stop-motion: cena com image_sequence (quadros progressivos diferentes).
+                "stop_motion": is_sequence,
                 "scene_audio_start": round(cursor, 3),
                 "scene_audio_dur": audio_dur,
                 "wav_path": t_info["wav_path"],

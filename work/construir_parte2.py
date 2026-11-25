@@ -51,10 +51,8 @@ STORY: list[tuple[str, str, str, str, str, str]] = [
      'cartoon boing', 'Luna coberta de espuma branca de protetor.', 'image', 'luna_espuma'),
     ('narrador', 'Depois da bagunça, as duas pegaram o balde amarelo para começar a obra de areia.',
      'cartoon fanfare', 'Um balde amarelo de plástico na areia.', 'image', 'bucket'),
-    ('narrador', 'A Luna cavou tanto que desapareceu dentro do buraco, e só o rabinho ficou de fora.',
+    ('narrador', 'A Luna cavou tanto que desapareceu dentro do buraco, e só o rabinho ficou de fora, balançando para chamar a Frida.',
      'cartoon boing', 'Luna enterrada na areia até o pescoço.', 'image', 'luna_enterrada'),
-    ('frida', 'Luna, cadê você? Eu só tô vendo um rabinho balançando no meio da areia!',
-     'cartoon giggle', 'Luna enterrada na areia, só a cabeça e o rabo aparecendo.', 'image', 'luna_enterrada'),
     ('narrador', 'De repente, uma sombra branca passou por cima delas e pousou bem na frente das duas.',
      'cartoon bird whistle', 'Uma gaivota branca fofa pousando na areia.', 'image', 'guga_portrait'),
     ('narrador', 'Era a Guga, uma gaivota branca e fofinha, com olho de quem já sabia onde estava a sacola de biscoito.',
@@ -69,7 +67,7 @@ STORY: list[tuple[str, str, str, str, str, str]] = [
      'cartoon run', 'Cachorrinhas correndo e pulando na praia ensolarada.', 'video', 'jump_sunny'),
     ('narrador', 'A Guga pousou na beira da água e ficou olhando as duas, como quem diz: me pega se conseguir!',
      'cartoon bird whistle', 'Guga parada na beira da água.', 'image', 'guga'),
-    ('luna', 'Guga, me devolve! Eu divido o biscoito, prometo... metade!',
+    ('luna', 'Ei, gaivota! Metade do lanchinho é seu, prometo!',
      'cartoon giggle', 'Luna chamando a gaivota de volta.', 'image', 'guga_cookie'),
     ('narrador', 'A Frida apontou para o mar e teve uma ideia: usar a onda como armadilha.',
      'cartoon fanfare', 'Frida apontando para o oceano.', 'video', 'point_ocean'),
@@ -79,11 +77,11 @@ STORY: list[tuple[str, str, str, str, str, str]] = [
      'cartoon splash', 'Uma onda grande chegando perto das cachorrinhas.', 'video', 'react_wave'),
     ('narrador', 'A Guga voou na hora... mas soltou o biscoito, que caiu na areia molhada.',
      'cartoon bird whistle', 'A gaivota voando e soltando o biscoito.', 'image', 'guga_biscuit'),
-    ('luna', 'Achei! Tá molhado, mas é meu... agora o biscoito virou biscoito de mar!',
+    ('luna', 'Achei o lanche! Está molhado, mas é meu!',
      'cartoon giggle', 'Guga e o biscoito molhado na areia.', 'image', 'guga_biscuit'),
     ('narrador', 'E no meio da correria, a Luna viu uma concha rosa brilhando na areia, e ficou com os olhos acesos.',
      'cartoon fanfare', 'Frida e Luna com a concha rosa na areia.', 'image', 'concha_rosa'),
-    ('luna', 'Olha que concha linda! Parece que ela guarda o barulhinho do mar lá dentro!',
+    ('luna', 'Olha que concha linda! Parece que ela guarda o mar lá dentro!',
      'cartoon fanfare', 'Luna lambendo a concha rosa com cara de surpresa.', 'image', 'concha_lambida'),
     ('narrador', 'Era uma concha cantora: quando a Luna encostou a orelha, ela ouviu o mar inteiro lá dentro.',
      'cartoon fanfare', 'Uma concha cantora retratada de perto.', 'image', 'concha_portrait'),
@@ -95,11 +93,11 @@ STORY: list[tuple[str, str, str, str, str, str]] = [
      'cartoon fanfare', 'As duas se secando na toalha colorida.', 'image', 'towel_slide'),
     ('narrador', 'A Guga voltou, pousou devagar e deixou o biscoito molhado bem na frente da Luna.',
      'cartoon bird whistle', 'A gaivota devolvendo o biscoito.', 'image', 'guga_cookie'),
-    ('luna', 'Valeu, Guga! Você devolveu meu biscoito... acho que agora a gente é amiga!',
+    ('luna', 'Obrigada! Agora somos amigas!',
      'cartoon giggle', 'Luna feliz com o biscoito de volta.', 'image', 'guga_cookie'),
     ('narrador', 'No fim, as três sentaram juntinhas na areia: duas cachorrinhas e uma gaivota, dividindo o lanche.',
      'cartoon fanfare', 'Duas cachorrinhas se abraçando na praia com a gaivota por perto.', 'image', 'hug'),
-    ('frida', 'Quem diria, uma gaivota virou nossa amiga no nosso dia de praia!',
+    ('frida', 'Quem diria! Uma gaivota virou nossa amiga!',
      'cartoon fanfare', 'Cachorrinhas se abraçando com carinho.', 'image', 'hug'),
     ('narrador', 'O sol foi descendo devagar, pintando o mar de dourado e laranja, e a praia ficou quietinha, só com o barulho das ondas.',
      'cartoon fanfare', 'Frida e Luna abraçadas na areia ao pôr do sol.', 'image', 'abraco_sunset'),
@@ -304,18 +302,19 @@ def main() -> int:
                     if not dst.exists():
                         shutil.copy2(src, dst)
         elif a['image']:
+            # Regra 28: cena parada = MESMA imagem base em todas as partes (p1..p5),
+            # com Ken Burns + dissolve longo. Copiamos a imagem para cada parte.
+            src = None
             x = sel_by_name.get(a['image'])
             if x:
                 src = SEL / x['relative']
-                dst = PROJ / 'assets' / 'images' / f'{sid}_p1.jpg'
-                if src.exists() and not dst.exists():
-                    shutil.copy2(src, dst)
             elif a['image'] in amp:
-                # imagem do pool ampliado (v7/concha) — caminho absoluto
                 src = Path(amp[a['image']]['path'])
-                dst = PROJ / 'assets' / 'images' / f'{sid}_p1.jpg'
-                if src.exists() and not dst.exists():
-                    shutil.copy2(src, dst)
+            if src and src.exists():
+                for pidx in range(1, 6):
+                    dst = PROJ / 'assets' / 'images' / f'{sid}_p{pidx}.jpg'
+                    if not dst.exists():
+                        shutil.copy2(src, dst)
 
     # retrato da Guga (personagem recorrente)
     guga_src = ROOT / 'assets' / 'reference' / 'primeiro-dia-de-praia' / 'flow_all' / \

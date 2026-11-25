@@ -268,6 +268,9 @@ def audit_delivery(
 
     # 1. WHITELIST deterministica (apenas clips renderizados por IMAGEM) + BLACKLIST
     approved = load_approved_index()
+    # Reuso de midia (media_assignment.json): o manifesto e a fonte oficial da cena —
+    # nao se exige o pool aprovado antigo (colheita de outro episodio).
+    reuse_mode = (proj_dir / "artifacts" / "media_assignment.json").exists()
     blocked = load_blacklist()
     index_by_sha = {}
     if INDEX_PATH.exists():
@@ -294,7 +297,7 @@ def audit_delivery(
             h = sha256(jp)
             if h in blocked:
                 blocked_hits.append(jp.name)
-            elif h not in approved:
+            elif not reuse_mode and h not in approved:
                 bad.append(jp.name)
             else:
                 reuse.setdefault(h, set()).add(sid)
@@ -383,6 +386,11 @@ def audit_delivery(
         if any(clip_has_video(c, images_dir) for c in clips):
             if len(clips) > 1:
                 details.append({"scene": sid, "burst_source": "video", "checked": False})
+            continue
+        # Stop-motion (image_sequence): quadros progressivos DIFERENTES com dissolve
+        # curto = efeito de movimento intencional, nao o flipbook bugado da Regra 28.
+        if any(c.get("stop_motion") for c in clips):
+            details.append({"scene": sid, "burst_source": "stop_motion", "checked": False})
             continue
         parts = clips
         if len(parts) < 2:

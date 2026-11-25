@@ -124,7 +124,7 @@ def get_avatar_clips(character: str) -> dict[str, Any]:
 
 # Limites rigidos de roteiro, ritmo e YouTube Shorts
 SCRIPT_MIN_WORDS = 450
-SCRIPT_MAX_WORDS = 570
+SCRIPT_MAX_WORDS = 620
 SCRIPT_TARGET_MINUTES = (3, 4)
 CTA_TAIL_SECONDS = 10.0
 
