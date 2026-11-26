@@ -718,21 +718,26 @@ def _render_split_bottom_stage(
         visual_clips, st, dur, wav_path, fps, n_frames
     )
 
-    # Tamanho 100% estavel e generoso (sem pulos nem redimensionamento brusco)
-    card_sz = 412
+    # ZONA SEGURA (DESIGN.md): y global 1620..1920 = y local 276..576 do palco fica LIVRE
+    # (UI do YouTube Shorts/Reels/TikTok tampa essa faixa). Todo conteudo importante fica em y local <= 270.
+    SAFE_BOTTOM_LOCAL = SHORT_SPLIT_BOT_H - 300  # 576 - 300 = 276 (limite superior da zona livre)
+
+    # Card reduzido para caber inteiro acima da zona segura (cy=145, card=250 -> y 20..270)
+    card_sz = 250
     card_mask = _make_card_mask(card_sz)
     in_sz = card_sz - 2 * card_mask["margin"]
     alpha_f = (card_mask["alpha"].astype(np.float32) / 255.0)[:, :, None]
 
     bg_base = _build_bottom_playful_backdrop(w, h, variant)
-    badge_frida = _make_sticker_badge_bgra("FRIDA", (245, 158, 11), (120, 53, 15), w=210, h=56)
-    badge_luna = _make_sticker_badge_bgra("LUNA", (6, 182, 212), (22, 78, 99), w=210, h=56)
-    badge_talk_f = _make_sticker_badge_bgra("FALANDO!", (255, 77, 109), (125, 18, 48), w=196, h=48)
-    badge_talk_l = _make_sticker_badge_bgra("FALANDO!", (139, 92, 246), (62, 24, 128), w=196, h=48)
+    badge_frida = _make_sticker_badge_bgra("FRIDA", (245, 158, 11), (120, 53, 15), w=180, h=44)
+    badge_luna = _make_sticker_badge_bgra("LUNA", (6, 182, 212), (22, 78, 99), w=180, h=44)
+    badge_talk_f = _make_sticker_badge_bgra("FALANDO!", (255, 77, 109), (125, 18, 48), w=170, h=40)
+    badge_talk_l = _make_sticker_badge_bgra("FALANDO!", (139, 92, 246), (62, 24, 128), w=170, h=40)
 
+    # Estrelinhas tambem limitadas a y <= 250 (nunca na zona segura)
     sparkle_pts = [
-        (58, 126, 0.0), (540, 122, 1.3), (1022, 128, 2.5),
-        (540, 442, 0.8), (64, 470, 2.1), (1016, 468, 3.1),
+        (58, 110, 0.0), (540, 100, 1.3), (1022, 112, 2.5),
+        (540, 238, 0.8), (64, 246, 2.1), (1016, 244, 3.1),
     ]
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
@@ -798,17 +803,19 @@ def _render_split_bottom_stage(
                 cv2.line(frame, (sx, sy - rad), (sx, sy + rad), (255, 255, 255), 3, cv2.LINE_AA)
                 cv2.circle(frame, (sx, sy), max(2, rad // 3), (120, 235, 255), -1, cv2.LINE_AA)
 
-            # Posicao 100% estavel (zero trepidacao!)
-            _paste_card(frame, fr_img, 285, 296, f_turn, prof_f, (20, 215, 255))
-            _paste_card(frame, lu_img, 795, 296, l_turn, prof_l, (240, 225, 45))
+            # Posicao 100% estavel (zero trepidacao!) — tudo acima de SAFE_BOTTOM_LOCAL (y local <= 270)
+            _paste_card(frame, fr_img, 285, 145, f_turn, prof_f, (20, 215, 255))
+            _paste_card(frame, lu_img, 795, 145, l_turn, prof_l, (240, 225, 45))
 
-            _alpha_paste_bgra(frame, badge_frida, 285, 514)
-            _alpha_paste_bgra(frame, badge_luna, 795, 514)
+            # Badges de identificacao colados logo abaixo do card, ainda dentro da zona segura
+            _alpha_paste_bgra(frame, badge_frida, 285, 250)
+            _alpha_paste_bgra(frame, badge_luna, 795, 250)
 
+            # Badge FALANDO! no topo do palco (y local ~30)
             if f_turn:
-                _alpha_paste_bgra(frame, badge_talk_f, 285, 108)
+                _alpha_paste_bgra(frame, badge_talk_f, 285, 34)
             elif l_turn:
-                _alpha_paste_bgra(frame, badge_talk_l, 795, 108)
+                _alpha_paste_bgra(frame, badge_talk_l, 795, 34)
 
             vw.write(frame)
     finally:

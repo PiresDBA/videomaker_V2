@@ -112,6 +112,11 @@ def check_contract() -> list[str]:
 
     # 3c. Verifica Shorts 70/30 + sincronia labial estrita + reprodutor continuo 30fps + cortes limpos
     ms_txt = (ROOT / "core" / "motion_shorts.py").read_text(encoding="utf-8", errors="replace")
+    # HOOK zona segura: 300px do rodape livre de texto/dados (UI Shorts/Reels/TikTok)
+    if "SHORT_SAFE_BOTTOM_PX = 300" not in cfg_txt:
+        errors.append("HOOK VIOLADO: config.py SHORT_SAFE_BOTTOM_PX deve ser 300 (zona segura rodape Shorts).")
+    if "SAFE_BOTTOM_LOCAL" not in ms_txt:
+        errors.append("HOOK VIOLADO: motion_shorts.py deve respeitar SAFE_BOTTOM_LOCAL (conteudo ate y local 270).")
     if (
         "SHORT_SPLIT_TOP_RATIO = 0.70" not in ms_txt
         or "def resolve_split_avatar_states" not in ms_txt
