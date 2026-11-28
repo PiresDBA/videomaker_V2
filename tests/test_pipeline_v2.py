@@ -213,6 +213,189 @@ class TestVideomakerV2Unified(unittest.TestCase):
         self.assertNotIn("Fallback: selecionando 1a midia", fc_src)
         self.assertGreaterEqual(fc_src.count("await _wait_for_inflight_flow_generation"), 2)
 
+    def test_flow_video_failover_opens_accounts_sequentially(self):
+        """Regra 34: abre uma conta, falha, libera e so entao abre a proxima."""
+        import asyncio
+        from unittest import mock
+        import core.flow_accounts as fa
+
+        class _FakePage:
+            url = "https://flow.google.com/project/demo"
+
+            async def set_viewport_size(self, _size):
+                return None
+
+            async def evaluate(self, _script):
+                return ""
+
+        class _FakeContext:
+            pages = [_FakePage()]
+
+        class _FakeBrowser:
+            contexts = [_FakeContext()]
+
+            async def close(self):
+                return None
+
+        class _FakeChromium:
+            async def connect_over_cdp(self, _url, timeout=10000):
+                return _FakeBrowser()
+
+        class _FakePlaywright:
+            chromium = _FakeChromium()
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+        accounts = [
+            {"id": "acc_1", "cdp_port": 18800, "profile_dir": "acc_1", "enabled": True},
+            {"id": "acc_3", "cdp_port": 18802, "profile_dir": "acc_3", "enabled": True},
+        ]
+        cfg = {"accounts": accounts}
+        opened: list[str] = []
+        released: list[str] = []
+
+        def _open(account, **_kwargs):
+            opened.append(account["id"])
+            return f"http://127.0.0.1:{account['cdp_port']}"
+
+        with tempfile.TemporaryDirectory() as td, \
+             mock.patch.object(fa, "FLOW_ACCOUNT_LOCKS_DIR", Path(td) / "locks"), \
+             mock.patch.object(fa, "load_accounts_config", return_value=cfg), \
+             mock.patch.object(fa, "get_next_available_accounts", return_value=accounts), \
+             mock.patch.object(fa, "cdp_is_alive", return_value=False), \
+             mock.patch.object(fa, "ensure_account_cdp", side_effect=_open), \
+             mock.patch.object(fa, "release_account_chrome", side_effect=lambda acc, **_kw: released.append(acc["id"]) or True), \
+             mock.patch.object(fa, "log_flow_event"), \
+             mock.patch.object(fa, "ensure_flow_project", new=mock.AsyncMock()), \
+             mock.patch.object(fa, "check_needs_google_login", new=mock.AsyncMock(return_value=False)), \
+             mock.patch.object(fa, "detect_logged_email", new=mock.AsyncMock(return_value="")), \
+             mock.patch.object(fa, "check_characters_present", new=mock.AsyncMock(return_value={"Frida": True, "Luna": True})), \
+             mock.patch.object(fa, "upload_media_to_flow", new=mock.AsyncMock(return_value=True)), \
+             mock.patch.object(fa, "generate_flow_video", new=mock.AsyncMock(side_effect=[RuntimeError("Créditos insuficientes"), {"ok": True}])), \
+             mock.patch.object(fa, "mark_account_usage", return_value={"credits_used_today": 10}), \
+             mock.patch.object(fa.FlowStageWatchdog, "is_active_for_current_process", return_value=True), \
+             mock.patch("playwright.async_api.async_playwright", return_value=_FakePlaywright()):
+            result = asyncio.run(fa.generate_video_with_failover("teste", Path(td) / "sc_01.mp4"))
+
+        self.assertEqual(opened, ["acc_1", "acc_3"])
+        self.assertEqual(released, ["acc_1"])
+        self.assertEqual(result["account_id"], "acc_3")
+
+    def test_flow_chrome_release_only_owned_matching_profile(self):
+        """Nunca encerra Chrome preexistente, de outro PID ou de outro perfil/porta."""
+        import json
+        import os
+        from unittest import mock
+        import core.flow_accounts as fa
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            profile = root / "profiles" / "acc_2"
+            account = {"id": "acc_2", "cdp_port": 18801, "profile_dir": str(profile)}
+            runtime = root / "runtime"
+            runtime.mkdir()
+            record_path = runtime / "port_18801.json"
+            record = {
+                "port": 18801,
+                "profile_dir": str(profile.resolve()),
+                "browser_pid": 4321,
+                "owner_pid": os.getpid(),
+            }
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            cmdline = f'chrome.exe --remote-debugging-port=18801 --user-data-dir="{profile.resolve()}"'
+            with mock.patch.object(fa, "FLOW_RUNTIME_DIR", runtime), \
+                 mock.patch.object(fa, "FLOW_ACCOUNT_LOCKS_DIR", root / "locks"), \
+                 mock.patch.object(fa, "log_flow_event"), \
+                 mock.patch.object(fa, "_process_command_line", return_value=cmdline), \
+                 mock.patch.object(fa, "_is_pid_alive", side_effect=[True, False]), \
+                 mock.patch.object(fa.subprocess, "run") as taskkill:
+                self.assertTrue(fa.release_account_chrome(account, reason="test"))
+                taskkill.assert_called_once()
+                self.assertEqual(taskkill.call_args.args[0][:3], ["taskkill", "/PID", "4321"])
+
+            record["owner_pid"] = 999999
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            with mock.patch.object(fa, "FLOW_RUNTIME_DIR", runtime), \
+                 mock.patch.object(fa, "FLOW_ACCOUNT_LOCKS_DIR", root / "locks"), \
+                 mock.patch.object(fa, "log_flow_event"), \
+                 mock.patch.object(fa.subprocess, "run") as taskkill:
+                self.assertFalse(fa.release_account_chrome(account, reason="test"))
+                taskkill.assert_not_called()
+
+            record["owner_pid"] = os.getpid()
+            record_path.write_text(json.dumps(record), encoding="utf-8")
+            with mock.patch.object(fa, "FLOW_RUNTIME_DIR", runtime), \
+                 mock.patch.object(fa, "FLOW_ACCOUNT_LOCKS_DIR", root / "locks"), \
+                 mock.patch.object(fa, "log_flow_event"), \
+                 mock.patch.object(fa, "_is_pid_alive", return_value=True), \
+                 mock.patch.object(fa, "_process_command_line", return_value="chrome.exe --user-data-dir=outro-perfil"), \
+                 mock.patch.object(fa.subprocess, "run") as taskkill:
+                self.assertFalse(fa.release_account_chrome(account, reason="test"))
+                taskkill.assert_not_called()
+
+    def test_log_rotation_keeps_last_three_and_is_idempotent(self):
+        """Regra 34: ZIP dos antigos, copia descompactada preservada e sem duplicar arquivos."""
+        import json
+        import zipfile
+        from unittest import mock
+        import core.logging_manager as lm
+
+        with tempfile.TemporaryDirectory() as td:
+            logs = Path(td) / "logs"
+            with mock.patch.multiple(
+                lm,
+                LOG_DIR=logs,
+                PROJECT_LOG_DIR=logs / "projects",
+                ARCHIVE_LOG_DIR=logs / "archive",
+                ARCHIVE_UNPACKED_DIR=logs / "archive" / "unpacked",
+                LEGACY_LOG_DIR=logs / "legacy",
+                ROTATION_STATE_FILE=logs / "rotation_state.json",
+                FLOW_EVENTS_FILE=logs / "flow_accounts.jsonl",
+                FLOW_LOG_FILE=logs / "flow_accounts.log",
+            ):
+                for index in range(1, 6):
+                    slug = f"projeto_{index}"
+                    directory = logs / "projects" / slug
+                    directory.mkdir(parents=True)
+                    (directory / "pipeline.log").write_text(f"log {index}\n", encoding="utf-8")
+                    lm.mark_project_completed(slug)
+
+                active = sorted(p.name for p in (logs / "projects").iterdir() if p.is_dir())
+                self.assertEqual(active, ["projeto_3", "projeto_4", "projeto_5"])
+                archives_before = sorted((logs / "archive").glob("*.zip"))
+                self.assertEqual([p.name for p in archives_before], ["projeto_1.zip", "projeto_2.zip"])
+                for index in (1, 2):
+                    slug = f"projeto_{index}"
+                    backup = logs / "archive" / "unpacked" / slug / "pipeline.log"
+                    self.assertEqual(backup.read_text(encoding="utf-8"), f"log {index}\n")
+                    with zipfile.ZipFile(logs / "archive" / f"{slug}.zip") as archive:
+                        self.assertIsNone(archive.testzip())
+                        self.assertEqual(archive.read(f"{slug}/pipeline.log").decode("utf-8").splitlines(), [f"log {index}"])
+
+                lm.mark_project_completed("projeto_5")
+                lm.rotate_project_logs()
+                self.assertEqual(sorted((logs / "archive").glob("*.zip")), archives_before)
+
+                # Uma reexecucao de projeto antigo cria pacote novo sem sobrescrever
+                # o ZIP historico nem voltar a ocupar a area descompactada ativa.
+                rerun_dir = logs / "projects" / "projeto_1"
+                rerun_dir.mkdir(parents=True)
+                (rerun_dir / "pipeline_rerun.log").write_text("novo log\n", encoding="utf-8")
+                lm.mark_project_completed("projeto_1")
+                self.assertTrue((logs / "archive" / "projeto_1.zip").exists())
+                self.assertTrue((logs / "archive" / "projeto_1__2.zip").exists())
+                self.assertFalse(rerun_dir.exists())
+                self.assertEqual(
+                    (logs / "archive" / "unpacked" / "projeto_1__2" / "pipeline_rerun.log").read_text(encoding="utf-8"),
+                    "novo log\n",
+                )
+                state = json.loads((logs / "rotation_state.json").read_text(encoding="utf-8"))
+                self.assertEqual(len(state["completed_projects"]), 5)
+
     def test_e2e_unified_render_whisper_dual_avatar_and_short(self):
         """Teste real ponta a ponta: TTS + Whisper QA + Dual-Avatar + Pop ASS + 16:9 + Short 9:16."""
         tmp = Path(tempfile.mkdtemp(prefix="vm_v2_uni_"))

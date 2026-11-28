@@ -1,16 +1,17 @@
 # Videomaker v2 — Motor Único e Autocontido ("Frida & Luna")
 
-Pipeline completo e independente dentro de `E:\videos\videomaker_v2`, sem dependências externas em tempo de execução e sem alterar o repositório `PiresDBA/videomaker`.
+Pipeline completo e independente dentro da pasta `videomaker_v2`, sem dependências externas em tempo de execução e sem alterar o repositório `PiresDBA/videomaker`.
 
 ## Estrutura Integrada
 
 - `config.py` — Bíblia Visual (`VISUAL_BIBLE`), casting emocional multi-voz (`SPEAKER_VOICE_PROFILES`), limiares acústicos (`PROSODY_LIMITS`) e perfis dos avatares (`AVATAR_PROFILES`).
 - `core/script_engine.py` — Roteiros de 3 atos (450–550 palavras), gancho nos primeiros 5s, diálogo dinâmico **Frida × Luna**, direção emocional por cena (`emotion_direction`) e CTA nos últimos 10s.
-- `core/voice_studio.py` — Motor embutido de voz emocional (Gemini 2.5 Flash TTS com rotação de chaves no `.env`), normalização fonética PT-BR pré-TTS, **Portão Acústico de Prosódia** (F0 >= 8 semitons, dinâmica >= 0.25, velocidade 10.6–19.5 car/s) e **Whisper QA**.
+- `core/voice_studio.py` — Voz local **Voice Studio** como primeira opção (`Simone-feliz` / `Frida` / `Luninha`), fallback automático para **Chirp 3 HD**, normalização fonética PT-BR, **Portão Acústico de Prosódia** e **Whisper QA**. Gemini-TTS pago e Edge TTS são proibidos. Guia de emoção: [`docs_voz_studio_instruct.md`](docs_voz_studio_instruct.md).
 - `core/avatar_studio.py` — Studio Dual-PiP **Frida & Luna** (`assets/avatars/frida` e `assets/avatars/luna`) com indexação de boca em 3 níveis por RMS + gerador automático do pacote Luna (`--build-avatar luna`).
 - `core/media_studio.py` — Prompts travados na Bíblia Visual + sanitizador anti-vazamento + detector de colagens + gerador de **3 Thumbnails A/B (1280×720)** de alto CTR.
 - `core/flow_continuity.py` — Automação direta no Google Flow via Chrome CDP (`Nano Banana 2.1` 16:9 a 0 créditos e `Veo 3.1 - Lite` x1 8s a 10 créditos) com trava de continuidade de personagens (`Frida`/`Luna`) e cenário por fase de luz.
-- `core/flow_accounts.py` — Pool multi-conta (até 5 contas Google, portas `18800..18804`, limite 50 créditos/dia por conta) com failover automático e replicação de personagens/frames de continuidade entre contas (`--flow-accounts-status`, `--setup-flow-account`).
+- `core/flow_accounts.py` — Pool multi-conta (até 5 contas Google, portas `18800..18804`) com **abertura sequencial/on-demand**, failover automático, locks/watchdog e liberação segura somente dos perfis registrados pelo motor (`--flow-accounts-status`, `--setup-flow-account`).
+- `core/logging_manager.py` — Logs centrais em `logs/`, eventos de conta em `flow_accounts.jsonl` e rotação incremental/idempotente: últimos 3 projetos descompactados, antigos em ZIP + cópia preservada para limpeza manual futura.
 - `core/audio_fx.py` — Sonoplastia híbrida (`Earshot` + `Freesound` via `vendor/gerenciador_efeitos_sonoros.py` atenuada <= 0.35), trilha por Ato e mastering via `SoundCraft CLI` + `-14 LUFS`.
 - `core/motion_shorts.py` — Gerador de Shorts 9:16 (30–40s) com barra de progresso, Hook animado, legendas Pop coloridas por personagem e suporte opcional ao `Remotion` (`--short-engine remotion`).
 - `core/legacy_auditor.py` — Auditoria e importação em lote dos projetos legados (`--batch-scan`, `--legacy-dir`) reaproveitando imagens limpas e recriando apenas o necessário.
@@ -19,7 +20,13 @@ Pipeline completo e independente dentro de `E:\videos\videomaker_v2`, sem depend
 - `core/fine_audit.py` — **Auditoria fina clip-a-clip** (Regra 30): compara 2–3 frames de CADA sub-clip renderizado com o material designado (imagem do clip ou frames do vídeo da cena) e com a blacklist visual; fail-closed, gera `artifacts/fine_audit_report.json` + folha dos piores clips.
 - `core/image_assignment.py` — Atribuição determinística de imagens (Regra 27): uma base por cena, cota global `MAX_SCENE_REUSE`, nunca em cenas vizinhas, casamento por tema/palavras e bloqueio da blacklist.
 - `core/pacing_planner.py` — Ritmo por fala com **slow-motion de imagem parada** (Regra 28): mesma imagem base, Ken Burns suave e dissolve `SLOWMO_XFADE_SECONDS`; proibido flipbook de quadros curtos.
-- `core/cta_video_overlay.py` — **CTA em vídeo** (Regra 25 revisada): `like-sem-som.mp4` no meio e `like-com-som.mp4` nos últimos 10s, chroma key `colorkey=0x00FF00:0.28:0.12`, 35% da largura no terço inferior, fade 0,2s e áudio do sino a -13 dB. O overlay `.mov` antigo está vetado.
+- `core/cta_video_overlay.py` — **CTA em vídeo** (Regra 25 revisada): `like-sem-som.mp4` no meio e `like-com-som.mp4` nos últimos 10s, chroma key `colorkey=0x00FF00:0.28:0.12`, 35% da largura no terço inferior e fade 0,2s. O áudio do CTA final é sempre silenciado (`CTA_AUDIO_MUTED=True`); o overlay `.mov` antigo está vetado.
+
+## Google Flow sequencial e logs centrais (Regra 34)
+
+O pipeline não inicia as cinco contas de uma vez. Ele tenta `acc_2` primeiro para imagens, abre a conta de vídeo necessária e só passa à próxima candidata após falha, ocupação ou cota esgotada. `generate_single_veo_video(..., preferred_account_id="acc_3")` permite fixar a conta preferida por cena sem desligar o failover. `FlowAccountLock` e `FlowStageWatchdog` continuam protegendo o acesso entre processos. Ao liberar uma conta, o motor confere PID dono, perfil, porta e linha de comando; Chrome preexistente ou de outro usuário/perfil não é encerrado.
+
+As execuções ficam em `logs/projects/<slug>/` e os eventos de conta em `logs/flow_accounts.jsonl`. A cada projeto concluído inédito, `core/logging_manager.py` mantém os três últimos descompactados e cria `logs/archive/<slug>.zip` para os anteriores. A cópia descompactada também permanece em `logs/archive/unpacked/<slug>/`: a rotação não apaga nada e a exclusão futura será manual/mensal. Logs `.log` históricos da raiz são movidos uma única vez para `logs/legacy/`.
 
 ## Auditoria de áudio — os ouvidos do aplicativo
 
@@ -57,6 +64,18 @@ O que a porta reprova hoje (todas as regras são bloqueantes):
 
 A despedida canônica fica em `assets/reference/goodbye/despedida_subscribe.mp4` (sem áudio). O CTA usa os arquivos em `assets/reference/overlays/` (cópia local dos `.mp4` baixados; nunca versionados). Ver `core/cta_video_overlay.py` e o teste `python -m unittest tests.test_pipeline_v2 -k cta_video_overlay`.
 
+## Cérebro do repositório (Graphify)
+
+O grafo local é a primeira fonte de consulta sobre arquitetura e relações entre módulos. Ele fica em `graphify-out/` (ignorado pelo Git) e deve ser atualizado após cada commit de código:
+
+```powershell
+graphify update E:\videos\videomaker_v2
+graphify export wiki
+graphify query "como o Flow abre e libera contas?"
+```
+
+A atualização incremental reextrai somente arquivos novos ou modificados. O relatório `graphify-out/GRAPH_REPORT.md` e o índice `graphify-out/wiki/index.md` registram os nós, arestas, comunidades e alertas de integridade.
+
 ## Exemplos de Uso
 
 ```powershell
@@ -77,7 +96,7 @@ python E:\videos\videomaker_v2\pipeline_v2.py --flow-accounts-status
 python E:\videos\videomaker_v2\tests\test_pipeline_v2.py
 ```
 
-## Ferramentas catalogadas nesta revisão (Regras 25–30)
+## Ferramentas catalogadas nesta revisão (Regras 25–34)
 
 | Ferramenta | O que faz |
 | --- | --- |
@@ -93,6 +112,10 @@ python E:\videos\videomaker_v2\tests\test_pipeline_v2.py
 | `python -m unittest tests.test_pipeline_v2 -k image_assignment` | Teste anti-repetição/blacklist de imagens. |
 | `python -m unittest tests.test_pipeline_v2 -k slowmo` | Teste do slow-motion sem estrobo. |
 | `python -m unittest tests.test_pipeline_v2 -k narration` | Teste da narração dominante. |
+| `docs_voz_studio_instruct.md` | Guia de emoção do Voice Studio: `tags` vs `freeform`, pontuação e vozes locais. |
+| `python -m unittest tests.test_pipeline_v2 -k flow_video_failover_opens_accounts_sequentially` | Prova failover uma conta por vez. |
+| `python -m unittest tests.test_pipeline_v2 -k flow_chrome_release_only_owned_matching_profile` | Prova que só o Chrome pertencente ao motor é liberado. |
+| `python -m unittest tests.test_pipeline_v2 -k log_rotation_keeps_last_three_and_is_idempotent` | Prova os últimos 3 logs, ZIP e idempotência. |
 | `python work/publish_v7.py` | Publica no YouTube PT-BR só se a auditoria aprovou (todo público). |
 | `python work/upload_thumb_v7.py` | Envia a thumbnail viral do episódio já publicado. |
 | `python work/relatorio_aproveitamento_v7.py` | Inventário: gerados × usados, com descrição dos descartados. |

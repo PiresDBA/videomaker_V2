@@ -23,13 +23,16 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from core.flow_accounts import (  # noqa: E402
+    FlowAccountLock,
     cdp_is_alive,
     check_needs_google_login,
     detect_logged_email,
     ensure_account_cdp,
     ensure_flow_project,
     load_accounts_config,
+    release_account_chrome,
 )
+from core.logging_manager import log_flow_event  # noqa: E402
 from core.media_studio import detect_split_collage, fit_aspect_jpeg  # noqa: E402
 from core.scene_auditor import _encode_vision_jpeg_b64, _extract_video_keyframes  # noqa: E402
 from core.script_engine import _get_google_keys, normalize_script_records  # noqa: E402
@@ -467,24 +470,37 @@ async def recover_and_audit(
             if accounts_filter and acc["id"] not in accounts_filter:
                 continue
             port = int(acc["cdp_port"])
-            if not cdp_is_alive(port) and launch_closed:
-                try:
-                    ensure_account_cdp(acc, wait_s=18)
-                except Exception as exc:
-                    print(f"[RecoverFlow] Nao foi possivel abrir {acc['id']}: {exc}", flush=True)
-            if cdp_is_alive(port):
-                items = await _harvest_account_tiles(
-                    acc,
-                    cfg,
-                    work_rec / acc["id"],
-                    max_videos=max_videos,
-                    include_images=not videos_only,
-                )
-                for it in items:
-                    rp = str(Path(it["path"]).resolve())
-                    if rp not in seen_paths:
-                        seen_paths.add(rp)
-                        harvested.append(it)
+            opened_here = False
+            try:
+                with FlowAccountLock(port, slug=proj_dir.name, kind="recover", wait=False):
+                    if not cdp_is_alive(port):
+                        if not launch_closed:
+                            log_flow_event("offline_skipped", acc["id"], stage="recover", project=proj_dir.name)
+                            continue
+                        ensure_account_cdp(acc, wait_s=18, purpose="recover", project_name=proj_dir.name)
+                        opened_here = True
+                    items = await _harvest_account_tiles(
+                        acc,
+                        cfg,
+                        work_rec / acc["id"],
+                        max_videos=max_videos,
+                        include_images=not videos_only,
+                    )
+                    for it in items:
+                        rp = str(Path(it["path"]).resolve())
+                        if rp not in seen_paths:
+                            seen_paths.add(rp)
+                            harvested.append(it)
+            except Exception as exc:
+                err_low = str(exc).lower()
+                event = "busy" if any(token in err_low for token in ("em uso", "aguardando liberacao", "ocupada", "busy")) else "attempt_failed"
+                log_flow_event(event, acc["id"], stage="recover", project=proj_dir.name, error=str(exc)[:500])
+                print(f"[RecoverFlow] Falha/ocupacao em {acc['id']}: {exc}", flush=True)
+            finally:
+                # A recuperacao varre todas as contas, mas uma por vez: fecha a que
+                # abriu antes de iniciar a seguinte. Chrome preexistente e preservado.
+                if opened_here:
+                    release_account_chrome(acc, reason="recover_account_finished")
 
     # Inclui tambem videos/imagens ja baixados previamente em work/flow_recovered/<acc_id>
     if not skip_cached_work:

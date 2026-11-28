@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from config import BASE_DIR, VENDOR_DIR
+from core.logging_manager import log_flow_event
 from core.flow_continuity import (
     DEFAULT_FLOW_PROJECT_URL,
     attach_reference_from_plus,
@@ -30,6 +31,7 @@ FLOW_ACCOUNTS_STATE = BASE_DIR / "flow_accounts_state.json"
 FLOW_LEARNED_SESSIONS = BASE_DIR / "flow_learned_sessions.json"
 # Registro de projetos Flow nomeados por conta: {account_id: {project_name: url}} (Regra 24)
 FLOW_PROJECTS_REGISTRY = BASE_DIR / "flow_projects.json"
+FLOW_RUNTIME_DIR = BASE_DIR / ".chrome-flow-accounts" / "runtime"
 CHARACTERS_REF_DIR = BASE_DIR / "assets" / "reference" / "characters"
 DEFAULT_CHROME_EXE = Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
 
@@ -190,28 +192,166 @@ def cdp_is_alive(port: int) -> bool:
 
 def launch_account_chrome_blocking_daemon(account: dict[str, Any]) -> subprocess.Popen:
     """Abre instancia Chrome dedicada ao perfil/porta da conta sem matar janelas existentes."""
-    prof = Path(account["profile_dir"])
+    prof = Path(account["profile_dir"]).resolve()
     prof.mkdir(parents=True, exist_ok=True)
     port = int(account["cdp_port"])
     daemon_py = VENDOR_DIR / "chrome_cdp_daemon.py"
     return subprocess.Popen(
-        [sys.executable, str(daemon_py), str(prof), str(port)],
+        [sys.executable, str(daemon_py), str(prof), str(port), str(os.getpid())],
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
     )
 
 
-def ensure_account_cdp(account: dict[str, Any], wait_s: int = 18) -> str:
+def _runtime_record_path(port: int) -> Path:
+    return FLOW_RUNTIME_DIR / f"port_{int(port)}.json"
+
+
+def _read_runtime_record(port: int) -> dict[str, Any] | None:
+    path = _runtime_record_path(port)
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def ensure_account_cdp(
+    account: dict[str, Any],
+    wait_s: int = 18,
+    *,
+    purpose: str = "",
+    project_name: str = "",
+) -> str:
+    """Abre somente a conta solicitada, sob demanda, e registra ownership do Chrome."""
     port = int(account["cdp_port"])
-    if not cdp_is_alive(port):
+    account_id = str(account.get("id") or "")
+    if cdp_is_alive(port):
+        log_flow_event("cdp_reused", account_id, port=port, purpose=purpose, project=project_name)
+        return f"http://127.0.0.1:{port}"
+
+    log_flow_event("opening", account_id, port=port, purpose=purpose, project=project_name)
+    try:
         launch_account_chrome_blocking_daemon(account)
-        t0 = time.time()
-        while time.time() - t0 < wait_s:
-            if cdp_is_alive(port):
-                break
-            time.sleep(1.0)
+    except Exception as exc:
+        log_flow_event("open_failed", account_id, port=port, purpose=purpose, error=str(exc))
+        raise
+    t0 = time.time()
+    while time.time() - t0 < wait_s:
+        if cdp_is_alive(port):
+            break
+        time.sleep(1.0)
     if not cdp_is_alive(port):
-        raise RuntimeError(f"Chrome CDP na porta {port} ({account['id']}) nao respondeu.")
+        error = f"Chrome CDP na porta {port} ({account_id}) nao respondeu."
+        log_flow_event("open_failed", account_id, port=port, purpose=purpose, error=error)
+        raise RuntimeError(error)
+    record = _read_runtime_record(port) or {}
+    log_flow_event(
+        "opened",
+        account_id,
+        port=port,
+        purpose=purpose,
+        project=project_name,
+        browser_pid=record.get("browser_pid", ""),
+        owned_by_this_process=record.get("owner_pid") == os.getpid(),
+    )
     return f"http://127.0.0.1:{port}"
+
+
+def _process_command_line(pid: int) -> str:
+    """Le a linha de comando de um PID para nunca encerrar outro perfil/porta."""
+    if os.name == "nt":
+        command = [
+            "powershell", "-NoProfile", "-Command",
+            f"(Get-CimInstance Win32_Process -Filter \"ProcessId = {int(pid)}\").CommandLine",
+        ]
+        return subprocess.check_output(command, text=True, encoding="utf-8", errors="replace", timeout=8).strip()
+    return subprocess.check_output(["ps", "-p", str(int(pid)), "-o", "command="], text=True, timeout=8).strip()
+
+
+def _runtime_matches_account(record: dict[str, Any], account: dict[str, Any]) -> bool:
+    try:
+        if int(record.get("port") or 0) != int(account["cdp_port"]):
+            return False
+        expected_profile = str(Path(account["profile_dir"]).resolve()).lower()
+        recorded_profile = str(Path(str(record.get("profile_dir") or "")).resolve()).lower()
+        if expected_profile != recorded_profile:
+            return False
+        cmdline = _process_command_line(int(record["browser_pid"])).replace('"', "").lower()
+        port_token = f"--remote-debugging-port={int(account['cdp_port'])}"
+        profile_token = f"--user-data-dir={expected_profile}"
+        return port_token in cmdline and profile_token in cmdline
+    except Exception:
+        return False
+
+
+def release_account_chrome(account: dict[str, Any], *, reason: str = "") -> bool:
+    """Fecha apenas Chrome aberto e pertencente a este processo/perfil/porta.
+
+    Sessoes preexistentes ou de outro processo sao sempre preservadas. A checagem
+    do lock impede fechar uma conta que outro processo acabou de assumir.
+    """
+    port = int(account["cdp_port"])
+    account_id = str(account.get("id") or "")
+    lock_owner = is_flow_account_locked(port)
+    if lock_owner:
+        log_flow_event("release_skipped", account_id, port=port, reason=reason, locked_by=lock_owner.get("pid"))
+        return False
+    record = _read_runtime_record(port)
+    if not record:
+        log_flow_event("release_skipped", account_id, port=port, reason=reason, detail="no_owned_runtime")
+        return False
+    if int(record.get("owner_pid") or 0) != os.getpid():
+        log_flow_event("release_skipped", account_id, port=port, reason=reason, detail="foreign_owner")
+        return False
+    browser_pid = int(record.get("browser_pid") or 0)
+    if browser_pid <= 0 or not _is_pid_alive(browser_pid):
+        _runtime_record_path(port).unlink(missing_ok=True)
+        log_flow_event("release_skipped", account_id, port=port, reason=reason, detail="browser_already_exited")
+        return False
+    if not _runtime_matches_account(record, account):
+        log_flow_event("release_skipped", account_id, port=port, reason=reason, detail="profile_or_command_mismatch")
+        return False
+
+    log_flow_event("releasing", account_id, port=port, reason=reason, browser_pid=browser_pid)
+    try:
+        if os.name == "nt":
+            subprocess.run(["taskkill", "/PID", str(browser_pid), "/T", "/F"], capture_output=True, timeout=12)
+        else:
+            os.kill(browser_pid, 15)
+        for _ in range(20):
+            if not _is_pid_alive(browser_pid):
+                _runtime_record_path(port).unlink(missing_ok=True)
+                log_flow_event("released", account_id, port=port, reason=reason, browser_pid=browser_pid)
+                return True
+            time.sleep(0.25)
+        log_flow_event("release_failed", account_id, port=port, reason=reason, browser_pid=browser_pid)
+    except Exception as exc:
+        log_flow_event("release_failed", account_id, port=port, reason=reason, browser_pid=browser_pid, error=str(exc))
+    return False
+
+
+def release_all_owned_flow_accounts(reason: str = "flow_stage_finished") -> list[str]:
+    """Libera os Chrome dedicados abertos pelo processo atual, sem tocar em sessoes alheias."""
+    released: list[str] = []
+    if not FLOW_RUNTIME_DIR.exists():
+        return released
+    for record_path in sorted(FLOW_RUNTIME_DIR.glob("port_*.json")):
+        try:
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            account = record.get("account") or {}
+            if not account:
+                account = {
+                    "id": record.get("account_id") or record_path.stem,
+                    "cdp_port": int(record.get("port") or 0),
+                    "profile_dir": record.get("profile_dir") or "",
+                }
+            if release_account_chrome(account, reason=reason):
+                released.append(str(account.get("id") or record_path.stem))
+        except Exception:
+            continue
+    return released
 
 
 def mark_account_usage(account_id: str, credits_delta: int = 10, exhausted: bool = False, email: str = "") -> dict[str, Any]:
@@ -457,8 +597,21 @@ async def ensure_named_flow_project(page, account: dict[str, Any], cfg: dict[str
         'button:has-text("New project"), a:has-text("New project")'
     ).first
     if await new_btn.count():
-        await new_btn.click(timeout=8000)
-        await page.wait_for_timeout(3500)
+        try:
+            await new_btn.click(timeout=8000)
+            await page.wait_for_timeout(3500)
+        except Exception as exc:
+            print(f"  [FlowProject] AVISO: botao Novo projeto falhou em {account['id']}: {str(exc).splitlines()[0]}; reutilizando projeto existente.", flush=True)
+            links = await page.evaluate(
+                "() => Array.from(document.querySelectorAll('a[href*=\"/project/\"]')).map(a => a.getAttribute('href'))"
+            )
+            if links:
+                target = links[0] if links[0].startswith("http") else f"https://flow.google.com{links[0]}"
+                await page.goto(target, wait_until="domcontentloaded", timeout=30000)
+                await page.wait_for_timeout(2500)
+            elif account.get("project_url"):
+                await page.goto(account["project_url"], wait_until="domcontentloaded", timeout=30000)
+                await page.wait_for_timeout(2500)
     else:
         links = await page.evaluate(
             "() => Array.from(document.querySelectorAll('a[href*=\"/project/\"]')).map(a => a.getAttribute('href'))"
@@ -466,6 +619,9 @@ async def ensure_named_flow_project(page, account: dict[str, Any], cfg: dict[str
         if links:
             target = links[0] if links[0].startswith("http") else f"https://flow.google.com{links[0]}"
             await page.goto(target, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(2500)
+        elif account.get("project_url"):
+            await page.goto(account["project_url"], wait_until="domcontentloaded", timeout=30000)
             await page.wait_for_timeout(2500)
 
     if project_name:
@@ -739,118 +895,145 @@ async def generate_video_with_failover(
     had_non_quota_err = False
     for acc in candidates:
         port = int(acc["cdp_port"])
-        if not cdp_is_alive(port):
-            print(f"[FlowFailover] CDP :{port} ({acc['id']}) offline; pulando para proxima conta.", flush=True)
-            continue
-
-        with FlowAccountLock(port, slug=(proj_dir.name if proj_dir else "episodio"), kind="video", wait=True):
-            async with async_playwright() as pw:
-                b = await pw.chromium.connect_over_cdp(f"http://127.0.0.1:{port}", timeout=10000)
-                try:
-                    ctx = b.contexts[0]
-                    page = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
-                    await page.set_viewport_size({"width": 1600, "height": 920})
-                    await ensure_flow_project(page, acc, cfg, project_name=project_name)
-
-                    if await check_needs_google_login(page):
-                        print(f"[FlowFailover] {acc['id']} deslogada; tentando proxima conta.", flush=True)
-                        continue
-
-                    email = await detect_logged_email(page)
-                    # Verifica e garante Frida, Luna e personagens secundarios nesta conta antes do Veo
-                    present = await check_characters_present(page, required=characters)
-                    missing_chars = [c for c, ok in present.items() if not ok]
-                    if missing_chars:
-                        try:
-                            await ensure_story_characters_created(
-                                page,
-                                script_data or {},
-                                normalize_project_url(page.url) or acc.get("project_url") or page.url,
-                                portrait_dir=sec_portrait_dir,
-                            )
-                            present = await check_characters_present(page, required=characters)
-                            missing_chars = [c for c, ok in present.items() if not ok]
-                        except Exception as char_exc:
-                            print(f"[FlowFailover] Aviso ao criar personagens em {acc['id']}: {char_exc}", flush=True)
-
-                    # Anexa keyframe e eventuais retratos de fallback para personagens ausentes
-                    ref_imgs: list[str] = []
-                    keyframe_ready = False
-                    if acc["id"] == "acc_1" and keyframe_aria_on_acc1:
-                        ref_imgs.append(keyframe_aria_on_acc1)
-                        keyframe_ready = True
-                    elif keyframe_path and keyframe_path.exists():
-                        import hashlib
-                        import shutil
-                        kf_hash = hashlib.sha1(keyframe_path.read_bytes()).hexdigest()[:6]
-                        kf_unique = keyframe_path.parent / f"kf_{kf_hash}_{keyframe_path.name}"
-                        try:
-                            shutil.copy2(keyframe_path, kf_unique)
-                            if await upload_media_to_flow(page, kf_unique):
-                                ref_imgs.append(kf_unique.name)
-                                keyframe_ready = True
-                        finally:
-                            kf_unique.unlink(missing_ok=True)
-                    if keyframe_path and keyframe_path.exists() and not keyframe_ready:
-                        print(
-                            f"[FlowFailover] {acc['id']} nao conseguiu anexar o keyframe; "
-                            "pulando conta para nao gerar video com morfologia instavel.",
-                            flush=True,
-                        )
-                        continue
-
-                    # Sempre inclui a folha de referencia dupla como ancora visual extra
-                    sheet = BASE_DIR / "assets" / "reference" / "frida_luna_reference.jpg"
-                    if sheet.exists() and sheet.name not in ref_imgs and await upload_media_to_flow(page, sheet):
-                        ref_imgs.append(sheet.name)
-                    for mc in missing_chars:
-                        if mc.lower() in ("frida", "luna"):
-                            continue
-                        safe_slug = re.sub(r"[^a-z0-9]+", "_", mc.lower()).strip("_") or "personagem"
-                        sec_port = sec_portrait_dir / f"{safe_slug}_portrait.jpg"
-                        if sec_port.exists() and await upload_media_to_flow(page, sec_port):
-                            ref_imgs.append(sec_port.name)
-                    if missing_chars:
-                        print(
-                            f"[FlowFailover] {acc['id']} sem personagens na aba ({missing_chars}); "
-                            f"retratos/folha + keyframe enviados para manter continuidade.",
-                            flush=True,
-                        )
-
+        account_id = str(acc["id"])
+        failure_reason = ""
+        success = False
+        try:
+            with FlowAccountLock(port, slug=(proj_dir.name if proj_dir else "episodio"), kind="video", wait=False):
+                # Abertura sequencial: a proxima candidata so e tocada se esta falhar.
+                if not cdp_is_alive(port):
+                    ensure_account_cdp(acc, purpose="video", project_name=project_name)
+                async with async_playwright() as pw:
+                    b = await pw.chromium.connect_over_cdp(f"http://127.0.0.1:{port}", timeout=10000)
                     try:
-                        # Confere se UI ja mostra sem creditos antes de enviar
-                        res = await generate_flow_video(
-                            page,
-                            prompt=prompt,
-                            out_mp4=out_mp4,
-                            characters=tuple(c for c in characters if present.get(c, False)),
-                            ref_images=tuple(ref_imgs[:3]),
-                            video_submode="Elementos",
-                            wait_s=360,
-                        )
-                        usage = mark_account_usage(acc["id"], credits_delta=10, email=email)
-                        res["account_id"] = acc["id"]
-                        res["account_email"] = email
-                        res["credits_used_today"] = usage["credits_used_today"]
-                        return res
-                    except Exception as exc:
-                        err_txt = str(exc)
-                        # Confere texto visivel na pagina por aviso de creditos esgotados
-                        body_low = ""
+                        ctx = b.contexts[0]
+                        page = next((p for p in ctx.pages if "flow.google.com" in p.url), None) or await ctx.new_page()
+                        await page.set_viewport_size({"width": 1600, "height": 920})
+                        await ensure_flow_project(page, acc, cfg, project_name=project_name)
+
+                        if await check_needs_google_login(page):
+                            failure_reason = "logged_out"
+                            print(f"[FlowFailover] {account_id} deslogada; tentando proxima conta.", flush=True)
+                            continue
+
+                        email = await detect_logged_email(page)
+                        # Verifica e garante Frida, Luna e personagens secundarios nesta conta antes do Veo
+                        present = await check_characters_present(page, required=characters)
+                        missing_chars = [c for c, ok in present.items() if not ok]
+                        if missing_chars:
+                            try:
+                                await ensure_story_characters_created(
+                                    page,
+                                    script_data or {},
+                                    normalize_project_url(page.url) or acc.get("project_url") or page.url,
+                                    portrait_dir=sec_portrait_dir,
+                                )
+                                present = await check_characters_present(page, required=characters)
+                                missing_chars = [c for c, ok in present.items() if not ok]
+                            except Exception as char_exc:
+                                print(f"[FlowFailover] Aviso ao criar personagens em {acc['id']}: {char_exc}", flush=True)
+
+                        # Anexa keyframe e eventuais retratos de fallback para personagens ausentes
+                        ref_imgs: list[str] = []
+                        keyframe_ready = False
+                        if acc["id"] == "acc_1" and keyframe_aria_on_acc1:
+                            ref_imgs.append(keyframe_aria_on_acc1)
+                            keyframe_ready = True
+                        elif keyframe_path and keyframe_path.exists():
+                            import hashlib
+                            import shutil
+                            kf_hash = hashlib.sha1(keyframe_path.read_bytes()).hexdigest()[:6]
+                            kf_unique = keyframe_path.parent / f"kf_{kf_hash}_{keyframe_path.name}"
+                            try:
+                                shutil.copy2(keyframe_path, kf_unique)
+                                if await upload_media_to_flow(page, kf_unique):
+                                    ref_imgs.append(kf_unique.name)
+                                    keyframe_ready = True
+                            finally:
+                                kf_unique.unlink(missing_ok=True)
+                        if keyframe_path and keyframe_path.exists() and not keyframe_ready:
+                            failure_reason = "keyframe_failed"
+                            print(
+                                f"[FlowFailover] {account_id} nao conseguiu anexar o keyframe; "
+                                "pulando conta para nao gerar video com morfologia instavel.",
+                                flush=True,
+                            )
+                            continue
+
+                        # Sempre inclui a folha de referencia dupla como ancora visual extra
+                        sheet = BASE_DIR / "assets" / "reference" / "frida_luna_reference.jpg"
+                        if sheet.exists() and sheet.name not in ref_imgs and await upload_media_to_flow(page, sheet):
+                            ref_imgs.append(sheet.name)
+                        for mc in missing_chars:
+                            if mc.lower() in ("frida", "luna"):
+                                continue
+                            safe_slug = re.sub(r"[^a-z0-9]+", "_", mc.lower()).strip("_") or "personagem"
+                            sec_port = sec_portrait_dir / f"{safe_slug}_portrait.jpg"
+                            if sec_port.exists() and await upload_media_to_flow(page, sec_port):
+                                ref_imgs.append(sec_port.name)
+                        if missing_chars:
+                            print(
+                                f"[FlowFailover] {acc['id']} sem personagens na aba ({missing_chars}); "
+                                f"retratos/folha + keyframe enviados para manter continuidade.",
+                                flush=True,
+                            )
+
                         try:
-                            body_low = (await page.evaluate("() => (document.body && document.body.innerText || '').slice(0, 1800)")).lower()
-                        except Exception:
-                            pass
-                        if is_quota_error_text(err_txt) or is_quota_error_text(body_low):
-                            print(f"[FlowFailover] Cota esgotada em {acc['id']} ({email}); alternando para proxima conta...", flush=True)
-                            mark_account_usage(acc["id"], credits_delta=0, exhausted=True, email=email)
-                        else:
-                            print(f"[FlowFailover] Erro de UI/sessao em {acc['id']} ({email}): {err_txt}; tentando proxima conta...", flush=True)
-                            had_non_quota_err = True
-                        last_err = exc
-                        continue
-                finally:
-                    await b.close()
+                            # Confere se UI ja mostra sem creditos antes de enviar
+                            res = await generate_flow_video(
+                                page,
+                                prompt=prompt,
+                                out_mp4=out_mp4,
+                                characters=tuple(c for c in characters if present.get(c, False)),
+                                ref_images=tuple(ref_imgs[:3]),
+                                video_submode="Elementos",
+                                wait_s=360,
+                            )
+                            usage = mark_account_usage(account_id, credits_delta=10, email=email)
+                            res["account_id"] = account_id
+                            res["account_email"] = email
+                            res["credits_used_today"] = usage["credits_used_today"]
+                            success = True
+                            log_flow_event("video_completed", account_id, project=(proj_dir.name if proj_dir else ""), output=str(out_mp4))
+                            return res
+                        except Exception as exc:
+                            err_txt = str(exc)
+                            # Confere texto visivel na pagina por aviso de creditos esgotados
+                            body_low = ""
+                            try:
+                                body_low = (await page.evaluate("() => (document.body && document.body.innerText || '').slice(0, 1800)")).lower()
+                            except Exception:
+                                pass
+                            if is_quota_error_text(err_txt) or is_quota_error_text(body_low):
+                                failure_reason = "exhausted"
+                                print(f"[FlowFailover] Cota esgotada em {account_id} ({email}); alternando para proxima conta...", flush=True)
+                                mark_account_usage(account_id, credits_delta=0, exhausted=True, email=email)
+                            else:
+                                failure_reason = "busy" if ("ocupada" in err_txt.lower() or "busy" in err_txt.lower()) else "generation_failed"
+                                print(f"[FlowFailover] Erro de UI/sessao em {account_id} ({email}): {err_txt}; tentando proxima conta...", flush=True)
+                                had_non_quota_err = True
+                            last_err = exc
+                            continue
+                    finally:
+                        await b.close()
+                        if success and not FlowStageWatchdog.is_active_for_current_process():
+                            release_account_chrome(acc, reason="video_completed")
+        except Exception as exc:
+            err_low = str(exc).lower()
+            failure_reason = "busy" if any(token in err_low for token in ("em uso", "aguardando liberacao", "ocupada", "busy")) else "attempt_failed"
+            had_non_quota_err = True
+            last_err = exc
+            print(f"[FlowFailover] {account_id} falhou antes/depois da sessao: {exc}; tentando proxima conta...", flush=True)
+        finally:
+            if failure_reason:
+                log_flow_event(
+                    failure_reason,
+                    account_id,
+                    stage="video",
+                    project=(proj_dir.name if proj_dir else ""),
+                    error=str(last_err or "")[:500],
+                )
+                release_account_chrome(acc, reason=failure_reason)
 
     if had_non_quota_err:
         raise RuntimeError(f"Erro transitorio de UI/sessao nas contas Flow disponiveis: {last_err}")
@@ -1197,8 +1380,10 @@ async def interactive_learn_accounts_wizard(account_ids: list[str] | None = None
         print("2) Faca login na sua conta Google Flow, navegue ate um projeto (ou crie um Novo Projeto) e, se desejar, abra os personagens.")
         ans = input("3) Quando terminar esta secao, pressione [ENTER] para aprender e guardar (ou digite 'pular'/'sair'): ").strip().lower()
         if ans == "sair":
+            release_account_chrome(acc, reason="learn_account_finished")
             break
         if ans == "pular":
+            release_account_chrome(acc, reason="learn_account_skipped")
             continue
         try:
             rec = await capture_learned_session(acc["id"], auto_seed_refs=True)
@@ -1209,6 +1394,8 @@ async def interactive_learn_accounts_wizard(account_ids: list[str] | None = None
             results.append(rec)
         except Exception as exc:
             print(f"[ERRO AO APRENDER {acc['id']}] {exc} (continuando para a proxima conta)", flush=True)
+        finally:
+            release_account_chrome(acc, reason="learn_account_finished")
     return results
 
 
@@ -1260,7 +1447,7 @@ class FlowAccountLock:
     Lock por conta/porta CDP do Google Flow.
     - Para imagens (wait=False): se a conta estiver em uso por outro processo, falha instantaneamente
       para que o gerador pule imediatamente para outra conta Flow com imagem ilimitada (acc_4/acc_3/acc_2).
-    - Para videos (wait=True): aguarda a conta de video (acc_5) liberar antes de enviar Veo 3.1 Lite.
+    - Para videos (wait=False): registra a ocupacao e tenta a proxima candidata permitida, sem abrir varias contas.
     """
 
     def __init__(self, port_or_url: int | str, slug: str = "", kind: str = "image", wait: bool = False, max_wait_s: float = 900.0) -> None:
@@ -1296,12 +1483,14 @@ class FlowAccountLock:
             if not self.wait:
                 o_slug = (owner or {}).get("slug", "?")
                 o_pid = (owner or {}).get("pid", "?")
+                log_flow_event("busy", f"port_{self.port}", port=self.port, kind=self.kind, owner_pid=o_pid, owner_project=o_slug)
                 raise RuntimeError(
                     f"Conta Flow :{self.port} em uso por outro processo ({o_slug}, PID {o_pid}); alternando para outra conta."
                 )
             if (time.time() - t0) >= self.max_wait_s:
                 raise TimeoutError(f"Timeout aguardando liberacao da conta Flow :{self.port}")
             if not logged and owner:
+                log_flow_event("busy", f"port_{self.port}", port=self.port, kind=self.kind, owner_pid=owner.get("pid"), owner_project=owner.get("slug"))
                 print(
                     f"  [FlowAccountLock] Conta :{self.port} em uso por '{owner.get('slug')}' (PID {owner.get('pid')}); aguardando liberar...",
                     flush=True,
@@ -1465,6 +1654,12 @@ class FlowStageWatchdog:
         self._stop_evt = threading.Event()
         self._hb_thread: threading.Thread | None = None
         self._acquired = False
+
+    @classmethod
+    def is_active_for_current_process(cls) -> bool:
+        """Indica se esta execucao ja detem o Watchdog e pode manter contas abertas."""
+        owner = _read_watchdog_state().get("active_owner")
+        return isinstance(owner, dict) and int(owner.get("pid") or 0) == os.getpid()
 
     @classmethod
     def is_busy_by_other(cls) -> bool:
@@ -1640,6 +1835,14 @@ class FlowStageWatchdog:
             time.sleep(4.0)
 
     def release(self) -> None:
+        # Fecha as contas owned enquanto o Watchdog ainda bloqueia o proximo
+        # processo; so depois envia finished_and_notified para a fila.
+        try:
+            released = release_all_owned_flow_accounts("watchdog_finished")
+            if released:
+                log_flow_event("stage_accounts_released", stage=self.stage, project=self.slug, accounts=",".join(released))
+        except Exception:
+            pass
         self._stop_evt.set()
         try:
             st = _read_watchdog_state()

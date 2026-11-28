@@ -51,5 +51,6 @@ vendor/earshot-sfx/
 __pycache__/
 *.py[cod]
 *.log
+logs/
 .pytest_cache/
 graphify-out/

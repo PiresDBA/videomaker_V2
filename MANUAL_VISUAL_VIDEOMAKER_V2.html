@@ -456,7 +456,8 @@
       <span class="chapter-star" style="background:#f97316;">3</span>
       <h2>Capítulo 3: Central do Google Flow &amp; Contas Chrome (Incluir, Ver, Ensinar e Excluir!)</h2>
     </div>
-    <div class="speech-bubble" style="background:#fed7aa;">🚂 5 contas ligadas em sequência (`acc_1` até `acc_5`) = 250 créditos por dia sem travar!</div>
+    <div class="speech-bubble" style="background:#fed7aa;">🚂 5 contas cadastradas, abertas UMA POR VEZ: `acc_2` só imagens; `acc_1/3/4/5` só vídeos (200 créditos de Veo/dia).</div>
+    <div class="speech-bubble" style="background:#dcfce7;">🧾 Regra 34: falhas, ocupação e cota vão para <code>logs/flow_accounts.jsonl</code>; os 3 últimos projetos ficam descompactados e os antigos ganham ZIP + cópia preservada.</div>
 
     <div class="art-frame" style="background: linear-gradient(180deg, #ffedd5 0%, #fef9c3 100%); margin-bottom:18px;">
       <svg viewBox="0 0 1080 155" width="1080" height="155" xmlns="http://www.w3.org/2000/svg">
@@ -473,8 +474,8 @@
         <g transform="translate(225, 16)">
           <rect x="0" y="0" width="170" height="96" rx="18" fill="#a78bfa" stroke="#1e1b4b" stroke-width="4"/>
           <text x="85" y="28" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700">acc_2 (:18801)</text>
-          <text x="85" y="54" text-anchor="middle" font-size="13" font-weight="900">🪙 50 moedas</text>
-          <text x="85" y="78" text-anchor="middle" font-size="11.5" font-weight="800">Failover ➔</text>
+          <text x="85" y="54" text-anchor="middle" font-size="13" font-weight="900">🖼️ Imagens 0</text>
+          <text x="85" y="78" text-anchor="middle" font-size="11.5" font-weight="800">Nunca vídeo</text>
           <circle cx="38" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
           <circle cx="132" cy="104" r="10" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
         </g>
@@ -500,7 +501,7 @@
         <g transform="translate(840, 10)">
           <rect x="0" y="6" width="215" height="96" rx="18" fill="#4ade80" stroke="#1e1b4b" stroke-width="4"/>
           <text x="107" y="34" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="15" font-weight="700">acc_5 (:18804)</text>
-          <text x="107" y="58" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="13.5" font-weight="700">🏆 TOTAL = 250 / DIA</text>
+          <text x="107" y="58" text-anchor="middle" font-family="Fredoka, sans-serif" font-size="13.5" font-weight="700">🏆 VEO = 200 / DIA</text>
           <text x="107" y="82" text-anchor="middle" font-size="11.5" font-weight="900" fill="#14532d">Nano Banana = 0 | Veo = 10</text>
           <circle cx="45" cy="110" r="11" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
           <circle cx="165" cy="110" r="11" fill="#facc15" stroke="#1e1b4b" stroke-width="3"/>
@@ -736,6 +737,48 @@ C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --save
     </div>
   </section>
 
+  <!-- CAPÍTULO 11: VOICE STUDIO — COMO MANDAR EMOÇÃO -->
+  <section class="comic-panel" style="background: #fdf4ff;">
+    <div class="panel-header">
+      <span class="chapter-star" style="background:#c026d3;">11</span>
+      <h2>Capítulo 11: 🎭 O Segredo da Voz com Emoção (Voice Studio)</h2>
+    </div>
+    <div class="grid-2">
+      <div class="story-card" style="background:#fae8ff;">
+        <h3><span>🗣️ `--instruct` é o diretor</span> <span class="sticker st-purp">Regra 33</span></h3>
+        <ul class="rule-list">
+          <li><code>voicestudio speak "texto" --voice "Luninha" --instruct "..."</code> — a emoção vai no <b>--instruct</b>, nunca escrita no texto.</li>
+          <li><b>Nunca escreva "hahaha"</b>: risada é sentimento, não palavra (Remove pelo <code>normalize_phonetics_pt</code>).</li>
+          <li>Apelidos <b>Fridóca</b> e <b>Luninha</b> são canônicos — nunca troque por "Frida/Luna" para agradar o QA.</li>
+        </ul>
+      </div>
+      <div class="story-card" style="background:#d9f99d;">
+        <h3><span>🏷️ Dois vocabulários</span> <span class="sticker st-green">tags vs freeform</span></h3>
+        <ul class="rule-list">
+          <li><b>tags</b> (OmniVoice): <code>female, child, high pitch</code> — prosa é descartada!</li>
+          <li><b>freeform</b> (padrão): frase natural — é onde a emoção vive.</li>
+          <li>Emoções prontas: "voz infantil alegre, sorridente e empolgada" · "risonha, com riso contido" · "tom de espanto divertido" · "doce e carinhosa" · "calminha" · "brincalhona".</li>
+        </ul>
+      </div>
+      <div class="story-card" style="background:#ffe4e6;">
+        <h3><span>✍️ Pontuação é emoção</span> <span class="sticker st-red">Regra 32</span></h3>
+        <ul class="rule-list">
+          <li><code>!</code> sobe energia · <code>?!</code> espanto divertido · <code>.../—</code> pausa da piada · frases curtas.</li>
+          <li>Interjeição colada no apelido quebra o QA: <b>"Olha só, Fridóca!"</b> → "sofre doca". Use <b>"Olha! Fridóca, vem cá!"</b></li>
+          <li>Ritmo: Luna 1.12 · Frida 1.05 · narrador 1.10.</li>
+        </ul>
+      </div>
+      <div class="story-card" style="background:#e0f2fe;">
+        <h3><span>📖 Estudo completo</span> <span class="sticker st-blue">docs</span></h3>
+        <ul class="rule-list">
+          <li>Estudo em <code>docs_voz_studio_instruct.md</code> (catalogado no contrato, Regras 32/33).</li>
+          <li>Engines com <code>instruct_directs_delivery=True</code> (VoxCPM2) aplicam o instruct como direção de ator.</li>
+          <li>Guard verifica as regras — ninguém volta a escrever risada no texto.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <!-- CAPÍTULO 10: ZONA SEGURA DO RODAPÉ -->
   <section class="comic-panel" style="background: #ecfeff;">
     <div class="panel-header">
@@ -773,8 +816,8 @@ C:\Docling\venv\Scripts\python.exe E:\videos\videomaker_v2\pipeline_v2.py --save
         <h3><span>😄 HOOK 6 — Roteiro Engraçado</span> <span class="sticker st-red">Regra 16</span></h3>
         <ul class="rule-list">
           <li>Nada de narração de enterro! Texto com <b>interjeições, reticências e piadas</b>: "Olha só que incrível! ... você vai adorar!"</li>
-          <li>Chirp 3 HD não tem botão de emoção — a alegria vem da <b>escrita do texto</b> + <code>speakingRate 1.10</code>.</li>
-          <li>🚫 <b>Gemini-TTS PROIBIDO</b> (cobrado por token desde a 1ª chamada). Só Chirp 3 HD (1M grátis).</li>
+          <li>Voz local <b>Voice Studio</b> é a primeira opção; <code>--instruct</code> dirige a emoção. Chirp 3 HD (1M/mês) é o fallback automático.</li>
+          <li>🚫 <b>Gemini-TTS pago e Edge TTS PROIBIDOS</b>. A pontuação continua sendo o diretor da energia e das pausas.</li>
         </ul>
       </div>
       <div class="story-card" style="background:#fef3c7;">

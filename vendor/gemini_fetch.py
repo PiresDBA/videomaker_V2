@@ -720,12 +720,17 @@ async def try_download(page, btn, out_dir: Path, name: str, default_ext: str):
     return None
 
 
-async def grab_media(page, name, prompt, out_dir, wait_s, kind) -> dict:
+async def grab_media(page, name, prompt, out_dir, wait_s, kind, ref_image=None) -> dict:
     """Envia o prompt UMA vez e espera a mídia ficar pronta. Captura, em ordem de preferência:
     1) botão Baixar/Download novo na página (arquivo original);
-    2) <audio>/<video> com duração > 0 ou URL de mídia vista na rede, baixados com os cookies do Chrome."""
+    2) <audio>/<video> com duração > 0 ou URL de mídia vista na rede, baixados com os cookies do Chrome.
+    ref_image: imagem de referencia anexada ao prompt (ex.: guiar a musica pelo tema visual da cena)."""
     await open_fresh(page, kind)
     out_dir.mkdir(parents=True, exist_ok=True)
+    ref_ok = False
+    if ref_image:
+        ref_ok = await attach_reference(page, ref_image)
+        print(f"  referencia anexada: {ref_ok} ({Path(ref_image).name})", flush=True)
     default_ext = ".mp4" if kind == "video" else ".mp3"
     tags = "audio,video" if kind == "audio" else kind  # Gemini mostra música como cartão que pode ser <video>
     ok_types = ("audio/", "video/") if kind == "audio" else ("video/",)
@@ -744,7 +749,7 @@ async def grab_media(page, name, prompt, out_dir, wait_s, kind) -> dict:
 
     page.on("response", on_resp)
     try:
-        if not await submit_prompt(page, prompt):
+        if not await submit_prompt(page, prompt, clear=bool(ref_ok)):
             return {"ok": False, "error": "prompt não enviado"}
         print(f"  prompt enviado; aguardando geração (até {wait_s}s)...", flush=True)
         t0 = time.time()
@@ -844,7 +849,7 @@ async def main() -> int:
     ap.add_argument("--cdp-url", default=DEFAULT_CDP)
     ap.add_argument("--wait", type=int, default=0, help="segundos de espera por item")
     ap.add_argument("--retries", type=int, default=1)
-    ap.add_argument("--ref-image", default="", help="imagem anexada como referencia dos personagens (modo image)")
+    ap.add_argument("--ref-image", default="", help="imagem anexada como referencia visual (modos image, audio e video)")
     ap.add_argument("--pause", type=float, default=3.0)
     ap.add_argument("--check", action="store_true", help="só testa a conexão com o Chrome/Gemini")
     ap.add_argument("--login", action="store_true", help="abre o Chrome para você logar no Google (uma única vez)")
@@ -910,7 +915,8 @@ async def main() -> int:
                     elif args.kind == "text":
                         res = await grab_text(page, name, prompt, out_dir, wait_s)
                     else:
-                        res = await grab_media(page, name, prompt, out_dir, wait_s, args.kind)
+                        res = await grab_media(page, name, prompt, out_dir, wait_s, args.kind,
+                                               ref_image=(args.ref_image or None))
                 except LoginRequired as e:
                     print(f"  {e}")
                     await browser.close()

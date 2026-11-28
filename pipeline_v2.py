@@ -22,8 +22,9 @@ from config import (
 import core.pacing_planner as _pacing_mod
 import core.self_audit as _audit_mod
 from core.avatar_studio import build_luna_avatar_pack
-from core.flow_accounts import FlowStageWatchdog, cdp_is_alive, load_accounts_config
+from core.flow_accounts import FlowStageWatchdog, load_accounts_config
 from core.flow_continuity import FLOW_YOUTHFUL_PUPPY_STYLE_PREFIX
+from core.logging_manager import begin_run_logging, mark_project_completed
 from core.legacy_auditor import batch_scan_legacy_root, import_and_upgrade_legacy
 from core.media_studio import (
     generate_images_for_plan,
@@ -339,8 +340,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
 
     # 5. IMAGENS 16:9 + AUDITORIA CENA-A-CENA (Narracao x Imagem x Personagem x Objeto) + VEO 3.1 LITE (10x 8s)
     target_veo = int(getattr(args, "veo_videos", TARGET_VEO_VIDEOS) or 0)
-    flow_accounts = load_accounts_config().get("accounts", [])
-    flow_cdp_alive = any(cdp_is_alive(int(a["cdp_port"])) for a in flow_accounts)
+    flow_accounts = [a for a in load_accounts_config().get("accounts", []) if a.get("enabled", True)]
     # Detecta SEMPRE os videos Veo ja existentes para APROVEITA-LOS (Regra: nao gerar de novo).
     # `--skip-veo` so impede gerar NOVos; nunca descarta os que ja estao no disco.
     existing_veo = sorted(
@@ -373,7 +373,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
         print("[VEO] TRAVA: videos existentes detectados -> NENHUM novo video sera gerado neste episodio.", flush=True)
 
     if generate_new_veo:
-        if flow_cdp_alive:
+        if flow_accounts:
             archived_only_sids: set[str] = set()
             if not args.force and (videos_dir / "_archive").exists():
                 for ap in (videos_dir / "_archive").glob("*.mp4"):
@@ -394,13 +394,13 @@ def run_pipeline(args: argparse.Namespace) -> int:
             veo_scene_ids.update(existing_base_sids)
         elif not args.skip_images and len(existing_base_sids) < target_veo:
             raise RuntimeError(
-                f"Nenhuma conta Google Flow CDP ativa para gerar os {target_veo} videos Veo 3.1 Lite obrigatorios "
+                f"Nenhuma conta Google Flow habilitada para gerar os {target_veo} videos Veo 3.1 Lite obrigatorios "
                 f"(use --skip-veo apenas se quiser modo somente imagem)."
             )
 
     if not args.skip_images:
         recovery_rep_path = artifacts_dir / "flow_recovery_report.json"
-        if flow_cdp_alive and (args.force or not recovery_rep_path.exists()):
+        if flow_accounts and (args.force or not recovery_rep_path.exists()):
             try:
                 import asyncio as _asyncio
                 from scripts.recover_flow_media import recover_and_audit
@@ -625,6 +625,15 @@ def run_pipeline(args: argparse.Namespace) -> int:
         )
         for sr in s_recs:
             print(f"YouTube PT Short publicado: {sr['url']} | Title: {sr['title']}", flush=True)
+    if out_16_9.is_file():
+        # A conclusao e registrada depois que main fecha o log desta execucao,
+        # evitando arquivar no Windows uma pasta com arquivo ainda aberto.
+        setattr(args, "_completed_project", {
+            "slug": slug,
+            "project_dir": proj_dir,
+            "output_path": out_16_9,
+            "status": "approved",
+        })
     return 0
 
 
@@ -683,7 +692,18 @@ def main() -> int:
     ap.add_argument("--flow-account-ids", default="", help="Lista separada por virgula para aprendizado (ex: acc_2,acc_3)")
     ap.add_argument("--save-learned-session", default="", help="Captura e guarda imediatamente a sessao/cliques/projeto da conta informada")
     args = ap.parse_args()
-    return run_pipeline(args)
+    log_slug = args.slug or slugify(args.prompt or Path(args.legacy_dir or args.script_file).stem or "motor")
+    with begin_run_logging(log_slug):
+        try:
+            result = run_pipeline(args)
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            raise
+    completed = getattr(args, "_completed_project", None)
+    if isinstance(completed, dict):
+        mark_project_completed(**completed)
+    return result
 
 
 if __name__ == "__main__":

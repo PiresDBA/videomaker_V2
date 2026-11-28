@@ -20,6 +20,7 @@ REQUIRED_FILES = (
     "core/audio_fx.py",
     "core/flow_continuity.py",
     "core/flow_accounts.py",
+    "core/logging_manager.py",
     "core/script_engine.py",
     "core/viral_research.py",
     "core/youtube_publisher.py",
@@ -36,6 +37,7 @@ FORBIDDEN_STAGED_PATTERNS = (
     re.compile(r"^flow_(?:accounts(?:_state|_learned_sessions)?|projects)\.json$", re.I),
     re.compile(r"(?:^|/)\.chrome-", re.I),
     re.compile(r"^projects/", re.I),
+    re.compile(r"^logs/", re.I),
     re.compile(r"^bin/", re.I),
     re.compile(r"^vendor/(?:soundcraft|earshot-sfx)/", re.I),
     re.compile(r"\.(?:mp4|mov|mkv|avi|wav|mp3|m4a|exe|dll)$", re.I),
@@ -96,6 +98,16 @@ def check_contract() -> list[str]:
         errors.append("CONTRATO VIOLADO: ensure_story_characters_created em core/flow_accounts.py deve registrar secondary_characters e story_props.")
     if "class FlowStageWatchdog" not in fa_txt or "finished_and_notified" not in fa_txt:
         errors.append("CONTRATO VIOLADO: FlowStageWatchdog (fila FIFO + heartbeat + aviso de termino) ausente em core/flow_accounts.py.")
+    # Regra 34: Flow sequencial/on-demand e liberacao segura por ownership/perfil/porta.
+    for fa_sym in ("def ensure_account_cdp", "def release_account_chrome", "def release_all_owned_flow_accounts", "_runtime_matches_account"):
+        if fa_sym not in fa_txt:
+            errors.append(f"HOOK VIOLADO: abertura/liberacao sequencial Flow sem a trava '{fa_sym}' (Regra 34).")
+    if 'ensure_account_cdp(acc, purpose="video"' not in fa_txt:
+        errors.append("HOOK VIOLADO: failover de video deve abrir a conta sob demanda, uma por vez (Regra 34).")
+    lm_txt = (ROOT / "core" / "logging_manager.py").read_text(encoding="utf-8", errors="replace")
+    for lm_sym in ("KEEP_UNCOMPACTED_PROJECTS = 3", "def rotate_project_logs", "def mark_project_completed", "ARCHIVE_UNPACKED_DIR"):
+        if lm_sym not in lm_txt:
+            errors.append(f"HOOK VIOLADO: rotacao de logs sem a trava '{lm_sym}' (Regra 34).")
 
     # 3b. Verifica REGRA DE OURO: PROIBIDO Edge TTS em producao + trava gratuita Chirp 3 HD
     vs_txt = (ROOT / "core" / "voice_studio.py").read_text(encoding="utf-8", errors="replace")
@@ -107,6 +119,8 @@ def check_contract() -> list[str]:
     if not m_chirp_lim or int(m_chirp_lim.group(1).replace("_", "")) > 1_000_000:
         errors.append("CONTRATO VIOLADO: config.py CHIRP3_MONTHLY_CHAR_LIMIT deve ser <= 1_000_000 (franquia gratuita).")
     pipe_txt = (ROOT / "pipeline_v2.py").read_text(encoding="utf-8", errors="replace")
+    if "begin_run_logging" not in pipe_txt or "mark_project_completed" not in pipe_txt:
+        errors.append("HOOK VIOLADO: pipeline_v2.py deve integrar logs centrais e conclusao/rotacao de projetos (Regra 34).")
     if 'choices=("gemini_emotion", "edge")' in pipe_txt:
         errors.append("CONTRATO VIOLADO: pipeline_v2.py nao pode oferecer 'edge' em --tts-provider.")
 
@@ -136,6 +150,8 @@ def check_contract() -> list[str]:
     ms_media_txt = (ROOT / "core" / "media_studio.py").read_text(encoding="utf-8", errors="replace")
     if "def generate_single_veo_video" not in ms_media_txt or "veo_generation_ledger" not in ms_media_txt:
         errors.append("CONTRATO VIOLADO: core/media_studio.py deve manter generate_single_veo_video e veo_generation_ledger.")
+    if 'ensure_account_cdp(account, purpose="image"' not in ms_media_txt:
+        errors.append("HOOK VIOLADO: geracao de imagem deve abrir candidatas Flow sob demanda, uma por vez (Regra 34).")
     au_txt = (ROOT / "core" / "self_audit.py").read_text(encoding="utf-8", errors="replace")
     if "min_veo_videos" not in au_txt:
         errors.append("CONTRATO VIOLADO: min_veo_videos ausente em core/self_audit.py.")
@@ -176,6 +192,10 @@ def check_contract() -> list[str]:
     # Regra 22: earshot e os ouvidos da aplicacao — unico arbitro de audio.
     contrato_txt = (ROOT / "CONTRATO_MOTOR_V2.md").read_text(encoding="utf-8", errors="replace")
     readme_txt = (ROOT / "README.md").read_text(encoding="utf-8", errors="replace")
+    if "34. **REGRA DE OURO — Google Flow Sequencial/On-Demand + Logs Centrais sem Perda:**" not in contrato_txt:
+        errors.append("HOOK VIOLADO: Regra 34 (Flow sequencial + logs centrais) ausente do contrato.")
+    if "FLOW SEQUENCIAL + LOGS CENTRAIS (Regra 34)" not in (ROOT / "AGENTS.md").read_text(encoding="utf-8", errors="replace"):
+        errors.append("HOOK VIOLADO: Regra 34 ausente do AGENTS.md.")
     if "EARSHOT É OS OUVIDOS DA APLICAÇÃO" not in contrato_txt or "ouvidos do aplicativo" not in readme_txt.lower():
         errors.append("HOOK VIOLADO: Regra 22 (earshot como ouvidos) ausente do contrato/manual.")
     if "def run_earshot_critique" not in afx2_txt:
@@ -290,6 +310,14 @@ def check_contract() -> list[str]:
     # HOOK CRITICO DE TEXTO: risada e SENTIMENTO, nunca escrita (hahaha soa robotizado no TTS).
     if 'hahaha+|ha\\s+ha\\s+ha+' not in vs_txt:
         errors.append("HOOK VIOLADO: normalize_phonetics_pt deve remover 'hahaha' do texto antes do TTS (risada e sentimento, nunca escrita).")
+    # HOOK CTA animado (Regra 25 revisada): 2 videos de referencia reutilizaveis em TODOS os episodios.
+    cta_ref = ROOT / "assets/reference/overlays"
+    for cta_name in ("like-sem-som.mp4", "like-com-som.mp4"):
+        if not (cta_ref / cta_name).exists() and not (Path.home() / "Downloads" / cta_name).exists():
+            errors.append(f"HOOK VIOLADO: CTA animado '{cta_name}' ausente em assets/reference/overlays/ (meio/final, joinha+sino).")
+    cta_txt = (ROOT / "core/cta_video_overlay.py").read_text(encoding="utf-8", errors="replace") if (ROOT / "core/cta_video_overlay.py").exists() else ""
+    if "colorkey=0x00FF00" not in cta_txt or "CTA_AUDIO_MUTED = True" not in cta_txt:
+        errors.append("HOOK VIOLADO: cta_video_overlay deve manter chroma key 0x00FF00 sem despill e CTA_AUDIO_MUTED=True (voz tem prioridade).")
     # HOOK 7 (Regra 18): pesquisa automatica de virais por tema ESTRUTURA, nunca conteudo.
     vr_txt = (ROOT / "core" / "viral_research.py").read_text(encoding="utf-8", errors="replace")
     se_txt = (ROOT / "core" / "script_engine.py").read_text(encoding="utf-8", errors="replace")
